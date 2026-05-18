@@ -14,10 +14,11 @@ public class AgentArgs {
     }
 
     public static AgentArgs parse(String raw) {
-        if (raw == null || raw.isEmpty()) {
+        if (raw == null || raw.trim().isEmpty()) {
             return new AgentArgs("scan", new HashMap<>());
         }
-        String[] tokens = raw.split("\\s+");
+        String trimmed = raw.trim();
+        String[] tokens = trimmed.split("\\s+");
         String command = tokens[0];
         Map<String, String> options = new HashMap<>();
         for (int i = 1; i < tokens.length; i++) {
