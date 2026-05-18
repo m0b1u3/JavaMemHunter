@@ -12,9 +12,17 @@ public class AttachMain {
             new JvmProcessLister().printAll();
             return;
         }
-        // Task 4 extends: <pid> <agent-jar> <subcommand>
-        printUsage();
-        System.exit(1);
+        if (args.length < 3) {
+            printUsage();
+            System.exit(1);
+        }
+        String pid = args[0];
+        String agentJar = args[1];
+        StringBuilder agentArgs = new StringBuilder(args[2]);
+        for (int i = 3; i < args.length; i++) {
+            agentArgs.append(' ').append(args[i]);
+        }
+        new AttachExecutor().run(pid, agentJar, agentArgs.toString());
     }
 
     private static void printUsage() {
