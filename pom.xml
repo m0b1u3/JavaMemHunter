@@ -8,6 +8,8 @@
     <artifactId>memhunter-parent</artifactId>
     <version>0.1.0</version>
     <packaging>pom</packaging>
+    <name>JavaMemHunter</name>
+    <description>JVM memory hunting toolkit: attach launcher plus in-process agent for scanning live heap data.</description>
 
     <modules>
         <module>attach</module>

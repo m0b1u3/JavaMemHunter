@@ -9,4 +9,27 @@
         <version>0.1.0</version>
     </parent>
     <artifactId>memhunter-attach</artifactId>
+    <name>memhunter-attach</name>
+    <description>CLI launcher that attaches the JavaMemHunter agent to a target JVM.</description>
+
+    <properties>
+        <maven.compiler.release>11</maven.compiler.release>
+    </properties>
+
+    <build>
+        <finalName>memhunter-attach</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.memhunter.attach.AttachMain</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
