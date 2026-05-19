@@ -53,8 +53,7 @@ public class MemHunterAgent {
 
             // 4. runtime-only evaluation on tomcat-* and spring-* findings
             Object appCtx = pickFirstAppContext(tomcatServletInstances);
-            Object servletCtx = pickFirstServletContext(tomcatContexts);
-            RuntimeOnlyDetector detector = new RuntimeOnlyDetector(appCtx, servletCtx);
+            RuntimeOnlyDetector detector = new RuntimeOnlyDetector(appCtx);
             for (Finding f : all) {
                 if (f.type != null && (f.type.startsWith("tomcat-") || f.type.startsWith("spring-"))) {
                     detector.evaluate(f);
@@ -103,14 +102,6 @@ public class MemHunterAgent {
                     .equals(servlet.getClass().getName())) continue;
             Optional<Object> appCtx = ReflectUtil.tryReadField(servlet, "webApplicationContext");
             if (appCtx.isPresent()) return appCtx.get();
-        }
-        return null;
-    }
-
-    private static Object pickFirstServletContext(List<Object> tomcatContexts) {
-        for (Object ctx : tomcatContexts) {
-            Optional<Object> sc = ReflectUtil.tryInvoke(ctx, "getServletContext");
-            if (sc.isPresent()) return sc.get();
         }
         return null;
     }

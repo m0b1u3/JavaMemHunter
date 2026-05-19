@@ -18,23 +18,20 @@ public class RuntimeOnlyDetector {
     };
 
     private final Object applicationContext;
-    private final Object servletContext;
 
-    public RuntimeOnlyDetector(Object applicationContext, Object servletContext) {
+    public RuntimeOnlyDetector(Object applicationContext) {
         this.applicationContext = applicationContext;
-        this.servletContext = servletContext;
     }
 
     public void evaluate(Finding finding) {
         if (finding == null || finding.className == null) return;
         if (hasWebAnnotation(finding.className)) return;
         if (isSpringManaged(finding.className)) return;
-        if (isDeclaredInWebXml(finding.name)) return;
         finding.reasons.add("runtime-only");
         if ("low".equals(finding.level)) {
             finding.level = "suspicious";
+            finding.score = finding.score + 3;
         }
-        finding.score = finding.score + 3;
     }
 
     private boolean hasWebAnnotation(String className) {
@@ -63,19 +60,5 @@ public class RuntimeOnlyDetector {
             }
         } catch (Throwable ignored) {}
         return false;
-    }
-
-    private boolean isDeclaredInWebXml(String name) {
-        if (servletContext == null || name == null) return false;
-        try {
-            Method m = servletContext.getClass().getMethod("getFilterRegistration", String.class);
-            Object reg = m.invoke(servletContext, name);
-            if (reg != null) return true;
-            Method m2 = servletContext.getClass().getMethod("getServletRegistration", String.class);
-            Object sreg = m2.invoke(servletContext, name);
-            return sreg != null;
-        } catch (Throwable t) {
-            return false;
-        }
     }
 }

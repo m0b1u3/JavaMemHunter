@@ -22,7 +22,7 @@ class RuntimeOnlyDetectorTest {
 
     @Test
     void all_chains_miss_marks_runtime_only() {
-        RuntimeOnlyDetector det = new RuntimeOnlyDetector(null, null);
+        RuntimeOnlyDetector det = new RuntimeOnlyDetector(null);
         Finding f = sampleFinding("java.lang.String", "missing");
         det.evaluate(f);
         assertEquals("suspicious", f.level);
@@ -32,7 +32,7 @@ class RuntimeOnlyDetectorTest {
 
     @Test
     void annotation_hit_keeps_low() {
-        RuntimeOnlyDetector det = new RuntimeOnlyDetector(null, null);
+        RuntimeOnlyDetector det = new RuntimeOnlyDetector(null);
         Finding f = sampleFinding(AnnotatedSample.class.getName(), "annotated");
         det.evaluate(f);
         assertEquals("low", f.level);
@@ -44,7 +44,7 @@ class RuntimeOnlyDetectorTest {
     void spring_managed_hit_keeps_low() {
         FakeAppCtx appCtx = new FakeAppCtx();
         appCtx.beanTypes.add("java.lang.String");
-        RuntimeOnlyDetector det = new RuntimeOnlyDetector(appCtx, null);
+        RuntimeOnlyDetector det = new RuntimeOnlyDetector(appCtx);
         Finding f = sampleFinding("java.lang.String", "spring-bean");
         det.evaluate(f);
         assertEquals("low", f.level);
@@ -52,11 +52,24 @@ class RuntimeOnlyDetectorTest {
     }
 
     @Test
-    void unknown_class_does_not_throw() {
-        RuntimeOnlyDetector det = new RuntimeOnlyDetector(null, null);
+    void unknown_class_marks_runtime_only() {
+        RuntimeOnlyDetector det = new RuntimeOnlyDetector(null);
         Finding f = sampleFinding("no.such.Class", "phantom");
         det.evaluate(f);
         assertEquals("suspicious", f.level);
+        assertTrue(f.reasons.contains("runtime-only"));
+    }
+
+    @Test
+    void non_low_level_keeps_score_unchanged_but_adds_reason() {
+        RuntimeOnlyDetector det = new RuntimeOnlyDetector(null);
+        Finding f = sampleFinding("java.lang.String", "high-finding");
+        f.level = "high";
+        f.score = 10;
+        det.evaluate(f);
+        assertEquals("high", f.level);  // level not escalated (not "low")
+        assertEquals(10, f.score);       // score not bumped (gated)
+        assertTrue(f.reasons.contains("runtime-only"));
     }
 
     @javax.servlet.annotation.WebFilter("/dummy")
