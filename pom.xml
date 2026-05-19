@@ -15,6 +15,7 @@
         <module>attach</module>
         <module>agent</module>
         <module>test-target</module>
+        <module>test-target-injector</module>
     </modules>
 
     <properties>
