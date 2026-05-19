@@ -1,7 +1,9 @@
 package com.memhunter.agent.model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Finding {
 
@@ -15,4 +17,5 @@ public class Finding {
     public String classLoader;
     public List<String> reasons = new ArrayList<>();
     public String recommendation;
+    public Map<String, Object> attributes = new HashMap<>();
 }
