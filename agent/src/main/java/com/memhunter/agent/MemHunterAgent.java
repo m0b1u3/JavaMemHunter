@@ -34,7 +34,7 @@ public class MemHunterAgent {
             for (Finding f : findings) {
                 if ("critical".equals(f.level)) report.summary.critical++;
                 else if ("high".equals(f.level)) report.summary.high++;
-                else if ("suspicious".equals(f.level)) report.summary.medium++;
+                else if ("suspicious".equals(f.level)) report.summary.suspicious++;
                 else report.summary.low++;
             }
 

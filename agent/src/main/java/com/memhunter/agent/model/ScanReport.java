@@ -21,7 +21,7 @@ public class ScanReport {
         public int totalFindings;
         public int critical;
         public int high;
-        public int medium;
+        public int suspicious;
         public int low;
     }
 }
