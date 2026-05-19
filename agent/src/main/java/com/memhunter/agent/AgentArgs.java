@@ -1,12 +1,19 @@
 package com.memhunter.agent;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class AgentArgs {
 
     public final String command;
     public final Map<String, String> options;
+
+    private static final Set<String> KNOWN_OPTIONS = new HashSet<>();
+    static {
+        KNOWN_OPTIONS.add("output");
+    }
 
     private AgentArgs(String command, Map<String, String> options) {
         this.command = command;
@@ -23,11 +30,17 @@ public class AgentArgs {
         Map<String, String> options = new HashMap<>();
         for (int i = 1; i < tokens.length; i++) {
             String t = tokens[i];
+            String key = null;
             if (t.startsWith("--") && i + 1 < tokens.length && !tokens[i + 1].startsWith("--")) {
-                options.put(t.substring(2), tokens[i + 1]);
+                key = t.substring(2);
+                options.put(key, tokens[i + 1]);
                 i++;
             } else if (t.startsWith("--")) {
-                options.put(t.substring(2), "true");
+                key = t.substring(2);
+                options.put(key, "true");
+            }
+            if (key != null && !KNOWN_OPTIONS.contains(key)) {
+                System.err.println("[memhunter] warning: unknown option --" + key);
             }
         }
         return new AgentArgs(command, options);
