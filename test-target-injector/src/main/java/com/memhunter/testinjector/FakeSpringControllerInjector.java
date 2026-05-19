@@ -34,16 +34,30 @@ public class FakeSpringControllerInjector {
                     "registerHandlerMethod", Object.class, Method.class,
                     Class.forName("org.springframework.web.servlet.mvc.method.RequestMappingInfo"));
             register.setAccessible(true);
-            Object info = mapping.getClass()
-                    .getMethod("getMappingForMethod", Method.class, Class.class)
-                    .invoke(mapping, method, FakeSpringController.class);
+            Method getMappingForMethod = findDeclaredMethodInHierarchy(
+                    mapping.getClass(), "getMappingForMethod", Method.class, Class.class);
+            getMappingForMethod.setAccessible(true);
+            Object info = getMappingForMethod.invoke(mapping, method, FakeSpringController.class);
             register.invoke(mapping, bean, method, info);
         } catch (Throwable t) {
             throw new RuntimeException("inject spring controller failed", t);
         }
     }
 
-    @RestController
+    private static Method findDeclaredMethodInHierarchy(Class<?> c, String name, Class<?>... params) {
+        while (c != null) {
+            try {
+                return c.getDeclaredMethod(name, params);
+            } catch (NoSuchMethodException e) {
+                c = c.getSuperclass();
+            }
+        }
+        throw new RuntimeException("method not found: " + name);
+    }
+
+    // Intentionally NOT annotated with @RestController to prevent Spring component-scan from
+    // auto-registering it at startup. We register it manually via runtime injection — this is
+    // what real memshells do (skip the annotation processor entirely).
     public static class FakeSpringController {
         @GetMapping("/spring-fake")
         public String fake() { return "fake spring response"; }

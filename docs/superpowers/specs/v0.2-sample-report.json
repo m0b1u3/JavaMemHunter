@@ -1,0 +1,871 @@
+{
+  "scanId" : "scan-6861d07f",
+  "timestamp" : "2026-05-19T07:55:59.756Z",
+  "target" : {
+    "pid" : 19340,
+    "javaVersion" : "1.8.0_181",
+    "os" : "Windows 10"
+  },
+  "summary" : {
+    "totalFindings" : 64,
+    "critical" : 0,
+    "high" : 0,
+    "suspicious" : 21,
+    "low" : 43
+  },
+  "findings" : [ {
+    "id" : "finding-class-interceptor-dd617e3e",
+    "type" : "class-interceptor",
+    "level" : "low",
+    "score" : 3,
+    "name" : "FakeInterceptor",
+    "className" : "com.memhunter.testinjector.FakeSpringInterceptorInjector$FakeInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Interceptor" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-servlet-9f0d0f58",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 3,
+    "name" : "FakeServlet",
+    "className" : "com.memhunter.testinjector.FakeServletInjector$FakeServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Servlet" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-a1a58d72",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "FakeFilter",
+    "className" : "com.memhunter.testinjector.FakeFilterInjector$FakeFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-interceptor-fdfdb23b",
+    "type" : "class-interceptor",
+    "level" : "low",
+    "score" : 3,
+    "name" : "MappedInterceptor",
+    "className" : "org.springframework.web.servlet.handler.MappedInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Interceptor" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-interceptor-c494d95d",
+    "type" : "class-interceptor",
+    "level" : "low",
+    "score" : 3,
+    "name" : "ResourceUrlProviderExposingInterceptor",
+    "className" : "org.springframework.web.servlet.resource.ResourceUrlProviderExposingInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Interceptor" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-interceptor-efd59721",
+    "type" : "class-interceptor",
+    "level" : "low",
+    "score" : 3,
+    "name" : "ConversionServiceExposingInterceptor",
+    "className" : "org.springframework.web.servlet.handler.ConversionServiceExposingInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Interceptor" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-listenercontext-efaeae37",
+    "type" : "class-listenercontext",
+    "level" : "low",
+    "score" : 3,
+    "name" : "WsContextListener",
+    "className" : "org.apache.tomcat.websocket.server.WsContextListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-websocket-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements ListenerContext" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-listenersession-3ffb0b09",
+    "type" : "class-listenersession",
+    "level" : "low",
+    "score" : 3,
+    "name" : "WsSessionListener",
+    "className" : "org.apache.tomcat.websocket.server.WsSessionListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-websocket-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements ListenerSession" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-1b748395",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "WsFilter",
+    "className" : "org.apache.tomcat.websocket.server.WsFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-websocket-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-098aa9b5",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "GenericFilter",
+    "className" : "javax.servlet.GenericFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-valve-7c4263a9",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 3,
+    "name" : "StandardWrapperValve",
+    "className" : "org.apache.catalina.core.StandardWrapperValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Valve" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-listenercontext-8d1d05e4",
+    "type" : "class-listenercontext",
+    "level" : "low",
+    "score" : 3,
+    "name" : "ServletContextListener",
+    "className" : "javax.servlet.ServletContextListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements ListenerContext" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-listenersession-d3ec1be4",
+    "type" : "class-listenersession",
+    "level" : "low",
+    "score" : 3,
+    "name" : "HttpSessionListener",
+    "className" : "javax.servlet.http.HttpSessionListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements ListenerSession" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-valve-69c6810a",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 3,
+    "name" : "SingleSignOn",
+    "className" : "org.apache.catalina.authenticator.SingleSignOn",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Valve" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-valve-45eb1ee7",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 3,
+    "name" : "NonLoginAuthenticator",
+    "className" : "org.apache.catalina.authenticator.NonLoginAuthenticator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Valve" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-valve-4936c5f2",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 3,
+    "name" : "AuthenticatorBase",
+    "className" : "org.apache.catalina.authenticator.AuthenticatorBase",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Valve" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-valve-ec8540f8",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 3,
+    "name" : "ErrorReportValve",
+    "className" : "org.apache.catalina.valves.ErrorReportValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Valve" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-valve-02fbd3cf",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 3,
+    "name" : "StandardContextValve",
+    "className" : "org.apache.catalina.core.StandardContextValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Valve" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-valve-36527b03",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 3,
+    "name" : "StandardHostValve",
+    "className" : "org.apache.catalina.core.StandardHostValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Valve" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-valve-bcd9145c",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 3,
+    "name" : "StandardEngineValve",
+    "className" : "org.apache.catalina.core.StandardEngineValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Valve" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-valve-36d19b6f",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 3,
+    "name" : "ValveBase",
+    "className" : "org.apache.catalina.valves.ValveBase",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Valve" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-valve-e566eeb6",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 3,
+    "name" : "Valve",
+    "className" : "org.apache.catalina.Valve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Valve" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-a8140d05",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "OrderedCharacterEncodingFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedCharacterEncodingFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-61997247",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "OrderedFormContentFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedFormContentFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-b649ec3b",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "OrderedHiddenHttpMethodFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedHiddenHttpMethodFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-31d91cea",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "HiddenHttpMethodFilter",
+    "className" : "org.springframework.web.filter.HiddenHttpMethodFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-8826cc45",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "FormContentFilter",
+    "className" : "org.springframework.web.filter.FormContentFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-listenerrequest-65af17c6",
+    "type" : "class-listenerrequest",
+    "level" : "low",
+    "score" : 3,
+    "name" : "RequestContextListener",
+    "className" : "org.springframework.web.context.request.RequestContextListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements ListenerRequest" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-listenerrequest-08155739",
+    "type" : "class-listenerrequest",
+    "level" : "low",
+    "score" : 3,
+    "name" : "ServletRequestListener",
+    "className" : "javax.servlet.ServletRequestListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements ListenerRequest" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-f7007b37",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "OrderedRequestContextFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedRequestContextFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-90c23487",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "OrderedFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-5400328b",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "RequestContextFilter",
+    "className" : "org.springframework.web.filter.RequestContextFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-interceptor-b73e12ae",
+    "type" : "class-interceptor",
+    "level" : "low",
+    "score" : 3,
+    "name" : "HandlerInterceptor",
+    "className" : "org.springframework.web.servlet.HandlerInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Interceptor" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-bb07e383",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "CharacterEncodingFilter",
+    "className" : "org.springframework.web.filter.CharacterEncodingFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-0bb0f272",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "OncePerRequestFilter",
+    "className" : "org.springframework.web.filter.OncePerRequestFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-c0d18961",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "GenericFilterBean",
+    "className" : "org.springframework.web.filter.GenericFilterBean",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-filter-ec735662",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 3,
+    "name" : "Filter",
+    "className" : "javax.servlet.Filter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Filter" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-servlet-6a1d95bb",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 3,
+    "name" : "DispatcherServlet",
+    "className" : "org.springframework.web.servlet.DispatcherServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Servlet" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-servlet-9ab6923e",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 3,
+    "name" : "FrameworkServlet",
+    "className" : "org.springframework.web.servlet.FrameworkServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Servlet" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-servlet-3dc81b43",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 3,
+    "name" : "HttpServletBean",
+    "className" : "org.springframework.web.servlet.HttpServletBean",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Servlet" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-servlet-e94ea7de",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 3,
+    "name" : "HttpServlet",
+    "className" : "javax.servlet.http.HttpServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Servlet" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-servlet-9c26500a",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 3,
+    "name" : "GenericServlet",
+    "className" : "javax.servlet.GenericServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Servlet" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-class-servlet-6a97d3bd",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 3,
+    "name" : "Servlet",
+    "className" : "javax.servlet.Servlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements Servlet" ],
+    "recommendation" : "v0.1 informational only; review manually",
+    "attributes" : { }
+  }, {
+    "id" : "finding-tomcat-filter-fddbd280",
+    "type" : "tomcat-filter",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestContextFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedRequestContextFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Tomcat StandardContext", "runtime-only" ],
+    "recommendation" : "review whether registration source is legitimate",
+    "attributes" : {
+      "urlPatterns" : [ ],
+      "dispatcherTypes" : [ ],
+      "filterClass" : "org.springframework.boot.web.servlet.filter.OrderedRequestContextFilter",
+      "contextPath" : ""
+    }
+  }, {
+    "id" : "finding-tomcat-filter-e7d74fcf",
+    "type" : "tomcat-filter",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "Tomcat WebSocket (JSR356) Filter",
+    "className" : "org.apache.tomcat.websocket.server.WsFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-websocket-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Tomcat StandardContext", "runtime-only" ],
+    "recommendation" : "review whether registration source is legitimate",
+    "attributes" : {
+      "urlPatterns" : [ ],
+      "dispatcherTypes" : [ ],
+      "filterClass" : "org.apache.tomcat.websocket.server.WsFilter",
+      "contextPath" : ""
+    }
+  }, {
+    "id" : "finding-tomcat-filter-4d2779fd",
+    "type" : "tomcat-filter",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "characterEncodingFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedCharacterEncodingFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Tomcat StandardContext", "runtime-only" ],
+    "recommendation" : "review whether registration source is legitimate",
+    "attributes" : {
+      "urlPatterns" : [ ],
+      "dispatcherTypes" : [ ],
+      "filterClass" : "org.springframework.boot.web.servlet.filter.OrderedCharacterEncodingFilter",
+      "contextPath" : ""
+    }
+  }, {
+    "id" : "finding-tomcat-filter-210cd946",
+    "type" : "tomcat-filter",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "formContentFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedFormContentFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Tomcat StandardContext", "runtime-only" ],
+    "recommendation" : "review whether registration source is legitimate",
+    "attributes" : {
+      "urlPatterns" : [ ],
+      "dispatcherTypes" : [ ],
+      "filterClass" : "org.springframework.boot.web.servlet.filter.OrderedFormContentFilter",
+      "contextPath" : ""
+    }
+  }, {
+    "id" : "finding-tomcat-filter-518041b8",
+    "type" : "tomcat-filter",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "FakeFilter",
+    "className" : "com.memhunter.testinjector.FakeFilterInjector$FakeFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Tomcat StandardContext", "runtime-only" ],
+    "recommendation" : "review whether registration source is legitimate",
+    "attributes" : {
+      "urlPatterns" : [ ],
+      "dispatcherTypes" : [ ],
+      "filterClass" : "com.memhunter.testinjector.FakeFilterInjector$FakeFilter",
+      "contextPath" : ""
+    }
+  }, {
+    "id" : "finding-tomcat-servlet-0334f00b",
+    "type" : "tomcat-servlet",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "FakeServlet",
+    "className" : "com.memhunter.testinjector.FakeServletInjector$FakeServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered as Servlet in Tomcat StandardContext", "runtime-only" ],
+    "recommendation" : "review whether registration source is legitimate",
+    "attributes" : {
+      "loadOnStartup" : -1,
+      "mappings" : [ "/fake-api" ],
+      "servletClass" : "com.memhunter.testinjector.FakeServletInjector$FakeServlet",
+      "contextPath" : ""
+    }
+  }, {
+    "id" : "finding-tomcat-servlet-49644f89",
+    "type" : "tomcat-servlet",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "dispatcherServlet",
+    "className" : "org.springframework.web.servlet.DispatcherServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered as Servlet in Tomcat StandardContext", "runtime-only" ],
+    "recommendation" : "review whether registration source is legitimate",
+    "attributes" : {
+      "loadOnStartup" : -1,
+      "mappings" : [ "/" ],
+      "servletClass" : "org.springframework.web.servlet.DispatcherServlet",
+      "contextPath" : ""
+    }
+  }, {
+    "id" : "finding-tomcat-valve-ec98805c",
+    "type" : "tomcat-valve",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "NonLoginAuthenticator",
+    "className" : "org.apache.catalina.authenticator.NonLoginAuthenticator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered as Valve in Tomcat pipeline", "runtime-only" ],
+    "recommendation" : "review whether Valve source is legitimate",
+    "attributes" : {
+      "pipelineIndex" : 0,
+      "contextPath" : "",
+      "containerLevel" : "Context"
+    }
+  }, {
+    "id" : "finding-tomcat-valve-0f36d0b5",
+    "type" : "tomcat-valve",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "StandardContextValve",
+    "className" : "org.apache.catalina.core.StandardContextValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered as Valve in Tomcat pipeline", "runtime-only" ],
+    "recommendation" : "review whether Valve source is legitimate",
+    "attributes" : {
+      "pipelineIndex" : 1,
+      "contextPath" : "",
+      "containerLevel" : "Context"
+    }
+  }, {
+    "id" : "finding-spring-mapping-bd529cd5",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestMappingHandlerMapping#injectServlet",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{GET [/inject/servlet]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectServlet()"
+    }
+  }, {
+    "id" : "finding-spring-mapping-3670109f",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestMappingHandlerMapping#injectSpringInterceptor",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{GET [/inject/spring-interceptor]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectSpringInterceptor()"
+    }
+  }, {
+    "id" : "finding-spring-mapping-15378a76",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestMappingHandlerMapping#hello",
+    "className" : "com.memhunter.testtarget.HelloController",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/classes!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{GET [/hello]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testtarget.HelloController.hello()"
+    }
+  }, {
+    "id" : "finding-spring-mapping-6120e1df",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestMappingHandlerMapping#errorHtml",
+    "className" : "org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-autoconfigure-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{ [/error], produces [text/html]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public org.springframework.web.servlet.ModelAndView org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController.errorHtml(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)"
+    }
+  }, {
+    "id" : "finding-spring-mapping-40399094",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestMappingHandlerMapping#injectSpringMapping",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{GET [/inject/spring-mapping]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectSpringMapping()"
+    }
+  }, {
+    "id" : "finding-spring-mapping-b353801a",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestMappingHandlerMapping#injectFilter",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{GET [/inject/filter]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectFilter()"
+    }
+  }, {
+    "id" : "finding-spring-mapping-7a3d812a",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestMappingHandlerMapping#error",
+    "className" : "org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-autoconfigure-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{ [/error]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public org.springframework.http.ResponseEntity org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController.error(javax.servlet.http.HttpServletRequest)"
+    }
+  }, {
+    "id" : "finding-spring-mapping-010fa957",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestMappingHandlerMapping#fake",
+    "className" : "com.memhunter.testinjector.FakeSpringControllerInjector$FakeSpringController",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{GET [/spring-fake]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.FakeSpringControllerInjector$FakeSpringController.fake()"
+    }
+  }, {
+    "id" : "finding-spring-mapping-8b1f1881",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestMappingHandlerMapping#debugMBeans",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{GET [/debug/mbeans]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.debugMBeans() throws java.lang.Exception"
+    }
+  }, {
+    "id" : "finding-spring-interceptor-3991dd84",
+    "type" : "spring-interceptor",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "ConversionServiceExposingInterceptor",
+    "className" : "org.springframework.web.servlet.handler.ConversionServiceExposingInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered as Spring HandlerInterceptor", "runtime-only" ],
+    "recommendation" : "review whether interceptor registration is legitimate",
+    "attributes" : {
+      "order" : 0
+    }
+  }, {
+    "id" : "finding-spring-interceptor-7983f639",
+    "type" : "spring-interceptor",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "ResourceUrlProviderExposingInterceptor",
+    "className" : "org.springframework.web.servlet.resource.ResourceUrlProviderExposingInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered as Spring HandlerInterceptor", "runtime-only" ],
+    "recommendation" : "review whether interceptor registration is legitimate",
+    "attributes" : {
+      "order" : 1
+    }
+  }, {
+    "id" : "finding-spring-interceptor-2fb9e06c",
+    "type" : "spring-interceptor",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "FakeInterceptor",
+    "className" : "com.memhunter.testinjector.FakeSpringInterceptorInjector$FakeInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered as Spring HandlerInterceptor", "runtime-only" ],
+    "recommendation" : "review whether interceptor registration is legitimate",
+    "attributes" : {
+      "order" : 0
+    }
+  } ],
+  "partialErrors" : [ ]
+}
