@@ -10,6 +10,7 @@ public class ScanReport {
     public Target target = new Target();
     public Summary summary = new Summary();
     public List<Finding> findings = new ArrayList<>();
+    public List<PartialError> partialErrors = new ArrayList<>();
 
     public static class Target {
         public long pid;
@@ -23,5 +24,17 @@ public class ScanReport {
         public int high;
         public int suspicious;
         public int low;
+    }
+
+    public static class PartialError {
+        public String scanner;
+        public String reason;
+
+        public PartialError() {}
+
+        public PartialError(String scanner, String reason) {
+            this.scanner = scanner;
+            this.reason = reason;
+        }
     }
 }
