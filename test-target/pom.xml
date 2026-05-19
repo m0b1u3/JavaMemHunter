@@ -34,6 +34,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.memhunter</groupId>
+            <artifactId>memhunter-test-target-injector</artifactId>
+            <version>0.1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
