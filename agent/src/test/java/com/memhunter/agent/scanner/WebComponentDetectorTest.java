@@ -23,4 +23,23 @@ class WebComponentDetectorTest {
     void detects_javax_filter() {
         assertEquals("Filter", WebComponentDetector.classify(FakeFilter.class));
     }
+
+    interface FakeRequestListener extends javax.servlet.ServletRequestListener {}
+    interface FakeContextListener extends javax.servlet.ServletContextListener {}
+    interface FakeSessionListener extends javax.servlet.http.HttpSessionListener {}
+
+    @Test
+    void detects_request_listener() {
+        assertEquals("ListenerRequest", WebComponentDetector.classify(FakeRequestListener.class));
+    }
+
+    @Test
+    void detects_context_listener() {
+        assertEquals("ListenerContext", WebComponentDetector.classify(FakeContextListener.class));
+    }
+
+    @Test
+    void detects_session_listener() {
+        assertEquals("ListenerSession", WebComponentDetector.classify(FakeSessionListener.class));
+    }
 }

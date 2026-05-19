@@ -1,5 +1,10 @@
 package com.memhunter.agent.scanner;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
+
 public final class WebComponentDetector {
 
     private static final String[] INTERFACES = new String[] {
@@ -19,10 +24,6 @@ public final class WebComponentDetector {
 
     private WebComponentDetector() {}
 
-    /**
-     * @return Web component short name ("Filter" / "Servlet" / "Listener" / "Valve" / "Interceptor"),
-     *         or null if no known interface is implemented.
-     */
     public static String classify(Class<?> clazz) {
         if (clazz == null) return null;
         for (String iface : INTERFACES) {
@@ -34,21 +35,25 @@ public final class WebComponentDetector {
     }
 
     private static boolean implementsInterface(Class<?> clazz, String ifaceName) {
-        Class<?> c = clazz;
-        while (c != null) {
-            for (Class<?> i : c.getInterfaces()) {
-                if (i.getName().equals(ifaceName)) return true;
-                if (implementsInterface(i, ifaceName)) return true;
-            }
-            c = c.getSuperclass();
+        Set<Class<?>> visited = new HashSet<>();
+        Deque<Class<?>> queue = new ArrayDeque<>();
+        queue.add(clazz);
+        while (!queue.isEmpty()) {
+            Class<?> c = queue.poll();
+            if (c == null || !visited.add(c)) continue;
+            if (c.getName().equals(ifaceName)) return true;
+            for (Class<?> i : c.getInterfaces()) queue.add(i);
+            if (c.getSuperclass() != null) queue.add(c.getSuperclass());
         }
         return false;
     }
 
     private static String shortName(String ifaceName) {
+        if (ifaceName.endsWith(".ServletRequestListener")) return "ListenerRequest";
+        if (ifaceName.endsWith(".ServletContextListener")) return "ListenerContext";
+        if (ifaceName.endsWith(".HttpSessionListener")) return "ListenerSession";
         if (ifaceName.endsWith(".Filter")) return "Filter";
         if (ifaceName.endsWith(".Servlet")) return "Servlet";
-        if (ifaceName.contains("Listener")) return "Listener";
         if (ifaceName.endsWith(".Valve")) return "Valve";
         if (ifaceName.endsWith(".HandlerInterceptor")) return "Interceptor";
         return ifaceName;
