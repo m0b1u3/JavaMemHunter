@@ -65,10 +65,6 @@ public class TomcatServletScanner {
             f.classLoader = clName(instance.get().getClass().getClassLoader());
         }
 
-        f.reasons.add("registered as Servlet in Tomcat StandardContext");
-        f.level = "low";
-        f.score = 3;
-        f.recommendation = "review whether registration source is legitimate";
         f.id = FindingIdGenerator.generate(TYPE, f.className == null ? "" : f.className,
                 f.name == null ? "" : f.name);
         return f;

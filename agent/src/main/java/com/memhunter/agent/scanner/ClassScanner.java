@@ -33,16 +33,6 @@ public class ClassScanner {
                     ? "bootstrap"
                     : clazz.getClassLoader().getClass().getName();
             f.id = FindingIdGenerator.generate(f.type, f.className, "");
-            f.reasons.add("implements " + type);
-            if (f.codeSource == null) {
-                f.reasons.add("codeSource is null");
-                f.score = 6;
-                f.level = "suspicious";
-            } else {
-                f.score = 3;
-                f.level = "low";
-            }
-            f.recommendation = "v0.1 informational only; review manually";
             findings.add(f);
         }
         return findings;

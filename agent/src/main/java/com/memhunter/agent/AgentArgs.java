@@ -13,6 +13,8 @@ public class AgentArgs {
     private static final Set<String> KNOWN_OPTIONS = new HashSet<>();
     static {
         KNOWN_OPTIONS.add("output");
+        KNOWN_OPTIONS.add("whitelist");
+        KNOWN_OPTIONS.add("explain");
     }
 
     private AgentArgs(String command, Map<String, String> options) {

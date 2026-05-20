@@ -1,5 +1,7 @@
 package com.memhunter.agent.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,4 +20,19 @@ public class Finding {
     public List<String> reasons = new ArrayList<>();
     public String recommendation;
     public Map<String, Object> attributes = new HashMap<>();
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public List<RuleHit> ruleHits;
+
+    public static class RuleHit {
+        public String rule;
+        public int delta;
+
+        public RuleHit() {}
+
+        public RuleHit(String rule, int delta) {
+            this.rule = rule;
+            this.delta = delta;
+        }
+    }
 }

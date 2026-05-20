@@ -1719,24 +1719,24 @@ public class CleanPlan {
 - 枚举 Valve
 - 输出风险评分
 
-### v0.3：Spring 扫描
+### v0.3：评分规则引擎与白名单（已完成）
 
 目标：
 
-- 定位 ApplicationContext
-- 枚举 HandlerMapping
-- 枚举 HandlerMethod
-- 枚举 Interceptor
-- 枚举可疑 Bean
+- 12 条评分规则统一接管 score/level/reasons
+- 内置 framework / APM / CodeSource 白名单
+- 支持 `--whitelist <file>` 用户追加白名单
+- 支持 `--explain` 输出 ruleHits
+- 将 FakeFilter / FakeServlet / FakeInterceptor 升至 high/critical
+- 将 WsFilter / StandardContextValve 等框架组件降回 low
 
-### v0.4：基线与规则
+### v0.4：基线与字节码规则接入
 
 目标：
 
 - 生成运行时基线
 - 基线对比
-- YAML 白名单
-- YAML 规则配置
+- 字节码扫描规则接入现有 ScoringRule
 - HTML 报告
 
 ### v0.5：安全清理

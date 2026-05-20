@@ -1,6 +1,16 @@
 # JavaMemHunter
 
-Java 内存马扫描与清理工具（v0.2 — Tomcat / Spring 容器扫描 + runtime-only 评分）。
+Java 内存马扫描与清理工具（v0.3 — 评分规则引擎 + 白名单）。
+
+## v0.3 能力
+
+在 v0.2 基础上新增：
+
+- **12 条评分规则**：覆盖类型识别、CodeSource 异常、运行时存在、URL pattern 通配、类名熵、包名归属、ClassLoader 异常、路径伪装等多维度判定
+- **白名单系统**：内置 Spring/Tomcat/Jackson 等框架包名、APM Agent 名和可信 CodeSource 路径；用户可通过 `--whitelist <file>` 追加业务包名
+- **4 级风险等级**：`low (0-3)` / `suspicious (4-6)` / `high (7-9)` / `critical (10+)`
+- **`--explain` 详细模式**：报告中加入 `ruleHits` 数组，展示每条命中规则的得分
+- **误报压降**：v0.2 中 WsFilter、StandardContextValve 等框架组件通过白名单降回 low；FakeFilter、FakeServlet、FakeInterceptor 升至 critical
 
 ## v0.2 能力
 
@@ -51,8 +61,10 @@ agent/scanner/
 │   │   └── ServletContextAttrProvider    (兜底)
 │   ├── SpringMappingScanner   # AbstractHandlerMethodMapping → HandlerMethod
 │   └── SpringInterceptorScanner # adaptedInterceptors
-└── runtime/
-    └── RuntimeOnlyDetector    # 注解 + Spring Bean 两链判定
+└── scoring/                   # v0.3 评分规则引擎
+    ├── RuleEngine             # 统一计算 score / level / reasons
+    ├── Whitelist              # framework / business / agent / codesource 白名单
+    └── rules/                 # 12 条 ScoringRule
 ```
 
 ## 构建
@@ -86,6 +98,19 @@ java -jar attach/target/memhunter-attach.jar list
 java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar scan --output /tmp/report.json
 ```
 
+v0.3 新增参数：
+
+- `--whitelist <file>`：追加用户白名单。文件格式为每行 `<type>:<value>`，其中 `<type>` 可为 `framework`、`business`、`agent`、`codesource`。
+
+  ```text
+  business:com.mycompany.app.
+  framework:com.acme.shared.
+  agent:com.custom.tracer
+  codesource:/opt/myapp/
+  ```
+
+- `--explain`：在每个 finding 中输出 `ruleHits`，展示每条命中规则和加分/减分明细。
+
 ## Finding 类型表
 
 | Finding type | 含义 | 关键 attributes |
@@ -98,6 +123,25 @@ java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.
 | `tomcat-valve` | Context Pipeline 中的 Valve | containerLevel, pipelineIndex, contextPath |
 | `spring-mapping` | AbstractHandlerMethodMapping 注册的 mapping | pattern, methods, handlerMethod, beanName |
 | `spring-interceptor` | AbstractHandlerMapping.adaptedInterceptors | order, includePatterns, excludePatterns |
+
+## 评分规则参考（v0.3）
+
+| Rule | 命中条件 | Delta |
+|---|---|---|
+| `implements-web-component` | type 为 class-*/tomcat-*/spring-* | +3 |
+| `code-source-null` | finding.codeSource == null | +3 |
+| `code-source-temp-dir` | codeSource 包含 /tmp、/var/tmp 或 AppData/Local/Temp | +3 |
+| `runtime-only` | 无 @Web* 注解，也非 Spring Bean | +4 |
+| `url-pattern-wildcard` | urlPatterns 含 /* 或 / | +2 |
+| `filter-order-at-top` | pipelineIndex/order <= 1 | +2 |
+| `high-entropy-class-name` | 简单类名 Shannon 熵 > 3.5 | +1 |
+| `non-business-package` | 非 framework 且非 business 包 | +2 |
+| `unusual-classloader` | classLoader 不在常见列表 | +2 |
+| `mapping-path-disguise` | pattern 类似健康检查但类不在 framework | +2 |
+| `whitelist-hit` | 类名以 framework 包名开头或 CodeSource 可信 | -5 |
+| `apm-agent` | 类名含 APM Agent 标识 | -4 |
+
+等级阈值：`0-3 low / 4-6 suspicious / 7-9 high / 10+ critical`
 
 ## runtime-only 判定
 
@@ -126,7 +170,7 @@ PID=$(java -jar attach/target/memhunter-attach.jar list | grep memhunter-test-ta
 java -jar attach/target/memhunter-attach.jar $PID agent/target/memhunter-agent.jar scan
 ```
 
-v0.2 样例报告：[`docs/superpowers/specs/v0.2-sample-report.json`](docs/superpowers/specs/v0.2-sample-report.json) — 64 findings、**8 个 runtime-only**。FakeFilter、FakeServlet、FakeInterceptor 全部被正确识别为 runtime-only suspicious。剩余 5 个 runtime-only 是 Spring/Tomcat 自带的"约定"组件（StandardContextValve、NonLoginAuthenticator、WsFilter、两个 Spring 内置 Interceptor）——既无 `@WebFilter` 注解也未注册为 Spring Bean，需要 v0.4 白名单兜底。
+v0.3 样例报告：[`docs/superpowers/specs/v0.3-sample-report.json`](docs/superpowers/specs/v0.3-sample-report.json) — 63 findings。FakeFilter、FakeServlet、FakeInterceptor 均为 critical；WsFilter、StandardContextValve 通过白名单降为 low。
 
 ## 兼容性
 
@@ -150,14 +194,11 @@ v0.2 样例报告：[`docs/superpowers/specs/v0.2-sample-report.json`](docs/supe
 
 ## 限制
 
-v0.2 仍**不包含**（推迟到 v0.3+）：
+v0.3 仍**不包含**（推迟到 v0.4+）：
 
-- **少量 runtime-only 误报**：Spring/Tomcat 自带"约定组件"（StandardContextValve、NonLoginAuthenticator、WsFilter、Spring 内置 Interceptor 等）会被误标。这些组件既没有 `@WebFilter` 注解也不是 Spring Bean，但来源合法。需要 v0.4 白名单兜底（包名前缀、CodeSource）。
 - WebFlux 应用（不支持）
-- 字节码扫描（关键字匹配、hash 计算）
-- 白名单（包名/Agent/CodeSource）
+- 字节码扫描（关键字 `Runtime.exec` / `defineClass` / `Cipher`、SHA-256 类 hash）
 - 基线对比
-- 完整 17 条评分规则
 - 清理操作
 - HTML / Markdown 报告
 
@@ -169,11 +210,13 @@ v0.2 仍**不包含**（推迟到 v0.3+）：
 cmd //c "mvnw.cmd -pl agent test"
 ```
 
-v0.2 含 29 个单元测试，新增覆盖：
+v0.3 含 61 个 agent 单元测试，新增覆盖：
 - `ReflectUtil`（9）— 跨版本反射工具
 - `WebComponentDetector`（6）— BFS 接口检测 + Listener 细分
-- `AgentArgs`（4）— 未知选项告警
-- `RuntimeOnlyDetector`（5）— 两链判定 + 4 种路径
+- `AgentArgs`（6）— 未知选项告警 + `--whitelist` / `--explain`
+- `Whitelist`（5）— 默认白名单 + 用户文件追加
+- `RuleEngine`（8）— 分数累计、等级映射、explain、异常隔离
+- `RuleSmokeTest`（22）— 12 条评分规则核心 hit/miss 路径
 - `JsonReportWriter`（2）— 原子写入 + 覆盖已有文件
 - `FindingIdGenerator`（3）— v0.1 保留
 
@@ -187,3 +230,6 @@ v0.2 含 29 个单元测试，新增覆盖：
 - v0.2 设计文档：[`docs/superpowers/specs/2026-05-19-v0.2-container-scanning-design.md`](docs/superpowers/specs/2026-05-19-v0.2-container-scanning-design.md)
 - v0.2 实施计划：[`docs/superpowers/plans/2026-05-19-v0.2-container-scanning.md`](docs/superpowers/plans/2026-05-19-v0.2-container-scanning.md)
 - v0.2 样例报告：[`docs/superpowers/specs/v0.2-sample-report.json`](docs/superpowers/specs/v0.2-sample-report.json)
+- v0.3 设计文档：[`docs/superpowers/specs/2026-05-20-v0.3-scoring-rules-design.md`](docs/superpowers/specs/2026-05-20-v0.3-scoring-rules-design.md)
+- v0.3 实施计划：[`docs/superpowers/plans/2026-05-20-v0.3-scoring-rules.md`](docs/superpowers/plans/2026-05-20-v0.3-scoring-rules.md)
+- v0.3 样例报告：[`docs/superpowers/specs/v0.3-sample-report.json`](docs/superpowers/specs/v0.3-sample-report.json)

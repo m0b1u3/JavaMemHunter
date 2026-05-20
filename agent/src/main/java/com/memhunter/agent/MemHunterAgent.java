@@ -1,12 +1,14 @@
 package com.memhunter.agent;
 
 import com.memhunter.agent.model.Finding;
+import com.memhunter.agent.model.ScanContext;
 import com.memhunter.agent.model.ScanReport;
 import com.memhunter.agent.report.JsonReportWriter;
 import com.memhunter.agent.scanner.ClassScanner;
-import com.memhunter.agent.scanner.runtime.RuntimeOnlyDetector;
 import com.memhunter.agent.scanner.spring.SpringScanner;
 import com.memhunter.agent.scanner.tomcat.TomcatScanner;
+import com.memhunter.agent.scoring.RuleEngine;
+import com.memhunter.agent.scoring.Whitelist;
 import com.memhunter.agent.util.ReflectUtil;
 
 import java.lang.instrument.Instrumentation;
@@ -34,6 +36,18 @@ public class MemHunterAgent {
             report.target.javaVersion = System.getProperty("java.version");
             report.target.os = System.getProperty("os.name");
 
+            Whitelist whitelist = Whitelist.defaults();
+            String whitelistFile = args.options.get("whitelist");
+            if (whitelistFile != null) {
+                try {
+                    whitelist.loadFromFile(whitelistFile);
+                } catch (Throwable t) {
+                    report.partialErrors.add(new ScanReport.PartialError(
+                            "WhitelistLoader", "failed to load " + whitelistFile + ": " + t.getMessage()));
+                }
+            }
+            boolean explain = "true".equals(args.options.get("explain"));
+
             List<Finding> all = new ArrayList<>();
 
             // 1. Class-level scan (v0.1 behavior)
@@ -51,14 +65,9 @@ public class MemHunterAgent {
             List<Finding> springFindings = spring.scan(tomcatContexts, tomcatServletInstances, report);
             all.addAll(springFindings);
 
-            // 4. runtime-only evaluation on tomcat-* and spring-* findings
+            // 4. v0.3 scoring
             Object appCtx = pickFirstAppContext(tomcatServletInstances);
-            RuntimeOnlyDetector detector = new RuntimeOnlyDetector(appCtx);
-            for (Finding f : all) {
-                if (f.type != null && (f.type.startsWith("tomcat-") || f.type.startsWith("spring-"))) {
-                    detector.evaluate(f);
-                }
-            }
+            new RuleEngine().evaluate(all, new ScanContext(appCtx, whitelist, explain));
 
             report.findings = all;
             report.summary.totalFindings = all.size();

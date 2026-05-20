@@ -92,10 +92,6 @@ public class SpringInterceptorScanner {
         Optional<Object> exclude = ReflectUtil.tryReadField(interceptor, "excludePatterns");
         exclude.ifPresent(v -> f.attributes.put("excludePatterns", v));
 
-        f.reasons.add("registered as Spring HandlerInterceptor");
-        f.level = "low";
-        f.score = 3;
-        f.recommendation = "review whether interceptor registration is legitimate";
         f.id = FindingIdGenerator.generate(TYPE, f.className,
                 Integer.toHexString(System.identityHashCode(interceptor)));
         return f;

@@ -16,6 +16,15 @@
         <maven.compiler.release>11</maven.compiler.release>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
         <finalName>memhunter-attach</finalName>
         <plugins>

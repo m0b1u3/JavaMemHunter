@@ -60,10 +60,6 @@ public class TomcatValveScanner {
         f.attributes.put("containerLevel", "Context");
         f.attributes.put("pipelineIndex", idx);
         f.attributes.put("contextPath", contextPath);
-        f.reasons.add("registered as Valve in Tomcat pipeline");
-        f.level = "low";
-        f.score = 3;
-        f.recommendation = "review whether Valve source is legitimate";
         f.id = FindingIdGenerator.generate(TYPE, f.className, contextPath + "#" + idx);
         return f;
     }

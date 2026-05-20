@@ -89,10 +89,6 @@ public class SpringMappingScanner {
             f.codeSource = codeSourceOf(beanType);
             f.classLoader = clName(beanType.getClassLoader());
         }
-        f.reasons.add("registered in Spring HandlerMapping");
-        f.level = "low";
-        f.score = 3;
-        f.recommendation = "review whether mapping is registered through legitimate source";
         f.id = FindingIdGenerator.generate(TYPE, f.className, String.valueOf(info));
         return f;
     }

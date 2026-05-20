@@ -1,0 +1,1416 @@
+{
+  "scanId" : "scan-c8137e28",
+  "timestamp" : "2026-05-20T09:21:23.918Z",
+  "target" : {
+    "pid" : 31680,
+    "javaVersion" : "1.8.0_181",
+    "os" : "Windows 10"
+  },
+  "summary" : {
+    "totalFindings" : 63,
+    "critical" : 3,
+    "high" : 0,
+    "suspicious" : 13,
+    "low" : 47
+  },
+  "findings" : [ {
+    "id" : "finding-class-interceptor-dd617e3e",
+    "type" : "class-interceptor",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "FakeInterceptor",
+    "className" : "com.memhunter.testinjector.FakeSpringInterceptorInjector$FakeInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "non-business-package (+2)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-class-servlet-9f0d0f58",
+    "type" : "class-servlet",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "FakeServlet",
+    "className" : "com.memhunter.testinjector.FakeServletInjector$FakeServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "non-business-package (+2)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-class-filter-a1a58d72",
+    "type" : "class-filter",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "FakeFilter",
+    "className" : "com.memhunter.testinjector.FakeFilterInjector$FakeFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "non-business-package (+2)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-class-interceptor-fdfdb23b",
+    "type" : "class-interceptor",
+    "level" : "low",
+    "score" : 0,
+    "name" : "MappedInterceptor",
+    "className" : "org.springframework.web.servlet.handler.MappedInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-interceptor-c494d95d",
+    "type" : "class-interceptor",
+    "level" : "low",
+    "score" : 0,
+    "name" : "ResourceUrlProviderExposingInterceptor",
+    "className" : "org.springframework.web.servlet.resource.ResourceUrlProviderExposingInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-interceptor-efd59721",
+    "type" : "class-interceptor",
+    "level" : "low",
+    "score" : 0,
+    "name" : "ConversionServiceExposingInterceptor",
+    "className" : "org.springframework.web.servlet.handler.ConversionServiceExposingInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-listenercontext-efaeae37",
+    "type" : "class-listenercontext",
+    "level" : "low",
+    "score" : 0,
+    "name" : "WsContextListener",
+    "className" : "org.apache.tomcat.websocket.server.WsContextListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-websocket-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-listenersession-3ffb0b09",
+    "type" : "class-listenersession",
+    "level" : "low",
+    "score" : 0,
+    "name" : "WsSessionListener",
+    "className" : "org.apache.tomcat.websocket.server.WsSessionListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-websocket-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-1b748395",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "WsFilter",
+    "className" : "org.apache.tomcat.websocket.server.WsFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-websocket-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-098aa9b5",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "GenericFilter",
+    "className" : "javax.servlet.GenericFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-valve-7c4263a9",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 0,
+    "name" : "StandardWrapperValve",
+    "className" : "org.apache.catalina.core.StandardWrapperValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-listenercontext-8d1d05e4",
+    "type" : "class-listenercontext",
+    "level" : "low",
+    "score" : 0,
+    "name" : "ServletContextListener",
+    "className" : "javax.servlet.ServletContextListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-listenersession-d3ec1be4",
+    "type" : "class-listenersession",
+    "level" : "low",
+    "score" : 0,
+    "name" : "HttpSessionListener",
+    "className" : "javax.servlet.http.HttpSessionListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-valve-69c6810a",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 0,
+    "name" : "SingleSignOn",
+    "className" : "org.apache.catalina.authenticator.SingleSignOn",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-valve-45eb1ee7",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 0,
+    "name" : "NonLoginAuthenticator",
+    "className" : "org.apache.catalina.authenticator.NonLoginAuthenticator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-valve-4936c5f2",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 0,
+    "name" : "AuthenticatorBase",
+    "className" : "org.apache.catalina.authenticator.AuthenticatorBase",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-valve-ec8540f8",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 0,
+    "name" : "ErrorReportValve",
+    "className" : "org.apache.catalina.valves.ErrorReportValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-valve-02fbd3cf",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 0,
+    "name" : "StandardContextValve",
+    "className" : "org.apache.catalina.core.StandardContextValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-valve-36527b03",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 0,
+    "name" : "StandardHostValve",
+    "className" : "org.apache.catalina.core.StandardHostValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-valve-bcd9145c",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 0,
+    "name" : "StandardEngineValve",
+    "className" : "org.apache.catalina.core.StandardEngineValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-valve-36d19b6f",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 0,
+    "name" : "ValveBase",
+    "className" : "org.apache.catalina.valves.ValveBase",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-valve-e566eeb6",
+    "type" : "class-valve",
+    "level" : "low",
+    "score" : 0,
+    "name" : "Valve",
+    "className" : "org.apache.catalina.Valve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-a8140d05",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "OrderedCharacterEncodingFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedCharacterEncodingFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-61997247",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "OrderedFormContentFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedFormContentFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-b649ec3b",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "OrderedHiddenHttpMethodFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedHiddenHttpMethodFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-31d91cea",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "HiddenHttpMethodFilter",
+    "className" : "org.springframework.web.filter.HiddenHttpMethodFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-8826cc45",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "FormContentFilter",
+    "className" : "org.springframework.web.filter.FormContentFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-listenerrequest-65af17c6",
+    "type" : "class-listenerrequest",
+    "level" : "low",
+    "score" : 0,
+    "name" : "RequestContextListener",
+    "className" : "org.springframework.web.context.request.RequestContextListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-listenerrequest-08155739",
+    "type" : "class-listenerrequest",
+    "level" : "low",
+    "score" : 0,
+    "name" : "ServletRequestListener",
+    "className" : "javax.servlet.ServletRequestListener",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-f7007b37",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "OrderedRequestContextFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedRequestContextFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-90c23487",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "OrderedFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-5400328b",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "RequestContextFilter",
+    "className" : "org.springframework.web.filter.RequestContextFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-interceptor-b73e12ae",
+    "type" : "class-interceptor",
+    "level" : "low",
+    "score" : 0,
+    "name" : "HandlerInterceptor",
+    "className" : "org.springframework.web.servlet.HandlerInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-bb07e383",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "CharacterEncodingFilter",
+    "className" : "org.springframework.web.filter.CharacterEncodingFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-0bb0f272",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "OncePerRequestFilter",
+    "className" : "org.springframework.web.filter.OncePerRequestFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-c0d18961",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "GenericFilterBean",
+    "className" : "org.springframework.web.filter.GenericFilterBean",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-web-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-filter-ec735662",
+    "type" : "class-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "Filter",
+    "className" : "javax.servlet.Filter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-servlet-6a1d95bb",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 0,
+    "name" : "DispatcherServlet",
+    "className" : "org.springframework.web.servlet.DispatcherServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-servlet-9ab6923e",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 0,
+    "name" : "FrameworkServlet",
+    "className" : "org.springframework.web.servlet.FrameworkServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-servlet-3dc81b43",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 0,
+    "name" : "HttpServletBean",
+    "className" : "org.springframework.web.servlet.HttpServletBean",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-servlet-e94ea7de",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 0,
+    "name" : "HttpServlet",
+    "className" : "javax.servlet.http.HttpServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-servlet-9c26500a",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 0,
+    "name" : "GenericServlet",
+    "className" : "javax.servlet.GenericServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-class-servlet-6a97d3bd",
+    "type" : "class-servlet",
+    "level" : "low",
+    "score" : 0,
+    "name" : "Servlet",
+    "className" : "javax.servlet.Servlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : { },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-tomcat-filter-fddbd280",
+    "type" : "tomcat-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "requestContextFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedRequestContextFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : {
+      "urlPatterns" : [ ],
+      "dispatcherTypes" : [ ],
+      "filterClass" : "org.springframework.boot.web.servlet.filter.OrderedRequestContextFilter",
+      "contextPath" : ""
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-tomcat-filter-e7d74fcf",
+    "type" : "tomcat-filter",
+    "level" : "low",
+    "score" : 2,
+    "name" : "Tomcat WebSocket (JSR356) Filter",
+    "className" : "org.apache.tomcat.websocket.server.WsFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-websocket-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "runtime-only (+4)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : {
+      "urlPatterns" : [ ],
+      "dispatcherTypes" : [ ],
+      "filterClass" : "org.apache.tomcat.websocket.server.WsFilter",
+      "contextPath" : ""
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "runtime-only",
+      "delta" : 4
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-tomcat-filter-4d2779fd",
+    "type" : "tomcat-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "characterEncodingFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedCharacterEncodingFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : {
+      "urlPatterns" : [ ],
+      "dispatcherTypes" : [ ],
+      "filterClass" : "org.springframework.boot.web.servlet.filter.OrderedCharacterEncodingFilter",
+      "contextPath" : ""
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-tomcat-filter-210cd946",
+    "type" : "tomcat-filter",
+    "level" : "low",
+    "score" : 0,
+    "name" : "formContentFilter",
+    "className" : "org.springframework.boot.web.servlet.filter.OrderedFormContentFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : {
+      "urlPatterns" : [ ],
+      "dispatcherTypes" : [ ],
+      "filterClass" : "org.springframework.boot.web.servlet.filter.OrderedFormContentFilter",
+      "contextPath" : ""
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-tomcat-filter-518041b8",
+    "type" : "tomcat-filter",
+    "level" : "critical",
+    "score" : 10,
+    "name" : "FakeFilter",
+    "className" : "com.memhunter.testinjector.FakeFilterInjector$FakeFilter",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "runtime-only (+4)", "high-entropy-class-name (+1)", "non-business-package (+2)" ],
+    "recommendation" : "Immediate review required: highly likely a memshell.",
+    "attributes" : {
+      "urlPatterns" : [ ],
+      "dispatcherTypes" : [ ],
+      "filterClass" : "com.memhunter.testinjector.FakeFilterInjector$FakeFilter",
+      "contextPath" : ""
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "runtime-only",
+      "delta" : 4
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-tomcat-servlet-0334f00b",
+    "type" : "tomcat-servlet",
+    "level" : "critical",
+    "score" : 10,
+    "name" : "FakeServlet",
+    "className" : "com.memhunter.testinjector.FakeServletInjector$FakeServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "runtime-only (+4)", "high-entropy-class-name (+1)", "non-business-package (+2)" ],
+    "recommendation" : "Immediate review required: highly likely a memshell.",
+    "attributes" : {
+      "loadOnStartup" : -1,
+      "mappings" : [ "/fake-api" ],
+      "servletClass" : "com.memhunter.testinjector.FakeServletInjector$FakeServlet",
+      "contextPath" : ""
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "runtime-only",
+      "delta" : 4
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-tomcat-servlet-49644f89",
+    "type" : "tomcat-servlet",
+    "level" : "low",
+    "score" : 0,
+    "name" : "dispatcherServlet",
+    "className" : "org.springframework.web.servlet.DispatcherServlet",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : {
+      "loadOnStartup" : -1,
+      "mappings" : [ "/" ],
+      "servletClass" : "org.springframework.web.servlet.DispatcherServlet",
+      "contextPath" : ""
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-tomcat-valve-ec98805c",
+    "type" : "tomcat-valve",
+    "level" : "suspicious",
+    "score" : 5,
+    "name" : "NonLoginAuthenticator",
+    "className" : "org.apache.catalina.authenticator.NonLoginAuthenticator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "runtime-only (+4)", "filter-order-at-top (+2)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : {
+      "pipelineIndex" : 0,
+      "contextPath" : "",
+      "containerLevel" : "Context"
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "runtime-only",
+      "delta" : 4
+    }, {
+      "rule" : "filter-order-at-top",
+      "delta" : 2
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-tomcat-valve-0f36d0b5",
+    "type" : "tomcat-valve",
+    "level" : "suspicious",
+    "score" : 5,
+    "name" : "StandardContextValve",
+    "className" : "org.apache.catalina.core.StandardContextValve",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/tomcat-embed-core-9.0.83.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "runtime-only (+4)", "filter-order-at-top (+2)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : {
+      "pipelineIndex" : 1,
+      "contextPath" : "",
+      "containerLevel" : "Context"
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "runtime-only",
+      "delta" : 4
+    }, {
+      "rule" : "filter-order-at-top",
+      "delta" : 2
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-spring-mapping-bd529cd5",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 5,
+    "name" : "requestMappingHandlerMapping#injectServlet",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "non-business-package (+2)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : {
+      "pattern" : "{GET [/inject/servlet]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectServlet()"
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-spring-mapping-3670109f",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 5,
+    "name" : "requestMappingHandlerMapping#injectSpringInterceptor",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "non-business-package (+2)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : {
+      "pattern" : "{GET [/inject/spring-interceptor]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectSpringInterceptor()"
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-spring-mapping-15378a76",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 5,
+    "name" : "requestMappingHandlerMapping#hello",
+    "className" : "com.memhunter.testtarget.HelloController",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/classes!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "non-business-package (+2)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : {
+      "pattern" : "{GET [/hello]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testtarget.HelloController.hello()"
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-spring-mapping-6120e1df",
+    "type" : "spring-mapping",
+    "level" : "low",
+    "score" : 0,
+    "name" : "requestMappingHandlerMapping#errorHtml",
+    "className" : "org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-autoconfigure-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : {
+      "pattern" : "{ [/error], produces [text/html]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public org.springframework.web.servlet.ModelAndView org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController.errorHtml(javax.servlet.http.HttpServletRequest,javax.servlet.http.HttpServletResponse)"
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-spring-mapping-40399094",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 5,
+    "name" : "requestMappingHandlerMapping#injectSpringMapping",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "non-business-package (+2)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : {
+      "pattern" : "{GET [/inject/spring-mapping]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectSpringMapping()"
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-spring-mapping-b353801a",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 5,
+    "name" : "requestMappingHandlerMapping#injectFilter",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "non-business-package (+2)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : {
+      "pattern" : "{GET [/inject/filter]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectFilter()"
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-spring-mapping-7a3d812a",
+    "type" : "spring-mapping",
+    "level" : "low",
+    "score" : 0,
+    "name" : "requestMappingHandlerMapping#error",
+    "className" : "org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-autoconfigure-2.7.18.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "whitelist-hit (-5)" ],
+    "recommendation" : "Informational only.",
+    "attributes" : {
+      "pattern" : "{ [/error]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public org.springframework.http.ResponseEntity org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController.error(javax.servlet.http.HttpServletRequest)"
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-spring-mapping-010fa957",
+    "type" : "spring-mapping",
+    "level" : "suspicious",
+    "score" : 6,
+    "name" : "requestMappingHandlerMapping#fake",
+    "className" : "com.memhunter.testinjector.FakeSpringControllerInjector$FakeSpringController",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "high-entropy-class-name (+1)", "non-business-package (+2)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : {
+      "pattern" : "{GET [/spring-fake]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.FakeSpringControllerInjector$FakeSpringController.fake()"
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  }, {
+    "id" : "finding-spring-interceptor-4a4c1db6",
+    "type" : "spring-interceptor",
+    "level" : "suspicious",
+    "score" : 5,
+    "name" : "ConversionServiceExposingInterceptor",
+    "className" : "org.springframework.web.servlet.handler.ConversionServiceExposingInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "runtime-only (+4)", "filter-order-at-top (+2)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : {
+      "order" : 0
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "runtime-only",
+      "delta" : 4
+    }, {
+      "rule" : "filter-order-at-top",
+      "delta" : 2
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-spring-interceptor-46f81b49",
+    "type" : "spring-interceptor",
+    "level" : "suspicious",
+    "score" : 5,
+    "name" : "ResourceUrlProviderExposingInterceptor",
+    "className" : "org.springframework.web.servlet.resource.ResourceUrlProviderExposingInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "runtime-only (+4)", "filter-order-at-top (+2)", "high-entropy-class-name (+1)", "whitelist-hit (-5)" ],
+    "recommendation" : "Review finding and compare with known baseline.",
+    "attributes" : {
+      "order" : 1
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "runtime-only",
+      "delta" : 4
+    }, {
+      "rule" : "filter-order-at-top",
+      "delta" : 2
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "whitelist-hit",
+      "delta" : -5
+    } ]
+  }, {
+    "id" : "finding-spring-interceptor-dcf8c2b8",
+    "type" : "spring-interceptor",
+    "level" : "critical",
+    "score" : 12,
+    "name" : "FakeInterceptor",
+    "className" : "com.memhunter.testinjector.FakeSpringInterceptorInjector$FakeInterceptor",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "implements-web-component (+3)", "runtime-only (+4)", "filter-order-at-top (+2)", "high-entropy-class-name (+1)", "non-business-package (+2)" ],
+    "recommendation" : "Immediate review required: highly likely a memshell.",
+    "attributes" : {
+      "order" : 0
+    },
+    "ruleHits" : [ {
+      "rule" : "implements-web-component",
+      "delta" : 3
+    }, {
+      "rule" : "runtime-only",
+      "delta" : 4
+    }, {
+      "rule" : "filter-order-at-top",
+      "delta" : 2
+    }, {
+      "rule" : "high-entropy-class-name",
+      "delta" : 1
+    }, {
+      "rule" : "non-business-package",
+      "delta" : 2
+    } ]
+  } ],
+  "partialErrors" : [ ]
+}

@@ -53,4 +53,18 @@ class AgentArgsTest {
         assertTrue(errOut.toString().contains("[memhunter] warning: unknown option --bogus"),
                 "Expected stderr to contain warning, got: " + errOut.toString());
     }
+
+    @Test
+    void whitelist_option_known_no_warning() {
+        AgentArgs args = AgentArgs.parse("scan --whitelist /tmp/wl.txt");
+        assertEquals("/tmp/wl.txt", args.options.get("whitelist"));
+        assertFalse(errOut.toString().contains("warning"));
+    }
+
+    @Test
+    void explain_flag_known_no_warning() {
+        AgentArgs args = AgentArgs.parse("scan --explain");
+        assertEquals("true", args.options.get("explain"));
+        assertFalse(errOut.toString().contains("warning"));
+    }
 }

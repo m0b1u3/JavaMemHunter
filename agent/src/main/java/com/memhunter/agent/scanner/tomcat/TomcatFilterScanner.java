@@ -9,6 +9,7 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,10 +68,6 @@ public class TomcatFilterScanner {
             f.classLoader = clName(filterInstance.getClass().getClassLoader());
         }
 
-        f.reasons.add("registered in Tomcat StandardContext");
-        f.level = "low";
-        f.score = 3;
-        f.recommendation = "review whether registration source is legitimate";
         f.id = FindingIdGenerator.generate(TYPE, f.className == null ? "" : f.className, filterName);
         return f;
     }
@@ -85,7 +82,9 @@ public class TomcatFilterScanner {
     }
 
     private Object[] asArray(Object v) {
-        return (v instanceof Object[]) ? (Object[]) v : new Object[0];
+        if (v instanceof Object[]) return (Object[]) v;
+        Object nested = ReflectUtil.tryReadAnyOf(v, "array", "filterMaps").orElse(null);
+        return (nested instanceof Object[]) ? (Object[]) nested : new Object[0];
     }
 
     private List<String> collectUrlPatterns(String filterName, Object[] filterMaps) {
@@ -94,12 +93,25 @@ public class TomcatFilterScanner {
             if (map == null) continue;
             Object name = ReflectUtil.tryReadField(map, "filterName").orElse(null);
             if (!filterName.equals(name)) continue;
-            Object urls = ReflectUtil.tryReadAnyOf(map, "urlPatterns").orElse(null);
-            if (urls instanceof String[]) {
-                patterns.addAll(Arrays.asList((String[]) urls));
-            }
+            Object urls = ReflectUtil.tryInvoke(map, "getURLPatterns")
+                    .orElse(ReflectUtil.tryReadAnyOf(map, "urlPatterns").orElse(null));
+            addPatternValues(patterns, urls);
         }
         return patterns;
+    }
+
+    private void addPatternValues(List<String> patterns, Object urls) {
+        if (urls instanceof String[]) {
+            patterns.addAll(Arrays.asList((String[]) urls));
+        } else if (urls instanceof Object[]) {
+            for (Object url : (Object[]) urls) {
+                if (url != null) patterns.add(String.valueOf(url));
+            }
+        } else if (urls instanceof Collection) {
+            for (Object url : (Collection<?>) urls) {
+                if (url != null) patterns.add(String.valueOf(url));
+            }
+        }
     }
 
     private List<String> collectDispatcherTypes(String filterName, Object[] filterMaps) {

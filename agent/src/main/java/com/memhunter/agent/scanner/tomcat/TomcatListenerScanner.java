@@ -58,10 +58,6 @@ public class TomcatListenerScanner {
         f.classLoader = clName(clazz.getClassLoader());
         f.attributes.put("listenerKind", classifyKind(clazz));
         f.attributes.put("contextPath", contextPath);
-        f.reasons.add("registered as Listener in Tomcat StandardContext");
-        f.level = "low";
-        f.score = 3;
-        f.recommendation = "review whether registration source is legitimate";
         f.id = FindingIdGenerator.generate(f.type, f.className,
                 Integer.toHexString(System.identityHashCode(listener)));
         return f;
