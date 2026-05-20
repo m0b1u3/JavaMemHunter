@@ -36,7 +36,8 @@ public class RuntimeOnlyDetector {
 
     private boolean hasWebAnnotation(String className) {
         try {
-            Class<?> c = Class.forName(className);
+            Class<?> c = loadTargetClass(className);
+            if (c == null) return false;
             for (String annName : WEB_ANNOTATIONS) {
                 try {
                     @SuppressWarnings("unchecked")
@@ -52,7 +53,8 @@ public class RuntimeOnlyDetector {
     private boolean isSpringManaged(String className) {
         if (applicationContext == null) return false;
         try {
-            Class<?> c = Class.forName(className);
+            Class<?> c = loadTargetClass(className);
+            if (c == null) return false;
             Method m = applicationContext.getClass().getMethod("getBeansOfType", Class.class);
             Object beans = m.invoke(applicationContext, c);
             if (beans instanceof Map) {
@@ -60,5 +62,29 @@ public class RuntimeOnlyDetector {
             }
         } catch (Throwable ignored) {}
         return false;
+    }
+
+    /**
+     * Load a target class by name using the most permissive ClassLoader available.
+     * Try in order:
+     *   1. ApplicationContext's ClassLoader (sees Spring Boot LaunchedURLClassLoader contents)
+     *   2. Thread context ClassLoader
+     *   3. System ClassLoader (Class.forName default)
+     * Returns null if no loader can resolve the class.
+     */
+    private Class<?> loadTargetClass(String className) {
+        if (applicationContext != null) {
+            try {
+                return Class.forName(className, false, applicationContext.getClass().getClassLoader());
+            } catch (Throwable ignored) {}
+        }
+        try {
+            ClassLoader ctx = Thread.currentThread().getContextClassLoader();
+            if (ctx != null) return Class.forName(className, false, ctx);
+        } catch (Throwable ignored) {}
+        try {
+            return Class.forName(className);
+        } catch (Throwable ignored) {}
+        return null;
     }
 }

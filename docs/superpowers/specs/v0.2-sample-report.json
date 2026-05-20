@@ -1,8 +1,8 @@
 {
-  "scanId" : "scan-6861d07f",
-  "timestamp" : "2026-05-19T07:55:59.756Z",
+  "scanId" : "scan-2fe832c8",
+  "timestamp" : "2026-05-20T07:55:07.214Z",
   "target" : {
-    "pid" : 19340,
+    "pid" : 19544,
     "javaVersion" : "1.8.0_181",
     "os" : "Windows 10"
   },
@@ -10,8 +10,8 @@
     "totalFindings" : 64,
     "critical" : 0,
     "high" : 0,
-    "suspicious" : 21,
-    "low" : 43
+    "suspicious" : 8,
+    "low" : 56
   },
   "findings" : [ {
     "id" : "finding-class-interceptor-dd617e3e",
@@ -532,13 +532,13 @@
   }, {
     "id" : "finding-tomcat-filter-fddbd280",
     "type" : "tomcat-filter",
-    "level" : "suspicious",
-    "score" : 6,
+    "level" : "low",
+    "score" : 3,
     "name" : "requestContextFilter",
     "className" : "org.springframework.boot.web.servlet.filter.OrderedRequestContextFilter",
     "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
     "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Tomcat StandardContext", "runtime-only" ],
+    "reasons" : [ "registered in Tomcat StandardContext" ],
     "recommendation" : "review whether registration source is legitimate",
     "attributes" : {
       "urlPatterns" : [ ],
@@ -566,13 +566,13 @@
   }, {
     "id" : "finding-tomcat-filter-4d2779fd",
     "type" : "tomcat-filter",
-    "level" : "suspicious",
-    "score" : 6,
+    "level" : "low",
+    "score" : 3,
     "name" : "characterEncodingFilter",
     "className" : "org.springframework.boot.web.servlet.filter.OrderedCharacterEncodingFilter",
     "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
     "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Tomcat StandardContext", "runtime-only" ],
+    "reasons" : [ "registered in Tomcat StandardContext" ],
     "recommendation" : "review whether registration source is legitimate",
     "attributes" : {
       "urlPatterns" : [ ],
@@ -583,13 +583,13 @@
   }, {
     "id" : "finding-tomcat-filter-210cd946",
     "type" : "tomcat-filter",
-    "level" : "suspicious",
-    "score" : 6,
+    "level" : "low",
+    "score" : 3,
     "name" : "formContentFilter",
     "className" : "org.springframework.boot.web.servlet.filter.OrderedFormContentFilter",
     "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-2.7.18.jar!/",
     "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Tomcat StandardContext", "runtime-only" ],
+    "reasons" : [ "registered in Tomcat StandardContext" ],
     "recommendation" : "review whether registration source is legitimate",
     "attributes" : {
       "urlPatterns" : [ ],
@@ -634,13 +634,13 @@
   }, {
     "id" : "finding-tomcat-servlet-49644f89",
     "type" : "tomcat-servlet",
-    "level" : "suspicious",
-    "score" : 6,
+    "level" : "low",
+    "score" : 3,
     "name" : "dispatcherServlet",
     "className" : "org.springframework.web.servlet.DispatcherServlet",
     "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-webmvc-5.3.31.jar!/",
     "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered as Servlet in Tomcat StandardContext", "runtime-only" ],
+    "reasons" : [ "registered as Servlet in Tomcat StandardContext" ],
     "recommendation" : "review whether registration source is legitimate",
     "attributes" : {
       "loadOnStartup" : -1,
@@ -681,31 +681,15 @@
       "containerLevel" : "Context"
     }
   }, {
-    "id" : "finding-spring-mapping-bd529cd5",
-    "type" : "spring-mapping",
-    "level" : "suspicious",
-    "score" : 6,
-    "name" : "requestMappingHandlerMapping#injectServlet",
-    "className" : "com.memhunter.testinjector.ShellSimulator",
-    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
-    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
-    "recommendation" : "review whether mapping is registered through legitimate source",
-    "attributes" : {
-      "pattern" : "{GET [/inject/servlet]}",
-      "beanName" : "requestMappingHandlerMapping",
-      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectServlet()"
-    }
-  }, {
     "id" : "finding-spring-mapping-3670109f",
     "type" : "spring-mapping",
-    "level" : "suspicious",
-    "score" : 6,
+    "level" : "low",
+    "score" : 3,
     "name" : "requestMappingHandlerMapping#injectSpringInterceptor",
     "className" : "com.memhunter.testinjector.ShellSimulator",
     "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
     "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "reasons" : [ "registered in Spring HandlerMapping" ],
     "recommendation" : "review whether mapping is registered through legitimate source",
     "attributes" : {
       "pattern" : "{GET [/inject/spring-interceptor]}",
@@ -713,31 +697,15 @@
       "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectSpringInterceptor()"
     }
   }, {
-    "id" : "finding-spring-mapping-15378a76",
-    "type" : "spring-mapping",
-    "level" : "suspicious",
-    "score" : 6,
-    "name" : "requestMappingHandlerMapping#hello",
-    "className" : "com.memhunter.testtarget.HelloController",
-    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/classes!/",
-    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
-    "recommendation" : "review whether mapping is registered through legitimate source",
-    "attributes" : {
-      "pattern" : "{GET [/hello]}",
-      "beanName" : "requestMappingHandlerMapping",
-      "handlerMethod" : "public java.lang.String com.memhunter.testtarget.HelloController.hello()"
-    }
-  }, {
     "id" : "finding-spring-mapping-6120e1df",
     "type" : "spring-mapping",
-    "level" : "suspicious",
-    "score" : 6,
+    "level" : "low",
+    "score" : 3,
     "name" : "requestMappingHandlerMapping#errorHtml",
     "className" : "org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController",
     "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-autoconfigure-2.7.18.jar!/",
     "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "reasons" : [ "registered in Spring HandlerMapping" ],
     "recommendation" : "review whether mapping is registered through legitimate source",
     "attributes" : {
       "pattern" : "{ [/error], produces [text/html]}",
@@ -747,13 +715,13 @@
   }, {
     "id" : "finding-spring-mapping-40399094",
     "type" : "spring-mapping",
-    "level" : "suspicious",
-    "score" : 6,
+    "level" : "low",
+    "score" : 3,
     "name" : "requestMappingHandlerMapping#injectSpringMapping",
     "className" : "com.memhunter.testinjector.ShellSimulator",
     "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
     "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "reasons" : [ "registered in Spring HandlerMapping" ],
     "recommendation" : "review whether mapping is registered through legitimate source",
     "attributes" : {
       "pattern" : "{GET [/inject/spring-mapping]}",
@@ -761,31 +729,31 @@
       "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectSpringMapping()"
     }
   }, {
-    "id" : "finding-spring-mapping-b353801a",
+    "id" : "finding-spring-mapping-15378a76",
     "type" : "spring-mapping",
-    "level" : "suspicious",
-    "score" : 6,
-    "name" : "requestMappingHandlerMapping#injectFilter",
-    "className" : "com.memhunter.testinjector.ShellSimulator",
-    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "level" : "low",
+    "score" : 3,
+    "name" : "requestMappingHandlerMapping#hello",
+    "className" : "com.memhunter.testtarget.HelloController",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/classes!/",
     "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "reasons" : [ "registered in Spring HandlerMapping" ],
     "recommendation" : "review whether mapping is registered through legitimate source",
     "attributes" : {
-      "pattern" : "{GET [/inject/filter]}",
+      "pattern" : "{GET [/hello]}",
       "beanName" : "requestMappingHandlerMapping",
-      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectFilter()"
+      "handlerMethod" : "public java.lang.String com.memhunter.testtarget.HelloController.hello()"
     }
   }, {
     "id" : "finding-spring-mapping-7a3d812a",
     "type" : "spring-mapping",
-    "level" : "suspicious",
-    "score" : 6,
+    "level" : "low",
+    "score" : 3,
     "name" : "requestMappingHandlerMapping#error",
     "className" : "org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController",
     "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/spring-boot-autoconfigure-2.7.18.jar!/",
     "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "reasons" : [ "registered in Spring HandlerMapping" ],
     "recommendation" : "review whether mapping is registered through legitimate source",
     "attributes" : {
       "pattern" : "{ [/error]}",
@@ -793,31 +761,15 @@
       "handlerMethod" : "public org.springframework.http.ResponseEntity org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController.error(javax.servlet.http.HttpServletRequest)"
     }
   }, {
-    "id" : "finding-spring-mapping-010fa957",
-    "type" : "spring-mapping",
-    "level" : "suspicious",
-    "score" : 6,
-    "name" : "requestMappingHandlerMapping#fake",
-    "className" : "com.memhunter.testinjector.FakeSpringControllerInjector$FakeSpringController",
-    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
-    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
-    "recommendation" : "review whether mapping is registered through legitimate source",
-    "attributes" : {
-      "pattern" : "{GET [/spring-fake]}",
-      "beanName" : "requestMappingHandlerMapping",
-      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.FakeSpringControllerInjector$FakeSpringController.fake()"
-    }
-  }, {
     "id" : "finding-spring-mapping-8b1f1881",
     "type" : "spring-mapping",
-    "level" : "suspicious",
-    "score" : 6,
+    "level" : "low",
+    "score" : 3,
     "name" : "requestMappingHandlerMapping#debugMBeans",
     "className" : "com.memhunter.testinjector.ShellSimulator",
     "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
     "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
-    "reasons" : [ "registered in Spring HandlerMapping", "runtime-only" ],
+    "reasons" : [ "registered in Spring HandlerMapping" ],
     "recommendation" : "review whether mapping is registered through legitimate source",
     "attributes" : {
       "pattern" : "{GET [/debug/mbeans]}",
@@ -825,7 +777,55 @@
       "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.debugMBeans() throws java.lang.Exception"
     }
   }, {
-    "id" : "finding-spring-interceptor-3991dd84",
+    "id" : "finding-spring-mapping-bd529cd5",
+    "type" : "spring-mapping",
+    "level" : "low",
+    "score" : 3,
+    "name" : "requestMappingHandlerMapping#injectServlet",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{GET [/inject/servlet]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectServlet()"
+    }
+  }, {
+    "id" : "finding-spring-mapping-010fa957",
+    "type" : "spring-mapping",
+    "level" : "low",
+    "score" : 3,
+    "name" : "requestMappingHandlerMapping#fake",
+    "className" : "com.memhunter.testinjector.FakeSpringControllerInjector$FakeSpringController",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{GET [/spring-fake]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.FakeSpringControllerInjector$FakeSpringController.fake()"
+    }
+  }, {
+    "id" : "finding-spring-mapping-b353801a",
+    "type" : "spring-mapping",
+    "level" : "low",
+    "score" : 3,
+    "name" : "requestMappingHandlerMapping#injectFilter",
+    "className" : "com.memhunter.testinjector.ShellSimulator",
+    "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+    "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+    "reasons" : [ "registered in Spring HandlerMapping" ],
+    "recommendation" : "review whether mapping is registered through legitimate source",
+    "attributes" : {
+      "pattern" : "{GET [/inject/filter]}",
+      "beanName" : "requestMappingHandlerMapping",
+      "handlerMethod" : "public java.lang.String com.memhunter.testinjector.ShellSimulator.injectFilter()"
+    }
+  }, {
+    "id" : "finding-spring-interceptor-710ca710",
     "type" : "spring-interceptor",
     "level" : "suspicious",
     "score" : 6,
@@ -839,7 +839,7 @@
       "order" : 0
     }
   }, {
-    "id" : "finding-spring-interceptor-7983f639",
+    "id" : "finding-spring-interceptor-fda8c80f",
     "type" : "spring-interceptor",
     "level" : "suspicious",
     "score" : 6,
@@ -853,7 +853,7 @@
       "order" : 1
     }
   }, {
-    "id" : "finding-spring-interceptor-2fb9e06c",
+    "id" : "finding-spring-interceptor-f4556da5",
     "type" : "spring-interceptor",
     "level" : "suspicious",
     "score" : 6,
