@@ -1697,7 +1697,7 @@ public class CleanPlan {
 
 ## 25. 开发里程碑
 
-### v0.1：最小可用扫描
+### v0.1：最小可用扫描（已完成）
 
 目标：
 
@@ -1708,7 +1708,7 @@ public class CleanPlan {
 - 输出 className / CodeSource / ClassLoader
 - JSON 报告
 
-### v0.2：Tomcat 扫描
+### v0.2：Tomcat 扫描（已完成 — 含 Spring HandlerMapping/Interceptor + runtime-only 评分）
 
 目标：
 
