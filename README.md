@@ -126,7 +126,7 @@ PID=$(java -jar attach/target/memhunter-attach.jar list | grep memhunter-test-ta
 java -jar attach/target/memhunter-attach.jar $PID agent/target/memhunter-agent.jar scan
 ```
 
-v0.2 样例报告：[`docs/superpowers/specs/v0.2-sample-report.json`](docs/superpowers/specs/v0.2-sample-report.json) — 64 findings、21 个 runtime-only。其中 FakeFilter、FakeServlet、FakeInterceptor 全部被正确识别为 runtime-only suspicious。
+v0.2 样例报告：[`docs/superpowers/specs/v0.2-sample-report.json`](docs/superpowers/specs/v0.2-sample-report.json) — 64 findings、**8 个 runtime-only**。FakeFilter、FakeServlet、FakeInterceptor 全部被正确识别为 runtime-only suspicious。剩余 5 个 runtime-only 是 Spring/Tomcat 自带的"约定"组件（StandardContextValve、NonLoginAuthenticator、WsFilter、两个 Spring 内置 Interceptor）——既无 `@WebFilter` 注解也未注册为 Spring Bean，需要 v0.4 白名单兜底。
 
 ## 兼容性
 
@@ -152,7 +152,7 @@ v0.2 样例报告：[`docs/superpowers/specs/v0.2-sample-report.json`](docs/supe
 
 v0.2 仍**不包含**（推迟到 v0.3+）：
 
-- **runtime-only 误报较多**：Spring Boot 自动配置的正常组件（dispatcherServlet、各种 OrderedXxxFilter、HelloController 等）会被误标。根因：`RuntimeOnlyDetector.isSpringManaged` 用默认 ClassLoader `Class.forName()` 加载 Spring Boot fat jar 内的类失败。v0.3 用 ScanContext 传入正确 ClassLoader 修复。
+- **少量 runtime-only 误报**：Spring/Tomcat 自带"约定组件"（StandardContextValve、NonLoginAuthenticator、WsFilter、Spring 内置 Interceptor 等）会被误标。这些组件既没有 `@WebFilter` 注解也不是 Spring Bean，但来源合法。需要 v0.4 白名单兜底（包名前缀、CodeSource）。
 - WebFlux 应用（不支持）
 - 字节码扫描（关键字匹配、hash 计算）
 - 白名单（包名/Agent/CodeSource）
