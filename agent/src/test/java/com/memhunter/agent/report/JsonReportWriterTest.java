@@ -33,4 +33,27 @@ class JsonReportWriterTest {
         assertTrue(content.contains("finding-class-filter-aaaabbbb"));
         assertTrue(content.contains("com.example.Abc"));
     }
+
+    @org.junit.jupiter.api.Test
+    void writes_atomically_overwriting_existing_file(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp) throws java.io.IOException {
+        // Pre-create the target file with garbage content
+        java.nio.file.Path out = tmp.resolve("report.json");
+        java.nio.file.Files.write(out, "OLD_CONTENT".getBytes());
+
+        ScanReport r = new ScanReport();
+        r.scanId = "scan-atomic-001";
+        r.summary.totalFindings = 0;
+
+        new JsonReportWriter().write(r, out.toString());
+
+        String content = new String(java.nio.file.Files.readAllBytes(out));
+        org.junit.jupiter.api.Assertions.assertTrue(content.contains("scan-atomic-001"),
+                "Expected new content, got: " + content);
+        org.junit.jupiter.api.Assertions.assertFalse(content.contains("OLD_CONTENT"));
+
+        // No leftover .tmp file
+        java.nio.file.Path leftover = tmp.resolve("report.json.tmp");
+        org.junit.jupiter.api.Assertions.assertFalse(java.nio.file.Files.exists(leftover),
+                "Leftover .tmp file should not exist");
+    }
 }
