@@ -87,8 +87,8 @@ class RuleEngineTest {
     }
 
     @Test
-    void default_rules_contains_twelve_rules() {
-        assertEquals(12, RuleEngine.defaultRules().size());
+    void default_rules_contains_seventeen_rules() {
+        assertEquals(17, RuleEngine.defaultRules().size());
     }
 
     private ScoringRule rule(String name, int delta) {

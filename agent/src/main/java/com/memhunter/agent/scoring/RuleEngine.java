@@ -44,7 +44,12 @@ public class RuleEngine {
                 new UnusualClassLoaderRule(),
                 new MappingPathDisguiseRule(),
                 new WhitelistHitRule(),
-                new ApmAgentRule()
+                new ApmAgentRule(),
+                new com.memhunter.agent.scoring.rules.BytecodeRuntimeExecRule(),
+                new com.memhunter.agent.scoring.rules.BytecodeProcessBuilderRule(),
+                new com.memhunter.agent.scoring.rules.BytecodeDefineClassRule(),
+                new com.memhunter.agent.scoring.rules.BytecodeReflectionAbuseRule(),
+                new com.memhunter.agent.scoring.rules.BytecodeCryptoRule()
         );
     }
 
