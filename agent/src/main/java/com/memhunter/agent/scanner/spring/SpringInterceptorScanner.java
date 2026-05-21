@@ -55,7 +55,18 @@ public class SpringInterceptorScanner {
             report.partialErrors.add(new ScanReport.PartialError(
                     "SpringInterceptorScanner", "exception: " + t.getMessage()));
         }
-        return findings;
+        return dedupById(findings);
+    }
+
+    private List<Finding> dedupById(List<Finding> findings) {
+        List<Finding> result = new ArrayList<>();
+        Set<String> seenIds = new HashSet<>();
+        for (Finding f : findings) {
+            if (f.id != null && seenIds.add(f.id)) {
+                result.add(f);
+            }
+        }
+        return result;
     }
 
     private Class<?> loadClass(String name) {
@@ -92,8 +103,7 @@ public class SpringInterceptorScanner {
         Optional<Object> exclude = ReflectUtil.tryReadField(interceptor, "excludePatterns");
         exclude.ifPresent(v -> f.attributes.put("excludePatterns", v));
 
-        f.id = FindingIdGenerator.generate(TYPE, f.className,
-                Integer.toHexString(System.identityHashCode(interceptor)));
+        f.id = FindingIdGenerator.generate(TYPE, f.className, "");
         return f;
     }
 

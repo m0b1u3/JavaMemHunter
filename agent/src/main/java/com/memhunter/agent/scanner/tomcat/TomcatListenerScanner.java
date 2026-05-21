@@ -33,7 +33,18 @@ public class TomcatListenerScanner {
             report.partialErrors.add(new ScanReport.PartialError(
                     "TomcatListenerScanner", "exception: " + t.getMessage()));
         }
-        return findings;
+        return dedupById(findings);
+    }
+
+    private List<Finding> dedupById(List<Finding> findings) {
+        List<Finding> result = new ArrayList<>();
+        Set<String> seenIds = new HashSet<>();
+        for (Finding f : findings) {
+            if (f.id != null && seenIds.add(f.id)) {
+                result.add(f);
+            }
+        }
+        return result;
     }
 
     private void collectFrom(String fieldName, String contextPath, List<Finding> out,
@@ -58,8 +69,7 @@ public class TomcatListenerScanner {
         f.classLoader = clName(clazz.getClassLoader());
         f.attributes.put("listenerKind", classifyKind(clazz));
         f.attributes.put("contextPath", contextPath);
-        f.id = FindingIdGenerator.generate(f.type, f.className,
-                Integer.toHexString(System.identityHashCode(listener)));
+        f.id = FindingIdGenerator.generate(f.type, f.className, "");
         return f;
     }
 
