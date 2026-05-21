@@ -1,6 +1,21 @@
 # JavaMemHunter
 
-Java 内存马扫描与清理工具（v0.3 — 评分规则引擎 + 白名单）。
+Java 内存马扫描与清理工具（v0.4 — 字节码扫描 + 评分规则引擎 + 白名单）。
+
+## v0.4 能力
+
+在 v0.3 基础上新增：
+
+- **字节码扫描**：通过 ASM 9.7 读取目标类的 .class 字节流，精确匹配 method call（owner + name）而非字符串包含，避免误报
+- **5 条字节码规则**（覆盖 RCE 攻击者必须使用的 API）：
+  - `bytecode-runtime-exec`（+4）：`Runtime.getRuntime().exec(...)`
+  - `bytecode-process-builder`（+4）：`new ProcessBuilder(...).start()`
+  - `bytecode-define-class`（+3）：`ClassLoader.defineClass(...)` 动态加载字节码
+  - `bytecode-reflection-abuse`（+2）：`setAccessible` / `getDeclaredField` / `getDeclaredMethod`
+  - `bytecode-crypto`（+2）：`Cipher.doFinal` / `Base64.Decoder` 加解密通信
+- **lazy 字节码缓存**：ScanContext 持有 `bytecodeOf(className)` 缓存；单次扫描每个类至多解析一次
+- **效果**：v0.3 中 FakeFilter / FakeServlet / FakeInterceptor 注入项 score 从 10-12 进一步升至 17-21（全部 critical）；类层面 finding 同时获得字节码加分
+- **死代码清理**：删除 ClassLoadedContextProvider 约 80 行 v0.2 遗留代码
 
 ## v0.3 能力
 
@@ -140,6 +155,11 @@ v0.3 新增参数：
 | `mapping-path-disguise` | pattern 类似健康检查但类不在 framework | +2 |
 | `whitelist-hit` | 类名以 framework 包名开头或 CodeSource 可信 | -5 |
 | `apm-agent` | 类名含 APM Agent 标识 | -4 |
+| `bytecode-runtime-exec` | 字节码调用 `java/lang/Runtime#exec` | +4 |
+| `bytecode-process-builder` | 字节码调用 `ProcessBuilder#<init>` 或 `#start` | +4 |
+| `bytecode-define-class` | 字节码调用任何 `defineClass` 方法 | +3 |
+| `bytecode-reflection-abuse` | 字节码调用 `setAccessible` / `getDeclaredField` / `getDeclaredMethod` | +2 |
+| `bytecode-crypto` | 字节码调用 `Cipher#doFinal` 或 `Base64*` | +2 |
 
 等级阈值：`0-3 low / 4-6 suspicious / 7-9 high / 10+ critical`
 
@@ -194,15 +214,14 @@ v0.3 样例报告：[`docs/superpowers/specs/v0.3-sample-report.json`](docs/supe
 
 ## 限制
 
-v0.3 仍**不包含**（推迟到 v0.4+）：
+v0.4 仍**不包含**（推迟到 v0.5+）：
 
+- 基线对比（启动时打基线、扫描时对比新增）
 - WebFlux 应用（不支持）
-- 字节码扫描（关键字 `Runtime.exec` / `defineClass` / `Cipher`、SHA-256 类 hash）
-- 基线对比
-- 清理操作
+- 清理操作（dry-run / confirm 流程）
 - HTML / Markdown 报告
-
-完整路线图见 [`java_memshell_scanner_design.md`](java_memshell_scanner_design.md) 第 25 节。
+- v0.2 评审遗留 #2/#3/#4：Provider strategies 重构、FindingClassMetadata 抽取、ScanContext 解耦
+- 完整路线图见 [`java_memshell_scanner_design.md`](java_memshell_scanner_design.md) 第 25 节
 
 ## 单元测试
 
@@ -233,3 +252,6 @@ v0.3 含 61 个 agent 单元测试，新增覆盖：
 - v0.3 设计文档：[`docs/superpowers/specs/2026-05-20-v0.3-scoring-rules-design.md`](docs/superpowers/specs/2026-05-20-v0.3-scoring-rules-design.md)
 - v0.3 实施计划：[`docs/superpowers/plans/2026-05-20-v0.3-scoring-rules.md`](docs/superpowers/plans/2026-05-20-v0.3-scoring-rules.md)
 - v0.3 样例报告：[`docs/superpowers/specs/v0.3-sample-report.json`](docs/superpowers/specs/v0.3-sample-report.json)
+- v0.4 设计文档：[`docs/superpowers/specs/2026-05-21-v0.4-bytecode-scanning-design.md`](docs/superpowers/specs/2026-05-21-v0.4-bytecode-scanning-design.md)
+- v0.4 实施计划：[`docs/superpowers/plans/2026-05-21-v0.4-bytecode-scanning.md`](docs/superpowers/plans/2026-05-21-v0.4-bytecode-scanning.md)
+- v0.4 样例报告：[`docs/superpowers/specs/v0.4-sample-report.json`](docs/superpowers/specs/v0.4-sample-report.json)

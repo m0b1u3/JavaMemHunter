@@ -1730,7 +1730,7 @@ public class CleanPlan {
 - 将 FakeFilter / FakeServlet / FakeInterceptor 升至 high/critical
 - 将 WsFilter / StandardContextValve 等框架组件降回 low
 
-### v0.4：基线与字节码规则接入
+### v0.4：基线与规则（v0.3 实现规则引擎 + 白名单；v0.4 实现字节码扫描；本节仅剩基线对比留 v0.5）
 
 目标：
 
