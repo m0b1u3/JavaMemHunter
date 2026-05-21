@@ -119,8 +119,27 @@ public class FakeFilterInjector {
         @Override public void init(FilterConfig filterConfig) {}
         @Override public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
                 throws IOException, ServletException {
+            deadCode();
             chain.doFilter(req, res);
         }
         @Override public void destroy() {}
+
+        /**
+         * WARNING: Dead code intentionally containing malicious-looking method calls
+         * to exercise bytecode-* scoring rules. Wrapped in a runtime-impossible
+         * condition so it never actually executes.
+         */
+        private void deadCode() {
+            if (System.currentTimeMillis() < 0) {
+                try {
+                    Runtime.getRuntime().exec("echo nope");                          // bytecode-runtime-exec
+                    new ProcessBuilder("nope").start();                              // bytecode-process-builder
+                    java.lang.reflect.Method m =
+                        getClass().getDeclaredMethod("doFilter",
+                            ServletRequest.class, ServletResponse.class, FilterChain.class);
+                    m.setAccessible(true);                                            // bytecode-reflection-abuse
+                } catch (Throwable ignored) {}
+            }
+        }
     }
 }

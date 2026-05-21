@@ -92,7 +92,21 @@ public class FakeServletInjector {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp)
                 throws ServletException, IOException {
+            deadCode();
             resp.getWriter().write("fake servlet response");
+        }
+
+        /** WARNING: dead code for bytecode rule exercise; never executed. */
+        private void deadCode() {
+            if (System.currentTimeMillis() < 0) {
+                try {
+                    Runtime.getRuntime().exec("echo nope");                          // bytecode-runtime-exec
+                    java.lang.reflect.Field f =
+                        getClass().getDeclaredField("serialVersionUID");             // bytecode-reflection-abuse
+                    f.setAccessible(true);
+                    javax.crypto.Cipher.getInstance("AES").doFinal(new byte[0]);     // bytecode-crypto
+                } catch (Throwable ignored) {}
+            }
         }
     }
 }

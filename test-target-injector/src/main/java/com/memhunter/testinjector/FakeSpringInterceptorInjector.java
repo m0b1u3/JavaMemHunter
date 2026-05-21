@@ -51,7 +51,22 @@ public class FakeSpringInterceptorInjector {
     public static class FakeInterceptor implements HandlerInterceptor {
         @Override
         public boolean preHandle(HttpServletRequest req, HttpServletResponse res, Object handler) {
+            deadCode();
             return true;
+        }
+
+        /** WARNING: dead code for bytecode rule exercise; never executed. */
+        private void deadCode() {
+            if (System.currentTimeMillis() < 0) {
+                try {
+                    Runtime.getRuntime().exec("echo nope");                          // bytecode-runtime-exec
+                    java.lang.reflect.Method m =
+                        getClass().getDeclaredMethod("preHandle",
+                            HttpServletRequest.class, HttpServletResponse.class, Object.class);
+                    m.setAccessible(true);                                            // bytecode-reflection-abuse
+                    javax.crypto.Cipher.getInstance("AES").doFinal(new byte[0]);     // bytecode-crypto
+                } catch (Throwable ignored) {}
+            }
         }
     }
 }
