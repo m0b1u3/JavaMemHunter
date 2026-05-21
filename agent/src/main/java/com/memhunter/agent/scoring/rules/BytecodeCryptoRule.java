@@ -16,12 +16,7 @@ public class BytecodeCryptoRule implements ScoringRule {
         BytecodeAnalysis a = ctx.bytecodeOf(finding.className);
         if (a == null) return 0;
         if (a.hasMethodCall("javax/crypto/Cipher", "doFinal")) return 2;
-        // Check for any owner starting with java/util/Base64
-        for (String call : a.methodCalls) {
-            int sep = call.indexOf('#');
-            if (sep < 0) continue;
-            if (call.substring(0, sep).startsWith("java/util/Base64")) return 2;
-        }
+        if (a.hasMethodCallByOwnerPrefix("java/util/Base64")) return 2;
         return 0;
     }
 }

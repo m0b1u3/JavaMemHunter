@@ -44,4 +44,32 @@ class BytecodeAnalysisTest {
         assertFalse(a.hasMethodCall("foo", "bar"));
         assertFalse(a.hasMethodCallByName("bar"));
     }
+
+    @Test
+    void method_calls_set_is_immutable() {
+        BytecodeAnalysis a = with("a#b");
+        assertThrows(UnsupportedOperationException.class, () -> a.methodCalls.add("evil#bad"));
+        assertThrows(UnsupportedOperationException.class, () -> a.methodCalls.remove("a#b"));
+        assertThrows(UnsupportedOperationException.class, a.methodCalls::clear);
+    }
+
+    @Test
+    void has_method_call_by_owner_prefix_hits_exact_prefix() {
+        BytecodeAnalysis a = with("java/util/Base64#getDecoder", "java/lang/String#toString");
+        assertTrue(a.hasMethodCallByOwnerPrefix("java/util/Base64"));
+        assertTrue(a.hasMethodCallByOwnerPrefix("java/util/"));
+    }
+
+    @Test
+    void has_method_call_by_owner_prefix_matches_nested_classes() {
+        BytecodeAnalysis a = with("java/util/Base64$Decoder#decode");
+        assertTrue(a.hasMethodCallByOwnerPrefix("java/util/Base64"));
+        assertTrue(a.hasMethodCallByOwnerPrefix("java/util/Base64$Decoder"));
+    }
+
+    @Test
+    void has_method_call_by_owner_prefix_misses_unrelated() {
+        BytecodeAnalysis a = with("java/lang/String#toString");
+        assertFalse(a.hasMethodCallByOwnerPrefix("java/util/Base64"));
+    }
 }
