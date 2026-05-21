@@ -23,6 +23,8 @@ class JsonReportWriterTest {
         f.className = "com.example.Abc";
         r.findings.add(f);
         r.summary.totalFindings = 1;
+        r.summary.baselineNewCount = 1;
+        r.summary.baselineMatchedCount = 2;
 
         Path out = tmp.resolve("report.json");
         new JsonReportWriter().write(r, out.toString());
@@ -32,6 +34,8 @@ class JsonReportWriterTest {
         assertTrue(content.contains("scan-test-001"));
         assertTrue(content.contains("finding-class-filter-aaaabbbb"));
         assertTrue(content.contains("com.example.Abc"));
+        assertTrue(content.contains("\"baselineNewCount\""));
+        assertTrue(content.contains("\"baselineMatchedCount\""));
     }
 
     @org.junit.jupiter.api.Test

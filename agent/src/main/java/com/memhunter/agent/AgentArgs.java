@@ -15,6 +15,7 @@ public class AgentArgs {
         KNOWN_OPTIONS.add("output");
         KNOWN_OPTIONS.add("whitelist");
         KNOWN_OPTIONS.add("explain");
+        KNOWN_OPTIONS.add("baseline");
     }
 
     private AgentArgs(String command, Map<String, String> options) {

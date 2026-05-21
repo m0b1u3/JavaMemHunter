@@ -24,6 +24,8 @@ public class ScanReport {
         public int high;
         public int suspicious;
         public int low;
+        public int baselineNewCount;
+        public int baselineMatchedCount;
     }
 
     public static class PartialError {

@@ -87,8 +87,10 @@ class RuleEngineTest {
     }
 
     @Test
-    void default_rules_contains_seventeen_rules() {
-        assertEquals(17, RuleEngine.defaultRules().size());
+    void default_rules_contains_eighteen_rules_including_baseline_new() {
+        assertEquals(18, RuleEngine.defaultRules().size());
+        assertTrue(RuleEngine.defaultRules().stream()
+                .anyMatch(rule -> "baseline-new".equals(rule.name())));
     }
 
     private ScoringRule rule(String name, int delta) {

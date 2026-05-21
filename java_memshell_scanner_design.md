@@ -1730,16 +1730,27 @@ public class CleanPlan {
 - 将 FakeFilter / FakeServlet / FakeInterceptor 升至 high/critical
 - 将 WsFilter / StandardContextValve 等框架组件降回 low
 
-### v0.4：基线与规则（v0.3 实现规则引擎 + 白名单；v0.4 实现字节码扫描；本节仅剩基线对比留 v0.5）
+### v0.4：字节码规则接入（已完成）
 
 目标：
 
-- 生成运行时基线
-- 基线对比
 - 字节码扫描规则接入现有 ScoringRule
-- HTML 报告
+- ASM 9.7 读取目标类字节码
+- 5 条字节码评分规则接入现有 ScoringRule
+- FakeFilter / FakeServlet / FakeInterceptor 注入项全部提升到 critical
 
-### v0.5：安全清理
+### v0.5：基线对比（已完成）
+
+目标：
+
+- 复用 ScanReport JSON 作为基线文件
+- 支持 `scan --baseline <file>`
+- 新增 `baseline-new` 评分规则（+4）
+- Summary 输出 `baselineNewCount` / `baselineMatchedCount`
+- Listener / Interceptor Finding ID 跨 JVM 重启稳定
+- 归档 v0.5 干净基线和注入后 E2E 样例报告
+
+### v0.6：安全清理
 
 目标：
 

@@ -9,6 +9,8 @@ import com.memhunter.agent.scanner.spring.SpringScanner;
 import com.memhunter.agent.scanner.tomcat.TomcatScanner;
 import com.memhunter.agent.scoring.RuleEngine;
 import com.memhunter.agent.scoring.Whitelist;
+import com.memhunter.agent.scoring.baseline.BaselineIndex;
+import com.memhunter.agent.scoring.baseline.BaselineLoader;
 import com.memhunter.agent.util.ReflectUtil;
 
 import java.lang.instrument.Instrumentation;
@@ -48,6 +50,16 @@ public class MemHunterAgent {
             }
             boolean explain = "true".equals(args.options.get("explain"));
 
+            BaselineIndex baselineIndex = BaselineIndex.empty();
+            String baselineFile = args.options.get("baseline");
+            if (baselineFile != null) {
+                baselineIndex = BaselineLoader.load(baselineFile);
+                if (baselineIndex.isEmpty()) {
+                    report.partialErrors.add(new ScanReport.PartialError(
+                            "BaselineLoader", "failed to load or empty baseline: " + baselineFile));
+                }
+            }
+
             List<Finding> all = new ArrayList<>();
 
             // 1. Class-level scan (v0.1 behavior)
@@ -67,16 +79,10 @@ public class MemHunterAgent {
 
             // 4. v0.3 scoring
             Object appCtx = pickFirstAppContext(tomcatServletInstances);
-            new RuleEngine().evaluate(all, new ScanContext(appCtx, whitelist, explain));
+            new RuleEngine().evaluate(all, new ScanContext(appCtx, whitelist, explain, baselineIndex));
 
             report.findings = all;
-            report.summary.totalFindings = all.size();
-            for (Finding f : all) {
-                if ("critical".equals(f.level)) report.summary.critical++;
-                else if ("high".equals(f.level)) report.summary.high++;
-                else if ("suspicious".equals(f.level)) report.summary.suspicious++;
-                else report.summary.low++;
-            }
+            populateSummary(report, all, baselineIndex);
 
             String output = args.options.getOrDefault("output",
                     System.getProperty("java.io.tmpdir") + "/memhunter-report-" + report.scanId + ".json");
@@ -86,6 +92,26 @@ public class MemHunterAgent {
         } catch (Throwable t) {
             System.err.println("[memhunter] agent failed: " + t.getMessage());
             t.printStackTrace(System.err);
+        }
+    }
+
+    static void populateSummary(ScanReport report, List<Finding> findings, BaselineIndex baselineIndex) {
+        if (report == null || findings == null) return;
+        BaselineIndex effectiveBaseline = baselineIndex != null ? baselineIndex : BaselineIndex.empty();
+        report.summary.totalFindings = findings.size();
+        for (Finding f : findings) {
+            if ("critical".equals(f.level)) report.summary.critical++;
+            else if ("high".equals(f.level)) report.summary.high++;
+            else if ("suspicious".equals(f.level)) report.summary.suspicious++;
+            else report.summary.low++;
+
+            if (f.id != null && !effectiveBaseline.isEmpty()) {
+                if (effectiveBaseline.contains(f.id)) {
+                    report.summary.baselineMatchedCount++;
+                } else {
+                    report.summary.baselineNewCount++;
+                }
+            }
         }
     }
 

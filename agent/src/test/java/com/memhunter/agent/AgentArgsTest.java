@@ -67,4 +67,11 @@ class AgentArgsTest {
         assertEquals("true", args.options.get("explain"));
         assertFalse(errOut.toString().contains("warning"));
     }
+
+    @Test
+    void baseline_option_known_no_warning() {
+        AgentArgs args = AgentArgs.parse("scan --baseline /tmp/clean.json");
+        assertEquals("/tmp/clean.json", args.options.get("baseline"));
+        assertFalse(errOut.toString().contains("warning"));
+    }
 }

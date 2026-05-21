@@ -1,6 +1,18 @@
 # JavaMemHunter
 
-Java 内存马扫描与清理工具（v0.4 — 字节码扫描 + 评分规则引擎 + 白名单）。
+Java 内存马扫描与清理工具（v0.5 — 基线对比 + 字节码扫描 + 评分规则引擎 + 白名单）。
+
+## v0.5 能力
+
+在 v0.4 基础上新增：
+
+- **基线对比**：扫描时与历史 ScanReport 对比，新增 finding 会命中 `baseline-new` 并加分。这是识别“启动后被注入”组件的核心信号
+- **`baseline-new` 评分规则**（+4）：对所有 finding type 生效，与白名单独立累加
+- **CLI 新增 `--baseline <file>`**：复用已有 ScanReport JSON，不引入新的基线文件格式
+- **Summary 新增字段**：`baselineNewCount` / `baselineMatchedCount`，便于快速判断本次扫描相对基线新增了多少对象
+- **Finding ID 稳定性修复**：Listener / Interceptor ID 不再包含 `identityHashCode`，跨 JVM 重启稳定
+- **字节码 INVOKEDYNAMIC 支持**：可识别 lambda / invokedynamic bootstrap args 中隐藏的可疑 method handle
+- **BytecodeAnalysis 加固**：`methodCalls` 改为不可变 Set，并新增 `hasMethodCallByOwnerPrefix` helper
 
 ## v0.4 能力
 
@@ -126,6 +138,16 @@ v0.3 新增参数：
 
 - `--explain`：在每个 finding 中输出 `ruleHits`，展示每条命中规则和加分/减分明细。
 
+- `--baseline <file>`：基线对比文件，格式为任意历史 ScanReport JSON。当前扫描中所有 `finding.id` 不在 baseline 中的对象会命中 `baseline-new` +4。
+
+  ```bash
+  # 1. 系统启动后先打干净基线
+  java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar scan --output clean-baseline.json
+
+  # 2. 应急排查时带基线对比
+  java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar scan --baseline clean-baseline.json --output now.json --explain
+  ```
+
 ## Finding 类型表
 
 | Finding type | 含义 | 关键 attributes |
@@ -139,7 +161,7 @@ v0.3 新增参数：
 | `spring-mapping` | AbstractHandlerMethodMapping 注册的 mapping | pattern, methods, handlerMethod, beanName |
 | `spring-interceptor` | AbstractHandlerMapping.adaptedInterceptors | order, includePatterns, excludePatterns |
 
-## 评分规则参考（v0.3）
+## 评分规则参考（v0.5）
 
 | Rule | 命中条件 | Delta |
 |---|---|---|
@@ -160,6 +182,7 @@ v0.3 新增参数：
 | `bytecode-define-class` | 字节码调用任何 `defineClass` 方法 | +3 |
 | `bytecode-reflection-abuse` | 字节码调用 `setAccessible` / `getDeclaredField` / `getDeclaredMethod` | +2 |
 | `bytecode-crypto` | 字节码调用 `Cipher#doFinal` 或 `Base64*` | +2 |
+| `baseline-new` | finding.id 不在 baseline 中 | +4 |
 
 等级阈值：`0-3 low / 4-6 suspicious / 7-9 high / 10+ critical`
 
@@ -214,9 +237,8 @@ v0.3 样例报告：[`docs/superpowers/specs/v0.3-sample-report.json`](docs/supe
 
 ## 限制
 
-v0.4 仍**不包含**（推迟到 v0.5+）：
+v0.5 仍**不包含**（推迟到 v0.6+）：
 
-- 基线对比（启动时打基线、扫描时对比新增）
 - WebFlux 应用（不支持）
 - 清理操作（dry-run / confirm 流程）
 - HTML / Markdown 报告
@@ -229,13 +251,14 @@ v0.4 仍**不包含**（推迟到 v0.5+）：
 cmd //c "mvnw.cmd -pl agent test"
 ```
 
-v0.3 含 61 个 agent 单元测试，新增覆盖：
+v0.5 含 112 个 agent 单元测试，新增覆盖：
 - `ReflectUtil`（9）— 跨版本反射工具
 - `WebComponentDetector`（6）— BFS 接口检测 + Listener 细分
-- `AgentArgs`（6）— 未知选项告警 + `--whitelist` / `--explain`
+- `AgentArgs`（7）— 未知选项告警 + `--whitelist` / `--explain` / `--baseline`
 - `Whitelist`（5）— 默认白名单 + 用户文件追加
-- `RuleEngine`（8）— 分数累计、等级映射、explain、异常隔离
-- `RuleSmokeTest`（22）— 12 条评分规则核心 hit/miss 路径
+- `RuleEngine`（8）— 分数累计、等级映射、explain、异常隔离、默认规则装配
+- `BaselineIndex` / `BaselineLoader` / `BaselineNewRule`（15）— 基线 ID 集合、ScanReport 读取、新增 finding 加分
+- `MemHunterAgent`（2）— Summary 统计与 baseline matched/new 计数
 - `JsonReportWriter`（2）— 原子写入 + 覆盖已有文件
 - `FindingIdGenerator`（3）— v0.1 保留
 
@@ -255,3 +278,7 @@ v0.3 含 61 个 agent 单元测试，新增覆盖：
 - v0.4 设计文档：[`docs/superpowers/specs/2026-05-21-v0.4-bytecode-scanning-design.md`](docs/superpowers/specs/2026-05-21-v0.4-bytecode-scanning-design.md)
 - v0.4 实施计划：[`docs/superpowers/plans/2026-05-21-v0.4-bytecode-scanning.md`](docs/superpowers/plans/2026-05-21-v0.4-bytecode-scanning.md)
 - v0.4 样例报告：[`docs/superpowers/specs/v0.4-sample-report.json`](docs/superpowers/specs/v0.4-sample-report.json)
+- v0.5 设计文档：[`docs/superpowers/specs/2026-05-21-v0.5-baseline-comparison-design.md`](docs/superpowers/specs/2026-05-21-v0.5-baseline-comparison-design.md)
+- v0.5 实施计划：[`docs/superpowers/plans/2026-05-21-v0.5-baseline-comparison.md`](docs/superpowers/plans/2026-05-21-v0.5-baseline-comparison.md)
+- v0.5 干净基线：[`docs/superpowers/specs/v0.5-clean-baseline.json`](docs/superpowers/specs/v0.5-clean-baseline.json)
+- v0.5 注入后报告：[`docs/superpowers/specs/v0.5-after-inject-report.json`](docs/superpowers/specs/v0.5-after-inject-report.json)
