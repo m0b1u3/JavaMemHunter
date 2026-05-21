@@ -1,6 +1,7 @@
 package com.memhunter.agent.model;
 
 import com.memhunter.agent.scoring.Whitelist;
+import com.memhunter.agent.scoring.baseline.BaselineIndex;
 import com.memhunter.agent.scoring.bytecode.BytecodeAnalysis;
 import com.memhunter.agent.scoring.bytecode.ClassBytecodeReader;
 
@@ -13,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * - The resolved Spring ApplicationContext (may be null)
  * - The Whitelist
  * - The --explain flag
+ * - The BaselineIndex (empty if no --baseline provided)
  * - A lazy bytecode cache populated on demand by bytecode-* rules
  */
 public class ScanContext {
@@ -20,23 +22,26 @@ public class ScanContext {
     public final Object applicationContext;
     public final Whitelist whitelist;
     public final boolean explain;
+    public final BaselineIndex baselineIndex;
 
-    // v0.4: bytecode lookup cache
     private final Map<String, BytecodeAnalysis> bytecodeCache = new ConcurrentHashMap<>();
     private static final BytecodeAnalysis MISS =
             new BytecodeAnalysis(Collections.<String>emptySet());
 
-    public ScanContext(Object applicationContext, Whitelist whitelist, boolean explain) {
+    public ScanContext(Object applicationContext, Whitelist whitelist, boolean explain,
+                       BaselineIndex baselineIndex) {
         this.applicationContext = applicationContext;
         this.whitelist = whitelist;
         this.explain = explain;
+        this.baselineIndex = baselineIndex != null ? baselineIndex : BaselineIndex.empty();
     }
 
-    /**
-     * Returns the BytecodeAnalysis for the given className, or null if bytecode
-     * cannot be read (CGLIB proxy, bootstrap loader, IO error, etc.).
-     * Result is cached for the lifetime of this ScanContext.
-     */
+    /** @deprecated Use 4-arg constructor with explicit baselineIndex. */
+    @Deprecated
+    public ScanContext(Object applicationContext, Whitelist whitelist, boolean explain) {
+        this(applicationContext, whitelist, explain, BaselineIndex.empty());
+    }
+
     public BytecodeAnalysis bytecodeOf(String className) {
         if (className == null) return null;
         BytecodeAnalysis cached = bytecodeCache.get(className);
@@ -47,11 +52,6 @@ public class ScanContext {
         return result;
     }
 
-    /**
-     * Test seam: pre-populate the cache to avoid invoking the real reader.
-     * Public to allow access from rule tests in a different package.
-     * Do NOT call from production code.
-     */
     public void putBytecodeForTest(String className, BytecodeAnalysis analysis) {
         if (className == null) return;
         bytecodeCache.put(className, analysis == null ? MISS : analysis);
