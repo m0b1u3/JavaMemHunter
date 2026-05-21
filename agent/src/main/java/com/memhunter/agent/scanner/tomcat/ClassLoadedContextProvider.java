@@ -19,18 +19,14 @@ import java.util.Set;
  * <ol>
  *   <li>Static fields on every loaded class — works for standalone Tomcat where bootstrap
  *       classes (e.g. {@code Catalina}, {@code ServerFactory}) hold static references.</li>
- *   <li>Spring Boot integration class {@code TomcatWebServer} — scans loaded classes
- *       looking for an INSTANCE of TomcatWebServer (kept reachable via Spring's
- *       {@code ApplicationContext.webServer} field), then reflectively walks
- *       {@code TomcatWebServer.tomcat → server → services → engine}.</li>
+ *   <li>Thread field-graph walk — works for Spring Boot embedded Tomcat by walking live
+ *       Tomcat worker/acceptor threads' fields to reach the Engine.</li>
  * </ol>
  */
 public class ClassLoadedContextProvider implements StandardContextProvider {
 
     private static final String STANDARD_ENGINE = "org.apache.catalina.core.StandardEngine";
     private static final String STANDARD_CONTEXT = "org.apache.catalina.core.StandardContext";
-    private static final String TOMCAT_WEB_SERVER =
-            "org.springframework.boot.web.embedded.tomcat.TomcatWebServer";
 
     @Override
     public String name() {
@@ -69,10 +65,7 @@ public class ClassLoadedContextProvider implements StandardContextProvider {
     private Object locateEngine(Instrumentation inst, Class<?> engineClass) {
         Object engine = findEngineViaStaticFields(inst, engineClass);
         if (engine != null) return engine;
-        engine = findEngineViaThreads(engineClass);
-        if (engine != null) return engine;
-        engine = findEngineViaSpringBoot(inst, engineClass);
-        return engine;
+        return findEngineViaThreads(engineClass);
     }
 
     /**
@@ -207,97 +200,6 @@ public class ClassLoadedContextProvider implements StandardContextProvider {
                 if (engine != null) return engine;
             }
         } catch (Throwable ignored) {}
-        return null;
-    }
-
-    /**
-     * Spring Boot strategy: find TomcatWebServer class, then scan instance fields of every
-     * loaded class for a TomcatWebServer instance. Spring's ServletWebServerApplicationContext
-     * holds it in a non-static field. From TomcatWebServer.tomcat we get Server → Service[] → Engine.
-     */
-    private Object findEngineViaSpringBoot(Instrumentation inst, Class<?> engineClass) {
-        try {
-            Class<?> twsClass = findClass(inst, TOMCAT_WEB_SERVER);
-            if (twsClass == null) return null;
-
-            // Scan all loaded classes for instances of TomcatWebServer held in instance fields.
-            // We need to find any object whose field references a TomcatWebServer — typically
-            // the Spring ApplicationContext. Brute-force: walk all loaded classes' static
-            // fields first (cheap), then for each Class, instantiation tracking would require
-            // a transformer. Instead we scan static fields again, this time looking for
-            // TomcatWebServer directly (Spring Boot does keep a static reference path via the
-            // running SpringApplication, but not always).
-            //
-            // Best portable approach: scan all classes' static fields recursively (1 level)
-            // looking for any object whose ".tomcat" field has type Tomcat.
-            Object tws = findInstanceInStaticGraph(inst, twsClass);
-            if (tws == null) return null;
-
-            // TomcatWebServer.tomcat
-            Optional<Object> tomcatOpt = ReflectUtil.tryReadField(tws, "tomcat");
-            if (!tomcatOpt.isPresent()) return null;
-            Object tomcat = tomcatOpt.get();
-
-            // Tomcat.getServer() → Server
-            Object server = ReflectUtil.tryInvoke(tomcat, "getServer").orElse(null);
-            if (server == null) return null;
-
-            // Server.findServices() → Service[]
-            Object services = ReflectUtil.tryInvoke(server, "findServices").orElse(null);
-            if (!(services instanceof Object[])) return null;
-            for (Object svc : (Object[]) services) {
-                if (svc == null) continue;
-                Object containerObj = ReflectUtil.tryInvoke(svc, "getContainer").orElse(null);
-                if (containerObj != null && engineClass.isInstance(containerObj)) {
-                    return containerObj;
-                }
-            }
-        } catch (Throwable ignored) {}
-        return null;
-    }
-
-    /**
-     * Find an instance of {@code targetType} reachable from any loaded class's static field,
-     * up to 1 level deep (the static field itself, OR a single instance-field hop).
-     */
-    private Object findInstanceInStaticGraph(Instrumentation inst, Class<?> targetType) {
-        Set<Object> visited = newIdentitySet();
-        for (Class<?> c : inst.getAllLoadedClasses()) {
-            try {
-                for (java.lang.reflect.Field f : c.getDeclaredFields()) {
-                    if (!java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
-                    if (f.getType().isPrimitive()) continue;
-                    try {
-                        f.setAccessible(true);
-                        Object v = f.get(null);
-                        if (v == null || !visited.add(v)) continue;
-                        if (targetType.isInstance(v)) return v;
-                        // One level deeper: scan instance fields of v
-                        Object found = scanInstanceFields(v, targetType, visited);
-                        if (found != null) return found;
-                    } catch (Throwable ignored) {}
-                }
-            } catch (Throwable ignored) {}
-        }
-        return null;
-    }
-
-    private Object scanInstanceFields(Object obj, Class<?> targetType, Set<Object> visited) {
-        if (obj == null) return null;
-        Class<?> c = obj.getClass();
-        while (c != null && !c.getName().equals("java.lang.Object")) {
-            for (java.lang.reflect.Field f : c.getDeclaredFields()) {
-                if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
-                if (f.getType().isPrimitive() || f.getType().isArray()) continue;
-                try {
-                    f.setAccessible(true);
-                    Object v = f.get(obj);
-                    if (v == null || !visited.add(v)) continue;
-                    if (targetType.isInstance(v)) return v;
-                } catch (Throwable ignored) {}
-            }
-            c = c.getSuperclass();
-        }
         return null;
     }
 
