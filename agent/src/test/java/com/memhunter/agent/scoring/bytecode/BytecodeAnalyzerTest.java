@@ -36,4 +36,27 @@ class BytecodeAnalyzerTest {
             assertNotNull(result.methodCalls);
         }
     }
+
+    /**
+     * Helper containing a lambda that references Runtime.exec. On JDK 9+ this compiles
+     * to invokedynamic + LambdaMetafactory whose bootstrap args include a Handle to the
+     * synthetic method holding the lambda body. The body itself calls Runtime.exec via
+     * invokevirtual, but we also want to capture the Handle reference path for robustness.
+     */
+    static class SampleWithLambda {
+        Runnable r = () -> {
+            try {
+                Runtime.getRuntime().exec("nope");
+            } catch (Exception ignored) {}
+        };
+    }
+
+    @Test
+    void analyzes_lambda_runtime_exec_call() {
+        BytecodeAnalysis result = ClassBytecodeReader.readAndAnalyze(
+                SampleWithLambda.class.getName(), getClass().getClassLoader());
+        assertNotNull(result);
+        assertTrue(result.hasMethodCall("java/lang/Runtime", "exec"),
+                "expected Runtime#exec found via lambda in: " + result.methodCalls);
+    }
 }
