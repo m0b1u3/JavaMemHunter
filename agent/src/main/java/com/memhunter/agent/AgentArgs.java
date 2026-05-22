@@ -16,6 +16,11 @@ public class AgentArgs {
         KNOWN_OPTIONS.add("whitelist");
         KNOWN_OPTIONS.add("explain");
         KNOWN_OPTIONS.add("baseline");
+        KNOWN_OPTIONS.add("id");
+        KNOWN_OPTIONS.add("dry-run");
+        KNOWN_OPTIONS.add("confirm");
+        KNOWN_OPTIONS.add("force");
+        KNOWN_OPTIONS.add("evidence-dir");
     }
 
     private AgentArgs(String command, Map<String, String> options) {
@@ -46,6 +51,32 @@ public class AgentArgs {
                 System.err.println("[memhunter] warning: unknown option --" + key);
             }
         }
-        return new AgentArgs(command, options);
+        AgentArgs args = new AgentArgs(command, options);
+        validate(args);
+        return args;
+    }
+
+    private static void validate(AgentArgs args) {
+        if ("clean".equals(args.command)) {
+            boolean hasDryRun = args.options.containsKey("dry-run");
+            boolean hasConfirm = args.options.containsKey("confirm");
+            boolean hasForce = args.options.containsKey("force");
+            if (!args.options.containsKey("id")) {
+                throw new IllegalArgumentException("clean requires --id");
+            }
+            if (!hasDryRun && !hasConfirm) {
+                throw new IllegalArgumentException("clean requires either --dry-run or --confirm");
+            }
+            if (hasDryRun && hasConfirm) {
+                throw new IllegalArgumentException("clean cannot combine --dry-run and --confirm");
+            }
+            if (hasForce && !hasConfirm) {
+                throw new IllegalArgumentException("--force must be used with --confirm");
+            }
+        } else if ("verify".equals(args.command)) {
+            if (!args.options.containsKey("id")) {
+                throw new IllegalArgumentException("verify requires --id");
+            }
+        }
     }
 }
