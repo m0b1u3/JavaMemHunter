@@ -2,6 +2,8 @@ package com.memhunter.agent;
 
 import com.memhunter.agent.cleaner.CleanPlanReader;
 import com.memhunter.agent.cleaner.EvidenceWriter;
+import com.memhunter.agent.cleaner.PlanReconciler;
+import com.memhunter.agent.cleaner.PlanStaleException;
 import com.memhunter.agent.cleaner.TomcatFilterCleaner;
 import com.memhunter.agent.model.CleanPlan;
 import com.memhunter.agent.model.CleanResult;
@@ -25,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +35,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class MemHunterAgent {
+
+    public static final int EXIT_OK = 0;
+    public static final int EXIT_EXECUTE_FAILED = 2;
+    public static final int EXIT_PLAN_STALE = 3;
 
     public static void agentmain(String agentArgs, Instrumentation inst) {
         try {
@@ -145,28 +152,72 @@ public class MemHunterAgent {
         }
         if ("clean".equals(args.command) && args.options.containsKey("confirm")) {
             Object ctx = requireFirstContext(tomcatContexts);
-            String id = args.options.get("id");
-            Path evidenceDir = evidenceDir(args);
-            Path planFile = evidenceDir.resolve("evidence").resolve(id).resolve("clean-plan.json");
-            CleanPlan persistedPlan = CleanPlanReader.read(planFile);
-            Finding finding = findTomcatFilter(ctx, id);
-            if (finding == null) {
-                throw new IllegalStateException("finding not located: " + id);
+            int exit = dispatchCleanConfirm(ctx, args);
+            if (exit == EXIT_PLAN_STALE) {
+                System.out.println("[memhunter] clean confirm rejected: plan stale, id="
+                        + args.options.get("id"));
+            } else {
+                System.out.println("[memhunter] clean confirm finished, id="
+                        + args.options.get("id") + ", exit=" + exit);
             }
-            TomcatFilterCleaner cleaner = new TomcatFilterCleaner(ctx);
-            CleanPlan freshPlan = cleaner.plan(finding, args.options.containsKey("force"));
-            if (freshPlan == null) {
-                throw new IllegalStateException("clean plan could not be regenerated: " + id);
-            }
-            freshPlan.evidenceDir = persistedPlan.evidenceDir;
-            freshPlan.planFile = persistedPlan.planFile;
-            CleanResult result = cleaner.execute(freshPlan, args.options.containsKey("force"));
-            new EvidenceWriter(evidenceDir).writeResult(id, result);
-            System.out.println("[memhunter] clean confirm finished, id=" + id
-                    + ", success=" + result.success);
             return true;
         }
         return false;
+    }
+
+    /**
+     * Visible-for-testing seam: drives the clean --confirm dispatch with a
+     * pre-resolved StandardContext, returning an exit code instead of System.exit.
+     * Shares the {@link #dispatchCleanConfirm} helper with the production path —
+     * no logic fork.
+     */
+    static int dispatchForTest(Object standardContext, AgentArgs args) throws Exception {
+        if (!"clean".equals(args.command) || !args.options.containsKey("confirm")) {
+            throw new IllegalArgumentException(
+                    "dispatchForTest only handles `clean --confirm`, got: " + args.command);
+        }
+        return dispatchCleanConfirm(standardContext, args);
+    }
+
+    private static int dispatchCleanConfirm(Object ctx, AgentArgs args) throws Exception {
+        String id = args.options.get("id");
+        boolean confirmForceFlag = args.options.containsKey("force");
+        Path evidenceDir = evidenceDir(args);
+        Path planFile = evidenceDir.resolve("evidence").resolve(id).resolve("clean-plan.json");
+        CleanPlan persistedPlan = CleanPlanReader.read(planFile);
+
+        Finding finding = findTomcatFilter(ctx, id);
+        if (finding == null) {
+            throw new IllegalStateException("finding not located: " + id);
+        }
+        TomcatFilterCleaner cleaner = new TomcatFilterCleaner(ctx);
+        CleanPlan freshPlan = cleaner.plan(finding, confirmForceFlag);
+        if (freshPlan == null) {
+            throw new IllegalStateException("clean plan could not be regenerated: " + id);
+        }
+        freshPlan.evidenceDir = persistedPlan.evidenceDir;
+        freshPlan.planFile = persistedPlan.planFile;
+
+        // v0.6.1: reconcile persisted vs fresh plan + confirm-time --force flag
+        try {
+            PlanReconciler.requireConsistent(persistedPlan, freshPlan, confirmForceFlag);
+        } catch (PlanStaleException e) {
+            CleanResult stale = new CleanResult();
+            stale.findingId = persistedPlan.findingId;
+            stale.success = false;
+            stale.rolledBack = false;
+            stale.verifiedDisappeared = false;
+            stale.executedSteps = Arrays.asList(
+                    "pre-execute: plan staleness check FAILED — refusing to clean");
+            stale.failureReason = e.getMessage();
+            stale.executedAt = System.currentTimeMillis();
+            new EvidenceWriter(evidenceDir).writeResult(persistedPlan.findingId, stale);
+            return EXIT_PLAN_STALE;
+        }
+
+        CleanResult result = cleaner.execute(freshPlan, confirmForceFlag);
+        new EvidenceWriter(evidenceDir).writeResult(id, result);
+        return result.success ? EXIT_OK : EXIT_EXECUTE_FAILED;
     }
 
     private static Object firstContext(List<?> tomcatContexts) {

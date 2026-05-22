@@ -156,8 +156,8 @@ public class TomcatFilterCleanerFullFlowTest {
         assertTrue(result.success, "destroy failure must NOT fail the clean. reason=" + result.failureReason);
         assertTrue(result.verifiedDisappeared);
         assertFalse(result.rolledBack);
-        assertTrue(stepsContain(result, "tolerated"),
-                "an executed step should mark destroy as tolerated, got: " + result.executedSteps);
+        assertTrue(result.executedSteps.stream().anyMatch(s -> s.startsWith("phase-D: destroy-threw:")),
+                "an executed step should mark destroy as destroy-threw, got: " + result.executedSteps);
     }
 
     @Test

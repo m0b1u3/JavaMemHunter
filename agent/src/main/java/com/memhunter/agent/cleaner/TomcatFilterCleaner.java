@@ -137,12 +137,7 @@ public class TomcatFilterCleaner implements Cleaner {
             result.executedSteps.add("phase-C: removed filter registrations");
             hookAfterPhaseC.run();
 
-            Throwable releaseFailure = releaseOriginalFilterConfig();
-            if (releaseFailure == null) {
-                result.executedSteps.add("phase-D: released original filter config");
-            } else {
-                result.executedSteps.add("phase-D: release failure tolerated: " + releaseFailure.getMessage());
-            }
+            result.executedSteps.add(releaseOriginalFilterConfig());
 
             if (isFindingStillPresent(plan.findingId)) {
                 new RollbackManager().restore(standardContext, currentFilterName, currentBackup);
@@ -173,22 +168,34 @@ public class TomcatFilterCleaner implements Cleaner {
         }
     }
 
-    private Throwable releaseOriginalFilterConfig() {
-        if (currentBackup == null || currentBackup.originalFilterConfig == null) {
-            return null;
+    private String releaseOriginalFilterConfig() {
+        Object config = currentBackup == null ? null : currentBackup.originalFilterConfig;
+        if (config == null) {
+            // Null config (e.g. backup never captured one) is deliberately collapsed
+            // with NoSuchMethodException onto the same label. Both mean "release()
+            // was not invoked"; the runtime mutation already detached the filter.
+            return "phase-D: no-release-method";
         }
         try {
-            java.lang.reflect.Method m = currentBackup.originalFilterConfig.getClass().getDeclaredMethod("release");
-            m.setAccessible(true);
-            m.invoke(currentBackup.originalFilterConfig);
-            return null;
-        } catch (java.lang.reflect.InvocationTargetException e) {
-            return e.getTargetException() == null ? e : e.getTargetException();
-        } catch (NoSuchMethodException e) {
-            return null;
+            // getMethod is intentional: ApplicationFilterConfig.release() is public.
+            // We do not probe non-public declared methods; if a subclass downgrades
+            // release() to package-private, this falls through to no-release-method.
+            java.lang.reflect.Method m = config.getClass().getMethod("release");
+            m.invoke(config);
+            return "phase-D: destroy-ran";
+        } catch (NoSuchMethodException nsme) {
+            return "phase-D: no-release-method";
+        } catch (java.lang.reflect.InvocationTargetException ite) {
+            Throwable cause = ite.getCause() != null ? ite.getCause() : ite;
+            return phaseDThrew(cause);
         } catch (Throwable t) {
-            return t;
+            return phaseDThrew(t);
         }
+    }
+
+    private static String phaseDThrew(Throwable t) {
+        String msg = t.getMessage() == null ? "" : t.getMessage();
+        return "phase-D: destroy-threw: " + t.getClass().getSimpleName() + ": " + msg;
     }
 
     private boolean isFindingStillPresent(String findingId) {
