@@ -123,6 +123,145 @@ class MemHunterAgentTest {
         public String[] urlPatterns;
     }
 
+    @Test
+    void confirmRejectsStalePlanWithoutMutating() throws Exception {
+        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext ctx =
+                newPhaseDFakeContextWithEvilFilter();
+        String findingId = FindingIdGenerator.generate(
+                "tomcat-filter", "com.evil.X", "Evil");
+
+        Path findingDir = tempDir.resolve("evidence").resolve(findingId);
+        Files.createDirectories(findingDir);
+
+        com.memhunter.agent.model.CleanPlan persisted = new com.memhunter.agent.model.CleanPlan();
+        persisted.findingId = findingId;
+        persisted.type = "tomcat-filter";
+        persisted.filterName = "Evil";
+        persisted.filterClass = "com.evil.X";
+        persisted.score = 14;
+        persisted.level = "critical";
+        persisted.forced = false;
+        persisted.rollbackSupported = true;
+        persisted.generatedAt = 1L;
+
+        new com.fasterxml.jackson.databind.ObjectMapper()
+                .writerWithDefaultPrettyPrinter()
+                .writeValue(findingDir.resolve("clean-plan.json").toFile(), persisted);
+
+        HashMapSnapshot before = HashMapSnapshot.of(ctx);
+
+        AgentArgs args = AgentArgs.parse(
+                "clean --id " + findingId + " --confirm --force --evidence-dir " + tempDir);
+        int exitCode = MemHunterAgent.dispatchForTest(ctx, args);
+
+        assertEquals(3, exitCode, "EXIT_PLAN_STALE must be 3");
+
+        HashMapSnapshot after = HashMapSnapshot.of(ctx);
+        assertTrue(before.equalsSnapshot(after),
+                "runtime maps must not be mutated when plan is stale");
+
+        Path resultFile = findingDir.resolve("clean-result.json");
+        assertTrue(Files.exists(resultFile),
+                "clean-result.json must be written even on stale rejection");
+        com.memhunter.agent.model.CleanResult cr = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readValue(resultFile.toFile(), com.memhunter.agent.model.CleanResult.class);
+        assertFalse(cr.success);
+        assertFalse(cr.rolledBack);
+        assertNotNull(cr.failureReason);
+        assertTrue(cr.failureReason.contains("forced"),
+                "failureReason should mention forced, was: " + cr.failureReason);
+    }
+
+    @Test
+    void confirmAcceptsConsistentPlan() throws Exception {
+        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext ctx =
+                newPhaseDFakeContextWithEvilFilter();
+        String findingId = FindingIdGenerator.generate(
+                "tomcat-filter", "com.evil.X", "Evil");
+
+        Path findingDir = tempDir.resolve("evidence").resolve(findingId);
+        Files.createDirectories(findingDir);
+
+        com.memhunter.agent.model.CleanPlan persisted = new com.memhunter.agent.model.CleanPlan();
+        persisted.findingId = findingId;
+        persisted.type = "tomcat-filter";
+        persisted.filterName = "Evil";
+        persisted.filterClass = "com.evil.X";
+        persisted.score = 14;
+        persisted.level = "critical";
+        persisted.forced = false;
+        persisted.rollbackSupported = true;
+        persisted.generatedAt = 1L;
+
+        new com.fasterxml.jackson.databind.ObjectMapper()
+                .writerWithDefaultPrettyPrinter()
+                .writeValue(findingDir.resolve("clean-plan.json").toFile(), persisted);
+
+        AgentArgs args = AgentArgs.parse(
+                "clean --id " + findingId + " --confirm --evidence-dir " + tempDir);
+        int exitCode = MemHunterAgent.dispatchForTest(ctx, args);
+
+        assertEquals(0, exitCode, "consistent plan must succeed");
+
+        com.memhunter.agent.model.CleanResult cr = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readValue(findingDir.resolve("clean-result.json").toFile(),
+                        com.memhunter.agent.model.CleanResult.class);
+        assertTrue(cr.success);
+        assertTrue(cr.verifiedDisappeared);
+    }
+
+    private static com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext
+            newPhaseDFakeContextWithEvilFilter() {
+        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext ctx =
+                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext();
+        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterDef def =
+                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterDef();
+        def.filterName = "Evil";
+        def.filterClass = "com.evil.X";
+        ctx.filterDefs.put("Evil", def);
+        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterMap fm =
+                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterMap();
+        fm.filterName = "Evil";
+        fm.urlPatterns = new String[]{"/*"};
+        ctx.filterMaps.array = new Object[]{fm};
+        ctx.filterConfigs.put("Evil",
+                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FilterConfigWithReleaseOk());
+        return ctx;
+    }
+
+    private static class HashMapSnapshot {
+        final java.util.Map<String, Object> defs;
+        final java.util.Map<String, Object> configs;
+        final int filterMapsLen;
+
+        HashMapSnapshot(java.util.Map<String, Object> defs,
+                        java.util.Map<String, Object> configs,
+                        int filterMapsLen) {
+            this.defs = new java.util.HashMap<>(defs);
+            this.configs = new java.util.HashMap<>(configs);
+            this.filterMapsLen = filterMapsLen;
+        }
+
+        @SuppressWarnings("unchecked")
+        static HashMapSnapshot of(Object ctx) throws Exception {
+            java.lang.reflect.Field fd = ctx.getClass().getField("filterDefs");
+            java.lang.reflect.Field fc = ctx.getClass().getField("filterConfigs");
+            java.lang.reflect.Field fm = ctx.getClass().getField("filterMaps");
+            Object mapsWrapper = fm.get(ctx);
+            Object[] arr = (Object[]) mapsWrapper.getClass().getField("array").get(mapsWrapper);
+            return new HashMapSnapshot(
+                    (java.util.Map<String, Object>) fd.get(ctx),
+                    (java.util.Map<String, Object>) fc.get(ctx),
+                    arr.length);
+        }
+
+        boolean equalsSnapshot(HashMapSnapshot other) {
+            return defs.equals(other.defs)
+                    && configs.equals(other.configs)
+                    && filterMapsLen == other.filterMapsLen;
+        }
+    }
+
     private FakeContext contextWithFilter() {
         FakeContext ctx = new FakeContext();
         FakeFilterDef def = new FakeFilterDef();

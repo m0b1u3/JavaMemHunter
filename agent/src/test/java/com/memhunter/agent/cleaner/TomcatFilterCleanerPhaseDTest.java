@@ -10,7 +10,7 @@ import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class TomcatFilterCleanerPhaseDTest {
+public class TomcatFilterCleanerPhaseDTest {
 
     public static class FakeContext {
         public HashMap<String, Object> filterDefs = new HashMap<>();
