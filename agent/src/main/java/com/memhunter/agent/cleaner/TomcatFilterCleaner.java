@@ -171,9 +171,15 @@ public class TomcatFilterCleaner implements Cleaner {
     private String releaseOriginalFilterConfig() {
         Object config = currentBackup == null ? null : currentBackup.originalFilterConfig;
         if (config == null) {
+            // Null config (e.g. backup never captured one) is deliberately collapsed
+            // with NoSuchMethodException onto the same label. Both mean "release()
+            // was not invoked"; the runtime mutation already detached the filter.
             return "phase-D: no-release-method";
         }
         try {
+            // getMethod is intentional: ApplicationFilterConfig.release() is public.
+            // We do not probe non-public declared methods; if a subclass downgrades
+            // release() to package-private, this falls through to no-release-method.
             java.lang.reflect.Method m = config.getClass().getMethod("release");
             m.invoke(config);
             return "phase-D: destroy-ran";

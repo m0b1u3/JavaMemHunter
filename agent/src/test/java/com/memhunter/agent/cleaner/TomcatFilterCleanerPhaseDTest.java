@@ -115,4 +115,30 @@ class TomcatFilterCleanerPhaseDTest {
                 + result.executedSteps
         );
     }
+
+    @Test
+    void phaseDLabelNullConfigCollapsesToNoReleaseMethod() {
+        // Force currentBackup.originalFilterConfig to be null by setting up a context
+        // where filterConfigs has no entry for the target filter name.
+        FakeContext ctx = new FakeContext();
+        FakeFilterDef def = new FakeFilterDef();
+        def.filterName = "Evil";
+        def.filterClass = "com.evil.X";
+        ctx.filterDefs.put("Evil", def);
+        FakeFilterMap fm = new FakeFilterMap();
+        fm.filterName = "Evil";
+        fm.urlPatterns = new String[]{"/*"};
+        ctx.filterMaps.array = new Object[]{fm};
+        // intentionally do NOT put any entry into ctx.filterConfigs
+
+        TomcatFilterCleaner cleaner = new TomcatFilterCleaner(ctx);
+        CleanPlan plan = cleaner.plan(evilFinding(), false);
+        CleanResult result = cleaner.execute(plan, false);
+
+        assertTrue(result.success, "missing filterConfig should still succeed (tolerant)");
+        assertTrue(
+            result.executedSteps.stream().anyMatch(s -> s.contains("phase-D: no-release-method")),
+            "null-config path should collapse to no-release-method, was: " + result.executedSteps
+        );
+    }
 }
