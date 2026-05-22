@@ -21,6 +21,11 @@ public class TomcatFilterCleaner implements Cleaner {
 
     private final Object standardContext;
     private FilterBackup currentBackup;
+    private String currentFilterName;
+
+    // Test instrumentation: invoked after Phase C step 1 (configs write), before step 2 (maps).
+    // Package-private setter used only by Phase C failure-path tests.
+    Runnable hookAfterConfigsWrite = () -> {};
 
     public TomcatFilterCleaner(Object standardContext) {
         this.standardContext = standardContext;
@@ -28,6 +33,10 @@ public class TomcatFilterCleaner implements Cleaner {
 
     public FilterBackup getCurrentBackup() {
         return currentBackup;
+    }
+
+    public String getCurrentFilterName() {
+        return currentFilterName;
     }
 
     @Override
@@ -75,6 +84,7 @@ public class TomcatFilterCleaner implements Cleaner {
         backup.originalFilterConfigsMap = configsCopy;
 
         this.currentBackup = backup;
+        this.currentFilterName = filterName;
 
         // Build plan
         CleanPlan plan = new CleanPlan();
@@ -103,6 +113,92 @@ public class TomcatFilterCleaner implements Cleaner {
     @Override
     public CleanResult execute(CleanPlan plan, boolean forced) {
         throw new UnsupportedOperationException("Phase C/D/E lands in Task 5/6");
+    }
+
+    /**
+     * Phase C: atomic copy-replace of filterConfigs / filterMaps.array / filterDefs.
+     * Order per design §5.2: configs -> maps -> defs (request path drains first).
+     * On any failure, RollbackManager restores prior state and CleanExecutionException
+     * is re-thrown wrapping the original cause.
+     */
+    @SuppressWarnings("unchecked")
+    void doPhaseC() {
+        if (currentBackup == null || currentFilterName == null) {
+            throw new CleanExecutionException("doPhaseC called before plan()",
+                    new IllegalStateException("no backup/filterName"));
+        }
+        String filterName = currentFilterName;
+        try {
+            // Step 1: filterConfigs (copy, remove, replace)
+            Object configsObj = ReflectUtil.tryReadField(standardContext, "filterConfigs").orElse(null);
+            Map<String, Object> newConfigs = new HashMap<>();
+            if (configsObj instanceof Map) {
+                for (Map.Entry<?, ?> e : ((Map<?, ?>) configsObj).entrySet()) {
+                    newConfigs.put(String.valueOf(e.getKey()), e.getValue());
+                }
+            }
+            newConfigs.remove(filterName);
+            ReflectUtil.setField(standardContext, "filterConfigs", newConfigs);
+
+            // Test hook: allow tests to inject a failure between step 1 and step 2.
+            hookAfterConfigsWrite.run();
+
+            // Step 2: filterMaps.array (filter out entries with filterName==target)
+            Object mapsField = ReflectUtil.tryReadField(standardContext, "filterMaps").orElse(null);
+            if (mapsField == null) {
+                throw new IllegalStateException("filterMaps field is null");
+            }
+            Object[] currentArr;
+            boolean nested;
+            Object wrapper = null;
+            if (mapsField instanceof Object[]) {
+                currentArr = (Object[]) mapsField;
+                nested = false;
+            } else {
+                wrapper = mapsField;
+                Object arr = ReflectUtil.tryReadField(wrapper, "array").orElse(null);
+                if (!(arr instanceof Object[])) {
+                    throw new IllegalStateException("filterMaps.array not Object[]");
+                }
+                currentArr = (Object[]) arr;
+                nested = true;
+            }
+            List<Object> kept = new ArrayList<>();
+            for (Object m : currentArr) {
+                if (m == null) continue;
+                Object name = ReflectUtil.tryReadField(m, "filterName").orElse(null);
+                if (!filterName.equals(name)) {
+                    kept.add(m);
+                }
+            }
+            Object[] newArr = kept.toArray(new Object[0]);
+            if (nested) {
+                ReflectUtil.setField(wrapper, "array", newArr);
+            } else {
+                ReflectUtil.setField(standardContext, "filterMaps", newArr);
+            }
+
+            // Step 3: filterDefs (copy, remove, replace)
+            Object defsObj = ReflectUtil.tryReadField(standardContext, "filterDefs").orElse(null);
+            Map<String, Object> newDefs = new HashMap<>();
+            if (defsObj instanceof Map) {
+                for (Map.Entry<?, ?> e : ((Map<?, ?>) defsObj).entrySet()) {
+                    newDefs.put(String.valueOf(e.getKey()), e.getValue());
+                }
+            }
+            newDefs.remove(filterName);
+            ReflectUtil.setField(standardContext, "filterDefs", newDefs);
+        } catch (Throwable forward) {
+            // Best-effort rollback; if rollback also fails, surface the rollback failure.
+            try {
+                new RollbackManager().restore(standardContext, filterName, currentBackup);
+            } catch (RollbackFailedException rbf) {
+                throw rbf;
+            } catch (Throwable rbt) {
+                throw new RollbackFailedException("rollback failed after forward failure", rbt);
+            }
+            throw new CleanExecutionException("Phase C failed; rolled back", forward);
+        }
     }
 
     @SuppressWarnings("unchecked")

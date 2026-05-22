@@ -34,6 +34,26 @@ public final class ReflectUtil {
         return Optional.empty();
     }
 
+    public static void setField(Object target, String fieldName, Object value) {
+        if (target == null || fieldName == null) {
+            throw new RuntimeException("setField: null target or fieldName");
+        }
+        Class<?> c = target.getClass();
+        while (c != null) {
+            try {
+                Field f = c.getDeclaredField(fieldName);
+                f.setAccessible(true);
+                f.set(target, value);
+                return;
+            } catch (NoSuchFieldException ignored) {
+                c = c.getSuperclass();
+            } catch (Throwable t) {
+                throw new RuntimeException("setField failed: " + fieldName, t);
+            }
+        }
+        throw new RuntimeException("field not found: " + fieldName);
+    }
+
     public static Optional<Object> tryInvoke(Object target, String methodName) {
         if (target == null || methodName == null) return Optional.empty();
         Class<?> c = target.getClass();
