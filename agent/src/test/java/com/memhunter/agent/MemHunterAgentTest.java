@@ -1,9 +1,14 @@
 package com.memhunter.agent;
 
+import com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest;
+import com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FilterConfigWithReleaseOk;
+import com.memhunter.agent.model.CleanPlan;
+import com.memhunter.agent.model.CleanResult;
 import com.memhunter.agent.model.Finding;
 import com.memhunter.agent.model.ScanReport;
 import com.memhunter.agent.scoring.baseline.BaselineIndex;
 import com.memhunter.agent.util.FindingIdGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -17,6 +22,8 @@ import java.util.HashSet;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MemHunterAgentTest {
+
+    private static final int EVIL_FILTER_CRITICAL_SCORE = 14;
 
     @TempDir
     Path tempDir;
@@ -125,7 +132,7 @@ class MemHunterAgentTest {
 
     @Test
     void confirmRejectsStalePlanWithoutMutating() throws Exception {
-        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext ctx =
+        TomcatFilterCleanerPhaseDTest.FakeContext ctx =
                 newPhaseDFakeContextWithEvilFilter();
         String findingId = FindingIdGenerator.generate(
                 "tomcat-filter", "com.evil.X", "Evil");
@@ -133,18 +140,18 @@ class MemHunterAgentTest {
         Path findingDir = tempDir.resolve("evidence").resolve(findingId);
         Files.createDirectories(findingDir);
 
-        com.memhunter.agent.model.CleanPlan persisted = new com.memhunter.agent.model.CleanPlan();
+        CleanPlan persisted = new CleanPlan();
         persisted.findingId = findingId;
         persisted.type = "tomcat-filter";
         persisted.filterName = "Evil";
         persisted.filterClass = "com.evil.X";
-        persisted.score = 14;
+        persisted.score = EVIL_FILTER_CRITICAL_SCORE;
         persisted.level = "critical";
         persisted.forced = false;
         persisted.rollbackSupported = true;
         persisted.generatedAt = 1L;
 
-        new com.fasterxml.jackson.databind.ObjectMapper()
+        new ObjectMapper()
                 .writerWithDefaultPrettyPrinter()
                 .writeValue(findingDir.resolve("clean-plan.json").toFile(), persisted);
 
@@ -163,8 +170,8 @@ class MemHunterAgentTest {
         Path resultFile = findingDir.resolve("clean-result.json");
         assertTrue(Files.exists(resultFile),
                 "clean-result.json must be written even on stale rejection");
-        com.memhunter.agent.model.CleanResult cr = new com.fasterxml.jackson.databind.ObjectMapper()
-                .readValue(resultFile.toFile(), com.memhunter.agent.model.CleanResult.class);
+        CleanResult cr = new ObjectMapper()
+                .readValue(resultFile.toFile(), CleanResult.class);
         assertFalse(cr.success);
         assertFalse(cr.rolledBack);
         assertNotNull(cr.failureReason);
@@ -174,7 +181,7 @@ class MemHunterAgentTest {
 
     @Test
     void confirmAcceptsConsistentPlan() throws Exception {
-        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext ctx =
+        TomcatFilterCleanerPhaseDTest.FakeContext ctx =
                 newPhaseDFakeContextWithEvilFilter();
         String findingId = FindingIdGenerator.generate(
                 "tomcat-filter", "com.evil.X", "Evil");
@@ -182,18 +189,18 @@ class MemHunterAgentTest {
         Path findingDir = tempDir.resolve("evidence").resolve(findingId);
         Files.createDirectories(findingDir);
 
-        com.memhunter.agent.model.CleanPlan persisted = new com.memhunter.agent.model.CleanPlan();
+        CleanPlan persisted = new CleanPlan();
         persisted.findingId = findingId;
         persisted.type = "tomcat-filter";
         persisted.filterName = "Evil";
         persisted.filterClass = "com.evil.X";
-        persisted.score = 14;
+        persisted.score = EVIL_FILTER_CRITICAL_SCORE;
         persisted.level = "critical";
         persisted.forced = false;
         persisted.rollbackSupported = true;
         persisted.generatedAt = 1L;
 
-        new com.fasterxml.jackson.databind.ObjectMapper()
+        new ObjectMapper()
                 .writerWithDefaultPrettyPrinter()
                 .writeValue(findingDir.resolve("clean-plan.json").toFile(), persisted);
 
@@ -203,29 +210,29 @@ class MemHunterAgentTest {
 
         assertEquals(0, exitCode, "consistent plan must succeed");
 
-        com.memhunter.agent.model.CleanResult cr = new com.fasterxml.jackson.databind.ObjectMapper()
+        CleanResult cr = new ObjectMapper()
                 .readValue(findingDir.resolve("clean-result.json").toFile(),
-                        com.memhunter.agent.model.CleanResult.class);
+                        CleanResult.class);
         assertTrue(cr.success);
         assertTrue(cr.verifiedDisappeared);
     }
 
-    private static com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext
+    private static TomcatFilterCleanerPhaseDTest.FakeContext
             newPhaseDFakeContextWithEvilFilter() {
-        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext ctx =
-                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext();
-        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterDef def =
-                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterDef();
+        TomcatFilterCleanerPhaseDTest.FakeContext ctx =
+                new TomcatFilterCleanerPhaseDTest.FakeContext();
+        TomcatFilterCleanerPhaseDTest.FakeFilterDef def =
+                new TomcatFilterCleanerPhaseDTest.FakeFilterDef();
         def.filterName = "Evil";
         def.filterClass = "com.evil.X";
         ctx.filterDefs.put("Evil", def);
-        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterMap fm =
-                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterMap();
+        TomcatFilterCleanerPhaseDTest.FakeFilterMap fm =
+                new TomcatFilterCleanerPhaseDTest.FakeFilterMap();
         fm.filterName = "Evil";
         fm.urlPatterns = new String[]{"/*"};
         ctx.filterMaps.array = new Object[]{fm};
         ctx.filterConfigs.put("Evil",
-                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FilterConfigWithReleaseOk());
+                new FilterConfigWithReleaseOk());
         return ctx;
     }
 

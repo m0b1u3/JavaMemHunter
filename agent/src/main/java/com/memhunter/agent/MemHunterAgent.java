@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,8 @@ import java.util.UUID;
 
 public class MemHunterAgent {
 
+    public static final int EXIT_OK = 0;
+    public static final int EXIT_EXECUTE_FAILED = 2;
     public static final int EXIT_PLAN_STALE = 3;
 
     public static void agentmain(String agentArgs, Instrumentation inst) {
@@ -163,9 +166,10 @@ public class MemHunterAgent {
     }
 
     /**
-     * Test seam for clean --confirm dispatch. Returns an exit code instead of
-     * calling System.exit, and takes a pre-resolved standardContext bypassing
-     * context-discovery providers.
+     * Visible-for-testing seam: drives the clean --confirm dispatch with a
+     * pre-resolved StandardContext, returning an exit code instead of System.exit.
+     * Shares the {@link #dispatchCleanConfirm} helper with the production path —
+     * no logic fork.
      */
     static int dispatchForTest(Object standardContext, AgentArgs args) throws Exception {
         if (!"clean".equals(args.command) || !args.options.containsKey("confirm")) {
@@ -203,7 +207,7 @@ public class MemHunterAgent {
             stale.success = false;
             stale.rolledBack = false;
             stale.verifiedDisappeared = false;
-            stale.executedSteps = java.util.Arrays.asList(
+            stale.executedSteps = Arrays.asList(
                     "pre-execute: plan staleness check FAILED — refusing to clean");
             stale.failureReason = e.getMessage();
             stale.executedAt = System.currentTimeMillis();
@@ -213,7 +217,7 @@ public class MemHunterAgent {
 
         CleanResult result = cleaner.execute(freshPlan, confirmForceFlag);
         new EvidenceWriter(evidenceDir).writeResult(id, result);
-        return result.success ? 0 : 2;
+        return result.success ? EXIT_OK : EXIT_EXECUTE_FAILED;
     }
 
     private static Object firstContext(List<?> tomcatContexts) {
