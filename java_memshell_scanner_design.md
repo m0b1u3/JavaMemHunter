@@ -1750,18 +1750,19 @@ public class CleanPlan {
 - Listener / Interceptor Finding ID 跨 JVM 重启稳定
 - 归档 v0.5 干净基线和注入后 E2E 样例报告
 
-### v0.6：安全清理
+### v0.6：安全清理（已完成 — Tomcat Filter dry-run / confirm / verify）
 
 目标：
 
-- 清理 Tomcat Filter
-- 清理 Tomcat Servlet
-- 清理 Listener
-- 清理 Valve
-- 注销 Spring Mapping
-- 清理 Interceptor
-- 清理前快照
-- 清理后复扫
+- 清理 Tomcat Filter（已完成）
+- dry-run 生成清理计划与证据包（已完成）
+- confirm 严格二次确认后执行清理（已完成）
+- 清理前快照与清理结果落盘（已完成）
+- 清理后复扫与 verify-result 输出（已完成）
+- Tomcat Servlet / Listener / Valve 清理（后续版本）
+- Spring Mapping / Interceptor 清理（后续版本）
+
+v0.6 E2E 证据已归档到 `docs/superpowers/specs/v0.6-clean-flow-evidence/`。在 FakeFilter 注入场景中，清理前 finding 为 `critical`，执行 `clean --confirm` 后 `clean-result.success=true`、`verifiedDisappeared=true`，随后 `verify --id` 输出 `stillPresent=false`。
 
 ### v1.0：生产可用
 

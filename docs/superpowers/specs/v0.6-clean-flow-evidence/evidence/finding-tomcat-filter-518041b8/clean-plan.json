@@ -1,0 +1,16 @@
+{
+  "findingId" : "finding-tomcat-filter-518041b8",
+  "type" : "tomcat-filter",
+  "filterName" : "FakeFilter",
+  "filterClass" : "com.memhunter.testinjector.FakeFilterInjector$FakeFilter",
+  "contextPath" : "",
+  "level" : "critical",
+  "evidenceDir" : "E:\\learn\\JavaMemHunter\\docs\\superpowers\\specs\\v0.6-clean-flow-evidence",
+  "planFile" : "E:\\learn\\JavaMemHunter\\docs\\superpowers\\specs\\v0.6-clean-flow-evidence\\evidence\\finding-tomcat-filter-518041b8\\clean-plan.json",
+  "urlPatterns" : [ "/*" ],
+  "steps" : [ "backup filterDef/filterMap/filterConfig", "remove from filterConfigs", "remove from filterMaps", "remove from filterDefs", "call filter.destroy()", "re-scan to verify" ],
+  "score" : 11,
+  "forced" : false,
+  "rollbackSupported" : true,
+  "generatedAt" : 1779418842246
+}

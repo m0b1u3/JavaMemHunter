@@ -23,6 +23,14 @@ public class RollbackManagerTest {
     public static class FakeFilterMaps {
         public Object[] array = new Object[0];
     }
+    public static class TypedFakeContext {
+        public HashMap<String, Object> filterDefs = new HashMap<>();
+        public TypedFakeFilterMaps filterMaps = new TypedFakeFilterMaps();
+        public HashMap<String, Object> filterConfigs = new HashMap<>();
+    }
+    public static class TypedFakeFilterMaps {
+        public FakeFilterMap[] array = new FakeFilterMap[0];
+    }
     public static class FakeFilterDef {
         public String filterName;
         public String filterClass;
@@ -88,6 +96,17 @@ public class RollbackManagerTest {
         new RollbackManager().restore(ctx, "EvilFilter", backup);
         assertEquals(1, ctx.filterMaps.array.length);
         assertSame(evilMap, ctx.filterMaps.array[0]);
+    }
+
+    @Test
+    void rollbackRestoresTypedFilterMapsArray() {
+        TypedFakeContext typed = new TypedFakeContext();
+        typed.filterMaps.array = new FakeFilterMap[0];
+
+        new RollbackManager().restore(typed, "EvilFilter", backup);
+
+        assertEquals(1, typed.filterMaps.array.length);
+        assertSame(evilMap, typed.filterMaps.array[0]);
     }
 
     @Test

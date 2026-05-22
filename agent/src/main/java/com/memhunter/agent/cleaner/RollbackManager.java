@@ -3,6 +3,7 @@ package com.memhunter.agent.cleaner;
 import com.memhunter.agent.model.FilterBackup;
 import com.memhunter.agent.util.ReflectUtil;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +61,7 @@ public class RollbackManager {
             if (backup.originalFilterMaps != null) {
                 combined.addAll(backup.originalFilterMaps);
             }
-            Object[] restored = combined.toArray(new Object[0]);
+            Object[] restored = toCompatibleArray(combined, currentArr);
             if (nestedWrapper) {
                 ReflectUtil.setField(wrapper, "array", restored);
             } else {
@@ -78,5 +79,17 @@ public class RollbackManager {
         } catch (Throwable t) {
             throw new RollbackFailedException("rollback failed for filter " + filterName, t);
         }
+    }
+
+    private Object[] toCompatibleArray(List<Object> values, Object[] originalArray) {
+        Class<?> componentType = Object.class;
+        if (originalArray != null && originalArray.getClass().isArray()) {
+            componentType = originalArray.getClass().getComponentType();
+        }
+        Object typed = Array.newInstance(componentType, values.size());
+        for (int i = 0; i < values.size(); i++) {
+            Array.set(typed, i, values.get(i));
+        }
+        return (Object[]) typed;
     }
 }

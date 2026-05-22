@@ -1,6 +1,31 @@
 # JavaMemHunter
 
-Java 内存马扫描与清理工具（v0.5 — 基线对比 + 字节码扫描 + 评分规则引擎 + 白名单）。
+Java 内存马扫描与清理工具（v0.6 — Tomcat Filter 安全清理 + 基线对比 + 字节码扫描 + 评分规则引擎 + 白名单）。
+
+## v0.6 能力
+
+在 v0.5 基础上新增：
+
+- **Tomcat Filter 安全清理**：支持 `clean --id <id> --dry-run` 生成清理计划和证据包，再通过 `clean --id <id> --confirm` 二次确认后执行。
+- **清理证据目录**：默认写入 `evidence/<findingId>/`，包含 `finding.json`、`clean-plan.json`、`before-snapshot.json`、`clean-result.json`、`verify-result.json` 等文件。
+- **原子副本替换 + 回滚**：清理顺序为 `filterConfigs -> filterMaps -> filterDefs`，失败时尽量按反向顺序回滚。
+- **清理后验证**：支持 `verify --id <id>` 复扫确认 finding 是否仍存在；v0.6 E2E 已验证 FakeFilter 清理后 `stillPresent=false`。
+- **attach 侧交互确认**：`clean --confirm` 会读取 dry-run 生成的计划摘要，stdin 必须严格输入小写 `yes` 才会执行。
+
+### 清理命令
+
+```bash
+# 1. 先生成清理计划和证据包
+java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar clean --id <findingId> --dry-run --evidence-dir ./evidence-root
+
+# 2. 人工审阅 evidence-root/evidence/<findingId>/clean-plan.json 后确认
+java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar clean --id <findingId> --confirm --evidence-dir ./evidence-root
+
+# 3. 独立复核 finding 是否仍存在
+java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar verify --id <findingId> --evidence-dir ./evidence-root
+```
+
+生产环境建议：清理完成后仍应在维护窗口重启服务，避免业务框架或第三方组件保留运行时缓存引用。
 
 ## v0.5 能力
 
@@ -237,10 +262,11 @@ v0.3 样例报告：[`docs/superpowers/specs/v0.3-sample-report.json`](docs/supe
 
 ## 限制
 
-v0.5 仍**不包含**（推迟到 v0.6+）：
+v0.6 仍**不包含**：
 
 - WebFlux 应用（不支持）
-- 清理操作（dry-run / confirm 流程）
+- Tomcat Servlet / Listener / Valve 清理
+- Spring Mapping / Interceptor 清理
 - HTML / Markdown 报告
 - v0.2 评审遗留 #2/#3/#4：Provider strategies 重构、FindingClassMetadata 抽取、ScanContext 解耦
 - 完整路线图见 [`java_memshell_scanner_design.md`](java_memshell_scanner_design.md) 第 25 节
@@ -250,6 +276,12 @@ v0.5 仍**不包含**（推迟到 v0.6+）：
 ```bash
 cmd //c "mvnw.cmd -pl agent test"
 ```
+
+v0.6 当前含 159 个 agent 单元测试、12 个 attach 单元测试，新增覆盖：
+- `TomcatFilterCleaner` / `RollbackManager` — dry-run 计划、Phase C/D/E、强类型 filterMaps 数组、失败回滚
+- `EvidenceWriter` / `CleanPlanReader` — 清理证据包读写
+- `VerifyExecutor` — `verify-result.json` 输出
+- `CleanInteractor` / `AttachMain` — stdin 严格 `yes` 确认、clean/verify CLI 分发
 
 v0.5 含 112 个 agent 单元测试，新增覆盖：
 - `ReflectUtil`（9）— 跨版本反射工具
@@ -282,3 +314,6 @@ v0.5 含 112 个 agent 单元测试，新增覆盖：
 - v0.5 实施计划：[`docs/superpowers/plans/2026-05-21-v0.5-baseline-comparison.md`](docs/superpowers/plans/2026-05-21-v0.5-baseline-comparison.md)
 - v0.5 干净基线：[`docs/superpowers/specs/v0.5-clean-baseline.json`](docs/superpowers/specs/v0.5-clean-baseline.json)
 - v0.5 注入后报告：[`docs/superpowers/specs/v0.5-after-inject-report.json`](docs/superpowers/specs/v0.5-after-inject-report.json)
+- v0.6 设计文档：[`docs/superpowers/specs/2026-05-22-v0.6-tomcat-filter-clean-design.md`](docs/superpowers/specs/2026-05-22-v0.6-tomcat-filter-clean-design.md)
+- v0.6 实施计划：[`docs/superpowers/plans/2026-05-22-v0.6-tomcat-filter-clean.md`](docs/superpowers/plans/2026-05-22-v0.6-tomcat-filter-clean.md)
+- v0.6 清理 E2E 证据：[`docs/superpowers/specs/v0.6-clean-flow-evidence/`](docs/superpowers/specs/v0.6-clean-flow-evidence/)

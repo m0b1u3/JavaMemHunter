@@ -1,0 +1,9 @@
+{
+  "findingId" : "finding-tomcat-filter-518041b8",
+  "failureReason" : null,
+  "success" : true,
+  "rolledBack" : false,
+  "verifiedDisappeared" : true,
+  "executedSteps" : [ "phase-C: removed filter registrations", "phase-D: released original filter config", "phase-E: verified disappeared" ],
+  "executedAt" : 1779418844604
+}

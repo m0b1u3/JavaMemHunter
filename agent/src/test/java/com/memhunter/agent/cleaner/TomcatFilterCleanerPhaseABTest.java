@@ -136,9 +136,16 @@ public class TomcatFilterCleanerPhaseABTest {
     }
 
     @Test
-    void executeThrowsUnsupportedForNow() {
+    void executeWithoutPriorPlanReturnsFailure() {
+        // Fresh cleaner, no plan() call -> execute must not throw; it must surface
+        // a structured failure indicating plan() is a prerequisite.
         TomcatFilterCleaner cleaner = new TomcatFilterCleaner(ctx);
-        CleanPlan plan = cleaner.plan(makeFinding(12, "critical", "tomcat-filter"), false);
-        assertThrows(UnsupportedOperationException.class, () -> cleaner.execute(plan, false));
+        CleanPlan synthetic = new CleanPlan();
+        synthetic.findingId = "synthetic";
+        com.memhunter.agent.model.CleanResult r = cleaner.execute(synthetic, false);
+        assertNotNull(r);
+        assertFalse(r.success);
+        assertNotNull(r.failureReason);
+        assertTrue(r.failureReason.contains("plan() must be called"));
     }
 }

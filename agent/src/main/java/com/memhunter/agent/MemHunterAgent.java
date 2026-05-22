@@ -1,5 +1,10 @@
 package com.memhunter.agent;
 
+import com.memhunter.agent.cleaner.CleanPlanReader;
+import com.memhunter.agent.cleaner.EvidenceWriter;
+import com.memhunter.agent.cleaner.TomcatFilterCleaner;
+import com.memhunter.agent.model.CleanPlan;
+import com.memhunter.agent.model.CleanResult;
 import com.memhunter.agent.model.Finding;
 import com.memhunter.agent.model.ScanContext;
 import com.memhunter.agent.model.ScanReport;
@@ -12,12 +17,17 @@ import com.memhunter.agent.scoring.Whitelist;
 import com.memhunter.agent.scoring.baseline.BaselineIndex;
 import com.memhunter.agent.scoring.baseline.BaselineLoader;
 import com.memhunter.agent.util.ReflectUtil;
+import com.memhunter.agent.verify.VerifyExecutor;
 
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,7 +37,12 @@ public class MemHunterAgent {
         try {
             AgentArgs args = AgentArgs.parse(agentArgs);
             if (!"scan".equals(args.command)) {
-                System.err.println("[memhunter] unsupported command: " + args.command);
+                ScanReport locatingReport = new ScanReport();
+                TomcatScanner tomcat = new TomcatScanner();
+                List<Object> tomcatContexts = tomcat.locateContexts(inst, locatingReport);
+                if (!dispatchNonScan(args, tomcatContexts)) {
+                    System.err.println("[memhunter] unsupported command: " + args.command);
+                }
                 return;
             }
 
@@ -93,6 +108,105 @@ public class MemHunterAgent {
             System.err.println("[memhunter] agent failed: " + t.getMessage());
             t.printStackTrace(System.err);
         }
+    }
+
+    static boolean dispatchNonScanForTest(AgentArgs args, List<?> tomcatContexts) throws Exception {
+        return dispatchNonScan(args, tomcatContexts);
+    }
+
+    private static boolean dispatchNonScan(AgentArgs args, List<?> tomcatContexts) throws Exception {
+        if ("verify".equals(args.command)) {
+            String id = args.options.get("id");
+            VerifyExecutor.VerifyResult result = new VerifyExecutor(requireFirstContext(tomcatContexts))
+                    .verify(id, evidenceDir(args));
+            System.out.println("[memhunter] verify finished, id=" + id
+                    + ", stillPresent=" + result.stillPresent);
+            return true;
+        }
+        if ("clean".equals(args.command) && args.options.containsKey("dry-run")) {
+            Object ctx = requireFirstContext(tomcatContexts);
+            String id = args.options.get("id");
+            Path evidenceDir = evidenceDir(args);
+            Finding finding = findTomcatFilter(ctx, id);
+            if (finding == null) {
+                throw new IllegalStateException("finding not located: " + id);
+            }
+            TomcatFilterCleaner cleaner = new TomcatFilterCleaner(ctx);
+            CleanPlan plan = cleaner.plan(finding, false);
+            if (plan == null) {
+                throw new IllegalStateException("clean plan could not be generated: " + id);
+            }
+            plan.evidenceDir = evidenceDir.toString();
+            plan.planFile = evidenceDir.resolve("evidence").resolve(id).resolve("clean-plan.json").toString();
+            new EvidenceWriter(evidenceDir).writeBundle(finding, plan, beforeSnapshot(finding), null);
+            System.out.println("[memhunter] clean dry-run finished, id=" + id
+                    + ", plan=" + plan.planFile);
+            return true;
+        }
+        if ("clean".equals(args.command) && args.options.containsKey("confirm")) {
+            Object ctx = requireFirstContext(tomcatContexts);
+            String id = args.options.get("id");
+            Path evidenceDir = evidenceDir(args);
+            Path planFile = evidenceDir.resolve("evidence").resolve(id).resolve("clean-plan.json");
+            CleanPlan persistedPlan = CleanPlanReader.read(planFile);
+            Finding finding = findTomcatFilter(ctx, id);
+            if (finding == null) {
+                throw new IllegalStateException("finding not located: " + id);
+            }
+            TomcatFilterCleaner cleaner = new TomcatFilterCleaner(ctx);
+            CleanPlan freshPlan = cleaner.plan(finding, args.options.containsKey("force"));
+            if (freshPlan == null) {
+                throw new IllegalStateException("clean plan could not be regenerated: " + id);
+            }
+            freshPlan.evidenceDir = persistedPlan.evidenceDir;
+            freshPlan.planFile = persistedPlan.planFile;
+            CleanResult result = cleaner.execute(freshPlan, args.options.containsKey("force"));
+            new EvidenceWriter(evidenceDir).writeResult(id, result);
+            System.out.println("[memhunter] clean confirm finished, id=" + id
+                    + ", success=" + result.success);
+            return true;
+        }
+        return false;
+    }
+
+    private static Object firstContext(List<?> tomcatContexts) {
+        if (tomcatContexts == null || tomcatContexts.isEmpty()) return null;
+        return tomcatContexts.get(0);
+    }
+
+    private static Object requireFirstContext(List<?> tomcatContexts) {
+        Object ctx = firstContext(tomcatContexts);
+        if (ctx == null) {
+            throw new IllegalStateException("no Tomcat context located");
+        }
+        return ctx;
+    }
+
+    private static Path evidenceDir(AgentArgs args) {
+        return Paths.get(args.options.getOrDefault("evidence-dir", "."));
+    }
+
+    private static Finding findTomcatFilter(Object ctx, String id) {
+        List<Finding> findings = new com.memhunter.agent.scanner.tomcat.TomcatFilterScanner(ctx)
+                .scan(new ScanReport());
+        new RuleEngine().evaluate(findings,
+                new ScanContext(null, Whitelist.defaults(), false, BaselineIndex.empty()));
+        for (Finding f : findings) {
+            if (f != null && id != null && id.equals(f.id)) {
+                return f;
+            }
+        }
+        return null;
+    }
+
+    private static Map<String, Object> beforeSnapshot(Finding finding) {
+        Map<String, Object> snapshot = new HashMap<>();
+        snapshot.put("findingId", finding.id);
+        snapshot.put("type", finding.type);
+        snapshot.put("name", finding.name);
+        snapshot.put("className", finding.className);
+        snapshot.put("attributes", finding.attributes);
+        return snapshot;
     }
 
     static void populateSummary(ScanReport report, List<Finding> findings, BaselineIndex baselineIndex) {

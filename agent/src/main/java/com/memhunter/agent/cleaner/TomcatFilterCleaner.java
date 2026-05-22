@@ -8,6 +8,7 @@ import com.memhunter.agent.model.ScanReport;
 import com.memhunter.agent.scanner.tomcat.TomcatFilterScanner;
 import com.memhunter.agent.util.ReflectUtil;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,6 +27,11 @@ public class TomcatFilterCleaner implements Cleaner {
     // Test instrumentation: invoked after Phase C step 1 (configs write), before step 2 (maps).
     // Package-private setter used only by Phase C failure-path tests.
     Runnable hookAfterConfigsWrite = () -> {};
+
+    // Test instrumentation: invoked after Phase C completes successfully, before Phase D.
+    // Used by full-flow tests to simulate verify failure (e.g. re-insert filter to mimic
+    // Tomcat caching the reference elsewhere).
+    Runnable hookAfterPhaseC = () -> {};
 
     public TomcatFilterCleaner(Object standardContext) {
         this.standardContext = standardContext;
@@ -112,7 +118,88 @@ public class TomcatFilterCleaner implements Cleaner {
 
     @Override
     public CleanResult execute(CleanPlan plan, boolean forced) {
-        throw new UnsupportedOperationException("Phase C/D/E lands in Task 5/6");
+        CleanResult result = new CleanResult();
+        result.findingId = plan == null ? null : plan.findingId;
+        result.executedAt = System.currentTimeMillis();
+        result.executedSteps = new ArrayList<>();
+
+        if (plan == null) {
+            result.failureReason = "clean plan is required";
+            return result;
+        }
+        if (currentBackup == null || currentFilterName == null) {
+            result.failureReason = "plan() must be called before execute()";
+            return result;
+        }
+
+        try {
+            doPhaseC();
+            result.executedSteps.add("phase-C: removed filter registrations");
+            hookAfterPhaseC.run();
+
+            Throwable releaseFailure = releaseOriginalFilterConfig();
+            if (releaseFailure == null) {
+                result.executedSteps.add("phase-D: released original filter config");
+            } else {
+                result.executedSteps.add("phase-D: release failure tolerated: " + releaseFailure.getMessage());
+            }
+
+            if (isFindingStillPresent(plan.findingId)) {
+                new RollbackManager().restore(standardContext, currentFilterName, currentBackup);
+                result.rolledBack = true;
+                result.verifiedDisappeared = false;
+                result.failureReason = "verify failed: finding still present after clean";
+                result.executedSteps.add("phase-E: verify failed; rolled back");
+                return result;
+            }
+
+            result.success = true;
+            result.verifiedDisappeared = true;
+            result.executedSteps.add("phase-E: verified disappeared");
+            return result;
+        } catch (CleanExecutionException e) {
+            result.rolledBack = true;
+            result.failureReason = e.getMessage();
+            result.executedSteps.add("phase-C: failed; rolled back");
+            return result;
+        } catch (RollbackFailedException e) {
+            result.rolledBack = false;
+            result.failureReason = e.getMessage();
+            result.executedSteps.add("rollback failed");
+            return result;
+        } catch (Throwable t) {
+            result.failureReason = t.getMessage();
+            return result;
+        }
+    }
+
+    private Throwable releaseOriginalFilterConfig() {
+        if (currentBackup == null || currentBackup.originalFilterConfig == null) {
+            return null;
+        }
+        try {
+            java.lang.reflect.Method m = currentBackup.originalFilterConfig.getClass().getDeclaredMethod("release");
+            m.setAccessible(true);
+            m.invoke(currentBackup.originalFilterConfig);
+            return null;
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            return e.getTargetException() == null ? e : e.getTargetException();
+        } catch (NoSuchMethodException e) {
+            return null;
+        } catch (Throwable t) {
+            return t;
+        }
+    }
+
+    private boolean isFindingStillPresent(String findingId) {
+        TomcatFilterScanner scanner = new TomcatFilterScanner(standardContext);
+        List<Finding> findings = scanner.scan(new ScanReport());
+        for (Finding f : findings) {
+            if (f != null && findingId != null && findingId.equals(f.id)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -171,7 +258,7 @@ public class TomcatFilterCleaner implements Cleaner {
                     kept.add(m);
                 }
             }
-            Object[] newArr = kept.toArray(new Object[0]);
+            Object[] newArr = toCompatibleArray(kept, currentArr);
             if (nested) {
                 ReflectUtil.setField(wrapper, "array", newArr);
             } else {
@@ -199,6 +286,18 @@ public class TomcatFilterCleaner implements Cleaner {
             }
             throw new CleanExecutionException("Phase C failed; rolled back", forward);
         }
+    }
+
+    private Object[] toCompatibleArray(List<Object> values, Object[] originalArray) {
+        Class<?> componentType = Object.class;
+        if (originalArray != null && originalArray.getClass().isArray()) {
+            componentType = originalArray.getClass().getComponentType();
+        }
+        Object typed = Array.newInstance(componentType, values.size());
+        for (int i = 0; i < values.size(); i++) {
+            Array.set(typed, i, values.get(i));
+        }
+        return (Object[]) typed;
     }
 
     @SuppressWarnings("unchecked")
