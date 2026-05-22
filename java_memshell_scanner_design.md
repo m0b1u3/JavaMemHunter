@@ -1764,6 +1764,16 @@ public class CleanPlan {
 
 v0.6 E2E 证据已归档到 `docs/superpowers/specs/v0.6-clean-flow-evidence/`。在 FakeFilter 注入场景中，清理前 finding 为 `critical`，执行 `clean --confirm` 后 `clean-result.success=true`、`verifiedDisappeared=true`，随后 `verify --id` 输出 `stillPresent=false`。
 
+### v0.6.1：Clean 流程审计链修复（已完成）
+
+目标：
+
+- confirm 阶段强制比对持久化 plan 与新生成 plan（findingId/filterClass/score/forced）
+- --force 三方一致性校验（persisted ≡ fresh ≡ confirmFlag）
+- Phase D 步骤标签区分 destroy-ran / no-release-method / destroy-threw
+- 新增 EXIT_PLAN_STALE=3 退出码
+- 新增 PlanReconciler + PlanStaleException
+
 ### v1.0：生产可用
 
 目标：

@@ -27,6 +27,16 @@ java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.
 
 生产环境建议：清理完成后仍应在维护窗口重启服务，避免业务框架或第三方组件保留运行时缓存引用。
 
+## v0.6.1 — Clean 流程审计链修复（2026-05-22）
+
+在 v0.6 基础上修复三项审计链安全问题：
+
+1. **计划过时校验**：`clean --confirm` 现在会将持久化的 `clean-plan.json` 与新生成的计划在 `findingId / filterClass / score / forced` 四个字段上做比对。任何不一致将直接短路并返回 `CleanResult.success=false`（`EXIT_PLAN_STALE=3`）；runtime 在计划过时时不会被修改。
+2. **forced 标志三方一致性**：`--force` 在 confirm 时必须同时等于持久化计划的 `forced` 字段和新生成计划的 `forced` 字段，三方一致才允许执行。
+3. **Phase D 步骤标签精度**：`executedSteps` 现在区分 `phase-D: destroy-ran`、`phase-D: no-release-method`、`phase-D: destroy-threw: <Class>: <msg>`（所有 Throwable 仍会被容忍；Phase D 不触发回滚）。
+
+无新增 CLI 接口；证据目录布局无变化。正确使用时所有 v0.6 命令行为不变。
+
 ## v0.5 能力
 
 在 v0.4 基础上新增：
