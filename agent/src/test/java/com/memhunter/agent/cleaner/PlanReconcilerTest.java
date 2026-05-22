@@ -76,6 +76,8 @@ class PlanReconcilerTest {
                 () -> PlanReconciler.requireConsistent(persisted, fresh, true));
         assertTrue(ex.getMessage().contains("forced"));
         assertTrue(ex.getMessage().contains("confirmFlag"));
+        assertTrue(ex.getMessage().contains("persisted=false"));
+        assertTrue(ex.getMessage().contains("fresh=true"));
     }
 
     @Test

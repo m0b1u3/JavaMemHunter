@@ -9,6 +9,8 @@ package com.memhunter.agent.cleaner;
  * see exactly which field failed reconciliation.
  */
 public class PlanStaleException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
     public PlanStaleException(String message) {
         super(message);
     }
