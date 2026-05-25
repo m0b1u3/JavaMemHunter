@@ -13,7 +13,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class RollbackManagerTest {
+public class FilterRollbackStrategyTest {
 
     public static class FakeContext {
         public HashMap<String, Object> filterDefs = new HashMap<>();
@@ -77,7 +77,7 @@ public class RollbackManagerTest {
     void rollbackRestoresFilterDef() {
         // Simulate post-Phase-C state: filterDefs missing EvilFilter
         ctx.filterDefs = new HashMap<>(); // empty
-        new RollbackManager().restore(ctx, "EvilFilter", backup);
+        new FilterRollbackStrategy(ctx, "EvilFilter", backup).restore();
         Map<String, Object> defs = readMap("filterDefs");
         assertSame(evilDef, defs.get("EvilFilter"));
     }
@@ -85,7 +85,7 @@ public class RollbackManagerTest {
     @Test
     void rollbackRestoresFilterConfigs() {
         ctx.filterConfigs = new HashMap<>();
-        new RollbackManager().restore(ctx, "EvilFilter", backup);
+        new FilterRollbackStrategy(ctx, "EvilFilter", backup).restore();
         Map<String, Object> configs = readMap("filterConfigs");
         assertSame(evilCfg, configs.get("EvilFilter"));
     }
@@ -93,7 +93,7 @@ public class RollbackManagerTest {
     @Test
     void rollbackRestoresFilterMapsArray() {
         ctx.filterMaps.array = new Object[0]; // simulate removal
-        new RollbackManager().restore(ctx, "EvilFilter", backup);
+        new FilterRollbackStrategy(ctx, "EvilFilter", backup).restore();
         assertEquals(1, ctx.filterMaps.array.length);
         assertSame(evilMap, ctx.filterMaps.array[0]);
     }
@@ -103,7 +103,7 @@ public class RollbackManagerTest {
         TypedFakeContext typed = new TypedFakeContext();
         typed.filterMaps.array = new FakeFilterMap[0];
 
-        new RollbackManager().restore(typed, "EvilFilter", backup);
+        new FilterRollbackStrategy(typed, "EvilFilter", backup).restore();
 
         assertEquals(1, typed.filterMaps.array.length);
         assertSame(evilMap, typed.filterMaps.array[0]);
@@ -115,7 +115,7 @@ public class RollbackManagerTest {
         ctx.filterConfigs = new HashMap<>();
         ctx.filterMaps.array = new Object[0];
 
-        new RollbackManager().restore(ctx, "EvilFilter", backup);
+        new FilterRollbackStrategy(ctx, "EvilFilter", backup).restore();
 
         assertTrue(readMap("filterDefs").containsKey("EvilFilter"));
         assertTrue(readMap("filterConfigs").containsKey("EvilFilter"));
@@ -136,7 +136,7 @@ public class RollbackManagerTest {
         // it would have included GoodFilter. Simulate that:
         backup.originalFilterConfigsMap.put("GoodFilter", goodCfg);
 
-        new RollbackManager().restore(ctx, "EvilFilter", backup);
+        new FilterRollbackStrategy(ctx, "EvilFilter", backup).restore();
 
         Map<String, Object> defs = readMap("filterDefs");
         assertTrue(defs.containsKey("GoodFilter"));
@@ -153,6 +153,6 @@ public class RollbackManagerTest {
     @Test
     void rollbackThrowsOnNullContext() {
         assertThrows(RollbackFailedException.class,
-                () -> new RollbackManager().restore(null, "EvilFilter", backup));
+                () -> new FilterRollbackStrategy(null, "EvilFilter", backup).restore());
     }
 }
