@@ -13,8 +13,8 @@ class PlanReconcilerTest {
         CleanPlan p = new CleanPlan();
         p.findingId = "finding-tomcat-filter-abc123";
         p.type = "tomcat-filter";
-        p.filterName = "EvilFilter";
-        p.filterClass = "com.evil.X";
+        p.targetName = "EvilFilter";
+        p.targetClass = "com.evil.X";
         p.score = 12;
         p.level = "critical";
         p.forced = false;
@@ -46,10 +46,10 @@ class PlanReconcilerTest {
     void filterClassMismatchThrows() {
         CleanPlan persisted = basePlan();
         CleanPlan fresh = basePlan();
-        fresh.filterClass = "com.evil.Y";
+        fresh.targetClass = "com.evil.Y";
         PlanStaleException ex = assertThrows(PlanStaleException.class,
                 () -> PlanReconciler.requireConsistent(persisted, fresh, false));
-        assertTrue(ex.getMessage().contains("filterClass"));
+        assertTrue(ex.getMessage().contains("targetClass"));
         assertTrue(ex.getMessage().contains("com.evil.X"));
         assertTrue(ex.getMessage().contains("com.evil.Y"));
     }

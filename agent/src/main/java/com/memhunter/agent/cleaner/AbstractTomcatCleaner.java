@@ -52,10 +52,18 @@ public abstract class AbstractTomcatCleaner implements Cleaner {
     public final CleanPlan plan(Finding finding, boolean forced) {
         if (finding == null) return null;
         if (!supportsType(finding.type)) return null;
+        // Score gate uses the input finding's score (carried from the original
+        // scan pipeline). The re-scan only verifies presence, not risk.
+        if (finding.score < 7 && !forced) return null;
+
         // Phase A: re-scan and confirm presence
         Finding fresh = locateOnRescan(finding.id);
         if (fresh == null) return null;
-        if (fresh.score < 7 && !forced) return null;
+
+        // Preserve score/level from the original finding (scanner re-runs do not
+        // re-evaluate scoring rules).
+        if (fresh.score == 0) fresh.score = finding.score;
+        if (fresh.level == null) fresh.level = finding.level;
 
         currentFinding = fresh;
         currentTargetName = fresh.name;

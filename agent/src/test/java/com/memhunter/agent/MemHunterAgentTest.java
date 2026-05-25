@@ -143,8 +143,8 @@ class MemHunterAgentTest {
         CleanPlan persisted = new CleanPlan();
         persisted.findingId = findingId;
         persisted.type = "tomcat-filter";
-        persisted.filterName = "Evil";
-        persisted.filterClass = "com.evil.X";
+        persisted.targetName = "Evil";
+        persisted.targetClass = "com.evil.X";
         persisted.score = EVIL_FILTER_CRITICAL_SCORE;
         persisted.level = "critical";
         persisted.forced = false;
@@ -192,8 +192,8 @@ class MemHunterAgentTest {
         CleanPlan persisted = new CleanPlan();
         persisted.findingId = findingId;
         persisted.type = "tomcat-filter";
-        persisted.filterName = "Evil";
-        persisted.filterClass = "com.evil.X";
+        persisted.targetName = "Evil";
+        persisted.targetClass = "com.evil.X";
         persisted.score = EVIL_FILTER_CRITICAL_SCORE;
         persisted.level = "critical";
         persisted.forced = false;

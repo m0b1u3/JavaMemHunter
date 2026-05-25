@@ -77,8 +77,8 @@ public class TomcatFilterCleanerPhaseABTest {
         TomcatFilterCleaner cleaner = new TomcatFilterCleaner(ctx);
         CleanPlan plan = cleaner.plan(makeFinding(12, "critical", "tomcat-filter"), false);
         assertNotNull(plan);
-        assertEquals("EvilFilter", plan.filterName);
-        assertEquals(EVIL_CLASS, plan.filterClass);
+        assertEquals("EvilFilter", plan.targetName);
+        assertEquals(EVIL_CLASS, plan.targetClass);
         assertEquals(12, plan.score);
         assertEquals("critical", plan.level);
         assertTrue(plan.rollbackSupported);
@@ -87,7 +87,7 @@ public class TomcatFilterCleanerPhaseABTest {
         assertEquals(evilId, plan.findingId);
         assertEquals("tomcat-filter", plan.type);
         assertEquals("/app", plan.contextPath);
-        assertEquals(Arrays.asList("/*"), plan.urlPatterns);
+        assertEquals(Arrays.asList("/*"), plan.details.get("urlPatterns"));
         assertFalse(plan.forced);
         assertTrue(plan.generatedAt > 0);
     }

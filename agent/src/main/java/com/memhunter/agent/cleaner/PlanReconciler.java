@@ -29,8 +29,8 @@ public final class PlanReconciler {
         if (!Objects.equals(persisted.findingId, fresh.findingId)) {
             throw stale("findingId", persisted.findingId, fresh.findingId);
         }
-        if (!Objects.equals(persisted.filterClass, fresh.filterClass)) {
-            throw stale("filterClass", persisted.filterClass, fresh.filterClass);
+        if (!Objects.equals(persisted.targetClass, fresh.targetClass)) {
+            throw stale("targetClass", persisted.targetClass, fresh.targetClass);
         }
         if (persisted.score != fresh.score) {
             throw stale("score", persisted.score, fresh.score);
