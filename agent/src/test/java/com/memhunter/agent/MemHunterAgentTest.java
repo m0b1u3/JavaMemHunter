@@ -2,12 +2,22 @@ package com.memhunter.agent;
 
 import com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest;
 import com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FilterConfigWithReleaseOk;
+import com.memhunter.agent.cleaner.TomcatListenerCleanerTest;
+import com.memhunter.agent.cleaner.TomcatServletCleanerTest;
+import com.memhunter.agent.cleaner.TomcatValveCleanerTest;
 import com.memhunter.agent.model.CleanPlan;
 import com.memhunter.agent.model.CleanResult;
 import com.memhunter.agent.model.Finding;
 import com.memhunter.agent.model.ScanReport;
+import com.memhunter.agent.scanner.tomcat.TomcatListenerScanner;
+import com.memhunter.agent.scanner.tomcat.TomcatServletScanner;
+import com.memhunter.agent.scanner.tomcat.TomcatValveScanner;
+import com.memhunter.agent.model.ScanContext;
+import com.memhunter.agent.scoring.RuleEngine;
+import com.memhunter.agent.scoring.Whitelist;
 import com.memhunter.agent.scoring.baseline.BaselineIndex;
 import com.memhunter.agent.util.FindingIdGenerator;
+import java.util.List;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -267,6 +277,211 @@ class MemHunterAgentTest {
                     && configs.equals(other.configs)
                     && filterMapsLen == other.filterMapsLen;
         }
+    }
+
+    private static Finding scoreOne(List<Finding> findings, String id) {
+        new RuleEngine().evaluate(findings,
+                new ScanContext(null, Whitelist.defaults(), false, BaselineIndex.empty()));
+        for (Finding f : findings) {
+            if (id.equals(f.id)) return f;
+        }
+        throw new IllegalStateException("scoring: id not found " + id);
+    }
+
+    @Test
+    void confirmDispatchesServletCleaner() throws Exception {
+        TomcatServletCleanerTest.FakeContext ctx = new TomcatServletCleanerTest.FakeContext();
+        TomcatServletCleanerTest.StandardWrapper w = new TomcatServletCleanerTest.StandardWrapper();
+        w.name = "EvilServlet";
+        w.servletClass = TomcatServletCleanerTest.EvilServlet.class.getName();
+        w.mappingsArray = new String[]{ "/EvilServlet" };
+        w.servlet = new TomcatServletCleanerTest.EvilServlet();
+        ctx.children.put("EvilServlet", w);
+        ctx.servletMappings.put("/EvilServlet", "EvilServlet");
+
+        List<Finding> scanned = new TomcatServletScanner(ctx).scan(new ScanReport());
+        String findingId = FindingIdGenerator.generate(
+                "tomcat-servlet",
+                TomcatServletCleanerTest.EvilServlet.class.getName(),
+                "EvilServlet");
+        Finding scored = scoreOne(scanned, findingId);
+
+        Path dir = tempDir.resolve("evidence").resolve(findingId);
+        Files.createDirectories(dir);
+
+        CleanPlan persisted = new CleanPlan();
+        persisted.findingId = findingId;
+        persisted.type = "tomcat-servlet";
+        persisted.targetName = "EvilServlet";
+        persisted.targetClass = TomcatServletCleanerTest.EvilServlet.class.getName();
+        persisted.score = scored.score;
+        persisted.level = scored.level;
+        persisted.forced = false;
+        persisted.rollbackSupported = true;
+        persisted.generatedAt = 1L;
+        new ObjectMapper().writerWithDefaultPrettyPrinter()
+                .writeValue(dir.resolve("clean-plan.json").toFile(), persisted);
+
+        AgentArgs args = AgentArgs.parse(
+                "clean --id " + findingId + " --confirm --evidence-dir " + tempDir);
+        int exit = MemHunterAgent.dispatchForTest(ctx, args);
+
+        assertEquals(0, exit, "expected success exit");
+        CleanResult cr = new ObjectMapper()
+                .readValue(dir.resolve("clean-result.json").toFile(), CleanResult.class);
+        assertTrue(cr.success);
+        assertTrue(cr.verifiedDisappeared);
+        assertNull(ctx.children.get("EvilServlet"));
+    }
+
+    @Test
+    void confirmDispatchesListenerCleaner() throws Exception {
+        TomcatListenerCleanerTest.FakeContext ctx = new TomcatListenerCleanerTest.FakeContext();
+        TomcatListenerCleanerTest.EvilEventListener target =
+                new TomcatListenerCleanerTest.EvilEventListener();
+        ctx.applicationEventListeners = new Object[]{ target };
+
+        List<Finding> scanned = new TomcatListenerScanner(ctx).scan(new ScanReport());
+        String findingId = FindingIdGenerator.generate(
+                "tomcat-listener-request",
+                TomcatListenerCleanerTest.EvilEventListener.class.getName(),
+                "");
+        Finding scored = scoreOne(scanned, findingId);
+
+        Path dir = tempDir.resolve("evidence").resolve(findingId);
+        Files.createDirectories(dir);
+
+        CleanPlan persisted = new CleanPlan();
+        persisted.findingId = findingId;
+        persisted.type = "tomcat-listener-request";
+        persisted.targetName = scored.name;
+        persisted.targetClass = TomcatListenerCleanerTest.EvilEventListener.class.getName();
+        persisted.score = scored.score;
+        persisted.level = scored.level;
+        persisted.forced = false;
+        persisted.rollbackSupported = true;
+        persisted.generatedAt = 1L;
+        new ObjectMapper().writerWithDefaultPrettyPrinter()
+                .writeValue(dir.resolve("clean-plan.json").toFile(), persisted);
+
+        AgentArgs args = AgentArgs.parse(
+                "clean --id " + findingId + " --confirm --evidence-dir " + tempDir);
+        int exit = MemHunterAgent.dispatchForTest(ctx, args);
+
+        assertEquals(0, exit);
+        assertEquals(0, ctx.applicationEventListeners.length);
+    }
+
+    @Test
+    void confirmDispatchesValveCleaner() throws Exception {
+        TomcatValveCleanerTest.FakeContext ctx = new TomcatValveCleanerTest.FakeContext();
+        TomcatValveCleanerTest.FakeValve prev = new TomcatValveCleanerTest.FakeValve();
+        prev.name = "Prev";
+        TomcatValveCleanerTest.EvilValve target = new TomcatValveCleanerTest.EvilValve();
+        target.name = "Evil";
+        TomcatValveCleanerTest.FakeValve next = new TomcatValveCleanerTest.FakeValve();
+        next.name = "Next";
+        ctx.pipeline.first = prev;
+        prev.next = target;
+        target.next = next;
+
+        List<Finding> scanned = new TomcatValveScanner(ctx).scan(new ScanReport());
+        // The valve scanner derives its own id (using pipelineIndex).
+        // Pick the EvilValve finding by className match.
+        String findingId = null;
+        for (Finding f : scanned) {
+            if (TomcatValveCleanerTest.EvilValve.class.getName().equals(f.className)) {
+                findingId = f.id;
+                break;
+            }
+        }
+        assertNotNull(findingId, "scanner must locate EvilValve");
+        Finding scored = scoreOne(scanned, findingId);
+
+        Path dir = tempDir.resolve("evidence").resolve(findingId);
+        Files.createDirectories(dir);
+
+        CleanPlan persisted = new CleanPlan();
+        persisted.findingId = findingId;
+        persisted.type = "tomcat-valve";
+        persisted.targetName = scored.name;
+        persisted.targetClass = TomcatValveCleanerTest.EvilValve.class.getName();
+        persisted.score = scored.score;
+        persisted.level = scored.level;
+        persisted.forced = false;
+        persisted.rollbackSupported = true;
+        persisted.generatedAt = 1L;
+        new ObjectMapper().writerWithDefaultPrettyPrinter()
+                .writeValue(dir.resolve("clean-plan.json").toFile(), persisted);
+
+        AgentArgs args = AgentArgs.parse(
+                "clean --id " + findingId + " --confirm --evidence-dir " + tempDir);
+        int exit = MemHunterAgent.dispatchForTest(ctx, args);
+
+        assertEquals(0, exit);
+        assertEquals(next, prev.next);
+    }
+
+    @Test
+    void confirmRejectsUnknownType() throws Exception {
+        // Bare Object — no scanner can map it; finding lookup fails first.
+        Object ctx = new Object();
+        String findingId = "finding-unknown-XYZ";
+        Path dir = tempDir.resolve("evidence").resolve(findingId);
+        Files.createDirectories(dir);
+
+        CleanPlan persisted = new CleanPlan();
+        persisted.findingId = findingId;
+        persisted.type = "tomcat-something-new";
+        persisted.targetName = "X";
+        persisted.targetClass = "com.X";
+        persisted.score = 10;
+        persisted.forced = false;
+        new ObjectMapper().writerWithDefaultPrettyPrinter()
+                .writeValue(dir.resolve("clean-plan.json").toFile(), persisted);
+
+        AgentArgs args = AgentArgs.parse(
+                "clean --id " + findingId + " --confirm --evidence-dir " + tempDir);
+
+        assertThrows(IllegalStateException.class,
+                () -> MemHunterAgent.dispatchForTest(ctx, args));
+    }
+
+    @Test
+    void confirmRejectsLegacyV06Plan() throws Exception {
+        // Simulates a legacy v0.6 plan that lacks the v0.7 `targetClass` field
+        // (filterClass/filterName were the legacy keys, dropped in v0.7).
+        // The deserialized plan therefore has targetClass=null, which mismatches
+        // the freshly re-scanned plan's targetClass — PlanReconciler must reject.
+        TomcatFilterCleanerPhaseDTest.FakeContext ctx = newPhaseDFakeContextWithEvilFilter();
+
+        String findingId = FindingIdGenerator.generate(
+                "tomcat-filter", "com.evil.X", "Evil");
+        Path dir = tempDir.resolve("evidence").resolve(findingId);
+        Files.createDirectories(dir);
+
+        String legacyJson = "{"
+                + "\"findingId\":\"" + findingId + "\","
+                + "\"type\":\"tomcat-filter\","
+                + "\"targetName\":\"Evil\","
+                + "\"score\":" + EVIL_FILTER_CRITICAL_SCORE + ","
+                + "\"forced\":false,"
+                + "\"rollbackSupported\":true,"
+                + "\"generatedAt\":1"
+                + "}";
+        Files.write(dir.resolve("clean-plan.json"), legacyJson.getBytes("UTF-8"));
+
+        AgentArgs args = AgentArgs.parse(
+                "clean --id " + findingId + " --confirm --evidence-dir " + tempDir);
+        int exit = MemHunterAgent.dispatchForTest(ctx, args);
+
+        assertEquals(MemHunterAgent.EXIT_PLAN_STALE, exit);
+        CleanResult cr = new ObjectMapper()
+                .readValue(dir.resolve("clean-result.json").toFile(), CleanResult.class);
+        assertFalse(cr.success);
+        assertNotNull(cr.failureReason);
+        assertTrue(cr.failureReason.contains("targetClass"),
+                "failureReason should mention targetClass, was: " + cr.failureReason);
     }
 
     private FakeContext contextWithFilter() {
