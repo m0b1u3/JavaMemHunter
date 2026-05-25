@@ -26,6 +26,13 @@ import java.util.Map;
  *  - phaseDLabels() — return one or more step labels (Servlet returns 2: unload + destroy)
  *  - stillPresentOnRescan(String findingId) — Phase E predicate
  *  - phaseSteps() — list of plan-text steps for the CleanPlan.steps field
+ *
+ * <p><b>Thread-safety and reuse:</b> Each cleaner instance carries per-finding
+ * state ({@code currentFinding}, {@code currentTargetName}, {@code rollback}).
+ * Callers MUST construct a fresh cleaner per dispatch — calling {@code execute()}
+ * twice on the same instance, or reusing an instance across different findings,
+ * is unsupported and will produce undefined behaviour. The CleanerRegistry
+ * factory pattern enforces this for production code paths.
  */
 public abstract class AbstractTomcatCleaner implements Cleaner {
 
@@ -60,8 +67,11 @@ public abstract class AbstractTomcatCleaner implements Cleaner {
         Finding fresh = locateOnRescan(finding.id);
         if (fresh == null) return null;
 
-        // Preserve score/level from the original finding (scanner re-runs do not
-        // re-evaluate scoring rules).
+        // Preserve score/level from the original finding. Scanner re-runs only
+        // verify presence; they do not invoke RuleEngine, so fresh.score is 0 and
+        // fresh.level is null. We mutate the local `fresh` Finding directly —
+        // this is safe because every scanner constructs a new Finding instance
+        // per scan; no shared reference is updated.
         if (fresh.score == 0) fresh.score = finding.score;
         if (fresh.level == null) fresh.level = finding.level;
 
