@@ -4,55 +4,61 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class CleanPlanTest {
 
     @Test
-    void roundTripPreservesAllFields() throws Exception {
-        CleanPlan plan = new CleanPlan();
-        plan.findingId = "f-001";
-        plan.type = "tomcat_filter";
-        plan.filterName = "EvilFilter";
-        plan.filterClass = "com.evil.Evil";
-        plan.contextPath = "/app";
-        plan.level = "high";
-        plan.evidenceDir = "evidence/f-001";
-        plan.planFile = "evidence/f-001/clean-plan.json";
-        plan.urlPatterns = Arrays.asList("/*", "/admin/*");
-        plan.steps = Arrays.asList("remove-filter-map", "remove-filter-def");
-        plan.score = 42;
-        plan.forced = true;
-        plan.rollbackSupported = true;
-        plan.generatedAt = 1234567890L;
+    void roundTripsAllFields() throws Exception {
+        CleanPlan p = new CleanPlan();
+        p.findingId = "finding-tomcat-filter-abc";
+        p.type = "tomcat-filter";
+        p.targetName = "EvilFilter";
+        p.targetClass = "com.evil.X";
+        p.contextPath = "/app";
+        p.level = "critical";
+        p.evidenceDir = "/tmp/ev";
+        p.planFile = "/tmp/ev/evidence/finding-tomcat-filter-abc/clean-plan.json";
+        Map<String, Object> d = new HashMap<>();
+        d.put("urlPatterns", Arrays.asList("/*"));
+        p.details = d;
+        p.steps = Arrays.asList("step1", "step2");
+        p.score = 14;
+        p.forced = false;
+        p.rollbackSupported = true;
+        p.generatedAt = 1716345600000L;
 
-        ObjectMapper mapper = new ObjectMapper();
-        String json = mapper.writeValueAsString(plan);
-        CleanPlan back = mapper.readValue(json, CleanPlan.class);
+        ObjectMapper om = new ObjectMapper();
+        String json = om.writeValueAsString(p);
+        CleanPlan back = om.readValue(json, CleanPlan.class);
 
-        assertEquals(plan.findingId, back.findingId);
-        assertEquals(plan.type, back.type);
-        assertEquals(plan.filterName, back.filterName);
-        assertEquals(plan.filterClass, back.filterClass);
-        assertEquals(plan.contextPath, back.contextPath);
-        assertEquals(plan.level, back.level);
-        assertEquals(plan.evidenceDir, back.evidenceDir);
-        assertEquals(plan.planFile, back.planFile);
-        assertEquals(plan.urlPatterns, back.urlPatterns);
-        assertEquals(plan.steps, back.steps);
-        assertEquals(plan.score, back.score);
-        assertEquals(plan.forced, back.forced);
-        assertEquals(plan.rollbackSupported, back.rollbackSupported);
-        assertEquals(plan.generatedAt, back.generatedAt);
+        assertEquals(p.findingId, back.findingId);
+        assertEquals(p.type, back.type);
+        assertEquals(p.targetName, back.targetName);
+        assertEquals(p.targetClass, back.targetClass);
+        assertEquals(p.contextPath, back.contextPath);
+        assertEquals(p.level, back.level);
+        assertEquals(p.evidenceDir, back.evidenceDir);
+        assertEquals(p.planFile, back.planFile);
+        assertEquals(p.details, back.details);
+        assertEquals(p.steps, back.steps);
+        assertEquals(p.score, back.score);
+        assertEquals(p.forced, back.forced);
+        assertEquals(p.rollbackSupported, back.rollbackSupported);
+        assertEquals(p.generatedAt, back.generatedAt);
     }
 
     @Test
-    void defaultsAreFalseAndZero() {
-        CleanPlan plan = new CleanPlan();
-        assertFalse(plan.rollbackSupported);
-        assertFalse(plan.forced);
-        assertEquals(0, plan.score);
+    void defaultsAreSensible() {
+        CleanPlan p = new CleanPlan();
+        assertFalse(p.forced);
+        assertFalse(p.rollbackSupported);
+        assertEquals(0, p.score);
+        assertNotNull(p.details, "details must be non-null (empty HashMap)");
     }
 }
