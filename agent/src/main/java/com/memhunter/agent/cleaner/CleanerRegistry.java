@@ -39,11 +39,15 @@ public final class CleanerRegistry {
     }
 
     /**
-     * Default registry wired with available Tomcat cleaners. v0.7 Task 5 ships
-     * Filter only; Tasks 8-10 extend with Servlet/Listener/Valve.
+     * Default registry wired with all 4 Tomcat cleaners (filter / servlet /
+     * listener-* / valve). Listener uses a prefix match because Finding.type
+     * carries the listener subtype suffix (e.g. tomcat-listener-lifecycle).
      */
     public static CleanerRegistry defaultRegistry() {
         return new CleanerRegistry()
-            .register("tomcat-filter", false, TomcatFilterCleaner::new);
+            .register("tomcat-filter",    false, TomcatFilterCleaner::new)
+            .register("tomcat-servlet",   false, TomcatServletCleaner::new)
+            .register("tomcat-listener-", true,  TomcatListenerCleaner::new)
+            .register("tomcat-valve",     false, TomcatValveCleaner::new);
     }
 }
