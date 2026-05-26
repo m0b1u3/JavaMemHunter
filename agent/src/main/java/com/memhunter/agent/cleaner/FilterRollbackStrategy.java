@@ -10,19 +10,32 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Restores Tomcat StandardContext filter state from a FilterBackup snapshot.
- * Restore order is the reverse of Phase C forward order:
+ * Per-Filter rollback. Restores Tomcat StandardContext filter state from a
+ * FilterBackup snapshot. Restore order is the reverse of Phase C:
  *   forward: filterConfigs -> filterMaps -> filterDefs
  *   reverse: filterDefs    -> filterMaps -> filterConfigs
  *
+ * State captured in constructor so restore() conforms to the parameterless
+ * RollbackStrategy contract.
+ *
  * Note: filterMaps positional index inside the original array is NOT preserved —
- * restored entries are appended to the end. Acceptable approximation since we
- * do not track original indices in FilterBackup.
+ * restored entries are appended to the end.
  */
-public class RollbackManager {
+public class FilterRollbackStrategy implements RollbackStrategy {
 
+    private final Object standardContext;
+    private final String filterName;
+    private final FilterBackup backup;
+
+    public FilterRollbackStrategy(Object standardContext, String filterName, FilterBackup backup) {
+        this.standardContext = standardContext;
+        this.filterName = filterName;
+        this.backup = backup;
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
-    public void restore(Object standardContext, String filterName, FilterBackup backup) {
+    public void restore() throws RollbackFailedException {
         if (standardContext == null || backup == null) {
             throw new RollbackFailedException("null context or backup",
                     new IllegalArgumentException("standardContext/backup is null"));

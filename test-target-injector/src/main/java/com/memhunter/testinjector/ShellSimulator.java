@@ -50,4 +50,16 @@ public class ShellSimulator {
         new FakeSpringInterceptorInjector(appContext).inject();
         return "spring interceptor injected: FakeInterceptor";
     }
+
+    @GetMapping("/inject/listener")
+    public String injectListener() {
+        new FakeListenerInjector(servletContext).inject();
+        return "listener injected: FakeListener";
+    }
+
+    @GetMapping("/inject/valve")
+    public String injectValve() {
+        new FakeValveInjector(servletContext).inject();
+        return "valve injected: FakeValve";
+    }
 }

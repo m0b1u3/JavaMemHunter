@@ -24,11 +24,11 @@ class CleanPlanReaderTest {
         CleanPlan p = new CleanPlan();
         p.findingId = "F-RT";
         p.type = "tomcat.filter";
-        p.filterName = "X";
-        p.filterClass = "com.X";
+        p.targetName = "X";
+        p.targetClass = "com.X";
         p.contextPath = "/app";
         p.level = "HIGH";
-        p.urlPatterns = Arrays.asList("/a", "/b");
+        p.details.put("urlPatterns", Arrays.asList("/a", "/b"));
         p.steps = Arrays.asList("s1", "s2");
         p.score = 42;
         p.forced = true;
@@ -40,11 +40,11 @@ class CleanPlanReaderTest {
 
         assertEquals(p.findingId, back.findingId);
         assertEquals(p.type, back.type);
-        assertEquals(p.filterName, back.filterName);
-        assertEquals(p.filterClass, back.filterClass);
+        assertEquals(p.targetName, back.targetName);
+        assertEquals(p.targetClass, back.targetClass);
         assertEquals(p.contextPath, back.contextPath);
         assertEquals(p.level, back.level);
-        assertEquals(p.urlPatterns, back.urlPatterns);
+        assertEquals(p.details.get("urlPatterns"), back.details.get("urlPatterns"));
         assertEquals(p.steps, back.steps);
         assertEquals(p.score, back.score);
         assertEquals(p.forced, back.forced);

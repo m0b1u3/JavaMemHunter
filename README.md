@@ -37,6 +37,46 @@ java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.
 
 无新增 CLI 接口；证据目录布局无变化。正确使用时所有 v0.6 命令行为不变。
 
+## v0.7 — Tomcat Cleaners 扩展（2026-05-26）
+
+把 v0.6 的 Tomcat Filter 清理能力扩展到 Servlet / Listener / Valve 三类，沿用
+v0.6 的 5-Phase 模板和 v0.6.1 的审计闸门。CLI 命令没有变化（`clean --id <fid>
+--dry-run/--confirm`、`verify --id <fid>`）；MemHunterAgent 根据 finding.type
+自动路由到对应的 Cleaner：
+
+| Finding type | Cleaner |
+|---|---|
+| `tomcat-filter` | TomcatFilterCleaner |
+| `tomcat-servlet` | TomcatServletCleaner |
+| `tomcat-listener-*` | TomcatListenerCleaner |
+| `tomcat-valve` | TomcatValveCleaner |
+
+**架构变更：**
+
+1. **CleanPlan schema**：`filterName/filterClass/urlPatterns` →
+   `targetName/targetClass + details: Map<String,Object>`。details 携带类型专属
+   信息（filter 的 urlPatterns、servlet 的 mappings、listener 的 listenerKind、
+   valve 的 pipelineIndex）。
+2. **CleanerRegistry**：type 到 Cleaner factory 的查表（equals + prefix 匹配，
+   exact 优先）。
+3. **AbstractTomcatCleaner**：模板基类共享 Phase A/D/E，子类填 Phase B/C。
+4. **RollbackStrategy**：从单一 RollbackManager 抽象为接口，每个 Cleaner 自带
+   strategy 实现（FilterRollbackStrategy/ListenerRollbackStrategy/
+   ServletRollbackStrategy/ValveRollbackStrategy）。
+5. **PlanReconciler**：`filterClass` 比对改名 `targetClass`，三方一致性
+   （persisted ≡ fresh ≡ confirmFlag）行为不变。
+
+**重要不兼容：** v0.6 老 evidence 文件不可用于 v0.7 confirm
+（schema 不匹配会被 PlanReconciler 拒绝并 `EXIT_PLAN_STALE`）。操作员应
+对每个 finding 重跑 dry-run。
+
+**端到端验证：** v0.7 单元测试已覆盖 4 个 Cleaner 的完整 Phase A→E + dispatch
+路径（197 tests）。完整 E2E 跑通需要手动启动 `test-target`（Spring Boot 内嵌
+Tomcat）+ 调 `/inject/filter`、`/inject/servlet`、`/inject/listener`、
+`/inject/valve` 端点注入 4 类假马，然后按 v0.6 的 attach → scan → clean
+--dry-run → clean --confirm → verify 流程跑一遍，归档 evidence 到
+`docs/superpowers/specs/v0.7-clean-flow-evidence/`。
+
 ## v0.5 能力
 
 在 v0.4 基础上新增：

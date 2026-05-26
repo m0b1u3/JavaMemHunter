@@ -1,10 +1,11 @@
 package com.memhunter.agent;
 
 import com.memhunter.agent.cleaner.CleanPlanReader;
+import com.memhunter.agent.cleaner.Cleaner;
+import com.memhunter.agent.cleaner.CleanerRegistry;
 import com.memhunter.agent.cleaner.EvidenceWriter;
 import com.memhunter.agent.cleaner.PlanReconciler;
 import com.memhunter.agent.cleaner.PlanStaleException;
-import com.memhunter.agent.cleaner.TomcatFilterCleaner;
 import com.memhunter.agent.model.CleanPlan;
 import com.memhunter.agent.model.CleanResult;
 import com.memhunter.agent.model.Finding;
@@ -39,6 +40,8 @@ public class MemHunterAgent {
     public static final int EXIT_OK = 0;
     public static final int EXIT_EXECUTE_FAILED = 2;
     public static final int EXIT_PLAN_STALE = 3;
+
+    private static final CleanerRegistry CLEANER_REGISTRY = CleanerRegistry.defaultRegistry();
 
     public static void agentmain(String agentArgs, Instrumentation inst) {
         try {
@@ -134,11 +137,14 @@ public class MemHunterAgent {
             Object ctx = requireFirstContext(tomcatContexts);
             String id = args.options.get("id");
             Path evidenceDir = evidenceDir(args);
-            Finding finding = findTomcatFilter(ctx, id);
+            Finding finding = findFindingById(ctx, id);
             if (finding == null) {
                 throw new IllegalStateException("finding not located: " + id);
             }
-            TomcatFilterCleaner cleaner = new TomcatFilterCleaner(ctx);
+            Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx);
+            if (cleaner == null) {
+                throw new IllegalStateException("no cleaner registered for type: " + finding.type);
+            }
             CleanPlan plan = cleaner.plan(finding, false);
             if (plan == null) {
                 throw new IllegalStateException("clean plan could not be generated: " + id);
@@ -186,11 +192,24 @@ public class MemHunterAgent {
         Path planFile = evidenceDir.resolve("evidence").resolve(id).resolve("clean-plan.json");
         CleanPlan persistedPlan = CleanPlanReader.read(planFile);
 
-        Finding finding = findTomcatFilter(ctx, id);
+        Finding finding = findFindingById(ctx, id);
         if (finding == null) {
             throw new IllegalStateException("finding not located: " + id);
         }
-        TomcatFilterCleaner cleaner = new TomcatFilterCleaner(ctx);
+        Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx);
+        if (cleaner == null) {
+            CleanResult unsupported = new CleanResult();
+            unsupported.findingId = id;
+            unsupported.success = false;
+            unsupported.rolledBack = false;
+            unsupported.verifiedDisappeared = false;
+            unsupported.executedSteps = Arrays.asList(
+                    "pre-execute: unsupported finding type");
+            unsupported.failureReason = "no cleaner registered for type: " + finding.type;
+            unsupported.executedAt = System.currentTimeMillis();
+            new EvidenceWriter(evidenceDir).writeResult(id, unsupported);
+            return EXIT_EXECUTE_FAILED;
+        }
         CleanPlan freshPlan = cleaner.plan(finding, confirmForceFlag);
         if (freshPlan == null) {
             throw new IllegalStateException("clean plan could not be regenerated: " + id);
@@ -237,13 +256,18 @@ public class MemHunterAgent {
         return Paths.get(args.options.getOrDefault("evidence-dir", "."));
     }
 
-    private static Finding findTomcatFilter(Object ctx, String id) {
-        List<Finding> findings = new com.memhunter.agent.scanner.tomcat.TomcatFilterScanner(ctx)
-                .scan(new ScanReport());
-        new RuleEngine().evaluate(findings,
+    private static Finding findFindingById(Object ctx, String id) {
+        if (id == null) return null;
+        ScanReport report = new ScanReport();
+        List<Finding> all = new ArrayList<>();
+        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatFilterScanner(ctx).scan(report));
+        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatServletScanner(ctx).scan(report));
+        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatListenerScanner(ctx).scan(report));
+        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatValveScanner(ctx).scan(report));
+        new RuleEngine().evaluate(all,
                 new ScanContext(null, Whitelist.defaults(), false, BaselineIndex.empty()));
-        for (Finding f : findings) {
-            if (f != null && id != null && id.equals(f.id)) {
+        for (Finding f : all) {
+            if (f != null && id.equals(f.id)) {
                 return f;
             }
         }

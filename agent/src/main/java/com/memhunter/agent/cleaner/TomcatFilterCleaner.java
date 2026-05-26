@@ -1,7 +1,5 @@
 package com.memhunter.agent.cleaner;
 
-import com.memhunter.agent.model.CleanPlan;
-import com.memhunter.agent.model.CleanResult;
 import com.memhunter.agent.model.FilterBackup;
 import com.memhunter.agent.model.Finding;
 import com.memhunter.agent.model.ScanReport;
@@ -15,26 +13,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TomcatFilterCleaner implements Cleaner {
+/**
+ * v0.7 TomcatFilterCleaner — refactored to extend AbstractTomcatCleaner.
+ * Phase A/D/E come from the base template; this subclass implements
+ * Phase B (snapshot filterDefs/filterMaps/filterConfigs) and Phase C
+ * (atomic copy-replace), and adapts the new CleanPlan schema
+ * (targetName/targetClass/details).
+ */
+public class TomcatFilterCleaner extends AbstractTomcatCleaner {
 
     private static final String TYPE = "tomcat-filter";
-    private static final int SCORE_THRESHOLD = 7;
 
-    private final Object standardContext;
     private FilterBackup currentBackup;
-    private String currentFilterName;
 
-    // Test instrumentation: invoked after Phase C step 1 (configs write), before step 2 (maps).
-    // Package-private setter used only by Phase C failure-path tests.
+    // Test instrumentation hooks (package-private, preserved from v0.6).
     Runnable hookAfterConfigsWrite = () -> {};
-
-    // Test instrumentation: invoked after Phase C completes successfully, before Phase D.
-    // Used by full-flow tests to simulate verify failure (e.g. re-insert filter to mimic
-    // Tomcat caching the reference elsewhere).
     Runnable hookAfterPhaseC = () -> {};
 
     public TomcatFilterCleaner(Object standardContext) {
-        this.standardContext = standardContext;
+        super(standardContext);
     }
 
     public FilterBackup getCurrentBackup() {
@@ -42,28 +39,36 @@ public class TomcatFilterCleaner implements Cleaner {
     }
 
     public String getCurrentFilterName() {
-        return currentFilterName;
+        return currentTargetName;
     }
 
     @Override
-    public CleanPlan plan(Finding finding, boolean forced) {
-        if (finding == null) return null;
-        if (!TYPE.equals(finding.type)) return null;
-        if (finding.score < SCORE_THRESHOLD && !forced) return null;
+    protected boolean supportsType(String type) {
+        return TYPE.equals(type);
+    }
 
-        // Phase A: re-scan and locate finding by id
+    @Override
+    protected Finding locateOnRescan(String findingId) {
         TomcatFilterScanner scanner = new TomcatFilterScanner(standardContext);
         List<Finding> rescanned = scanner.scan(new ScanReport());
-        Finding located = null;
         for (Finding f : rescanned) {
-            if (f.id != null && f.id.equals(finding.id)) {
-                located = f;
-                break;
-            }
+            if (f.id != null && f.id.equals(findingId)) return f;
         }
-        if (located == null) return null;
+        return null;
+    }
 
-        // Phase B: snapshot
+    @Override
+    protected Map<String, Object> buildDetails(Finding finding) {
+        Map<String, Object> d = new HashMap<>();
+        Object urls = finding.attributes.get("urlPatterns");
+        if (urls != null) d.put("urlPatterns", urls);
+        Object disps = finding.attributes.get("dispatcherTypes");
+        if (disps != null) d.put("dispatcherTypes", disps);
+        return d;
+    }
+
+    @Override
+    protected void doPhaseB(Finding finding) {
         String filterName = finding.name;
         FilterBackup backup = new FilterBackup();
 
@@ -90,20 +95,12 @@ public class TomcatFilterCleaner implements Cleaner {
         backup.originalFilterConfigsMap = configsCopy;
 
         this.currentBackup = backup;
-        this.currentFilterName = filterName;
+        this.rollback = new FilterRollbackStrategy(standardContext, filterName, backup);
+    }
 
-        // Build plan
-        CleanPlan plan = new CleanPlan();
-        plan.findingId = finding.id;
-        plan.type = finding.type;
-        plan.filterName = filterName;
-        plan.filterClass = finding.className;
-        plan.urlPatterns = extractUrlPatterns(finding);
-        plan.contextPath = extractContextPath(finding);
-        plan.score = finding.score;
-        plan.level = finding.level;
-        plan.forced = forced;
-        plan.steps = Arrays.asList(
+    @Override
+    protected List<String> phaseSteps() {
+        return Arrays.asList(
                 "backup filterDef/filterMap/filterConfig",
                 "remove from filterConfigs",
                 "remove from filterMaps",
@@ -111,117 +108,24 @@ public class TomcatFilterCleaner implements Cleaner {
                 "call filter.destroy()",
                 "re-scan to verify"
         );
-        plan.rollbackSupported = true;
-        plan.generatedAt = System.currentTimeMillis();
-        return plan;
-    }
-
-    @Override
-    public CleanResult execute(CleanPlan plan, boolean forced) {
-        CleanResult result = new CleanResult();
-        result.findingId = plan == null ? null : plan.findingId;
-        result.executedAt = System.currentTimeMillis();
-        result.executedSteps = new ArrayList<>();
-
-        if (plan == null) {
-            result.failureReason = "clean plan is required";
-            return result;
-        }
-        if (currentBackup == null || currentFilterName == null) {
-            result.failureReason = "plan() must be called before execute()";
-            return result;
-        }
-
-        try {
-            doPhaseC();
-            result.executedSteps.add("phase-C: removed filter registrations");
-            hookAfterPhaseC.run();
-
-            result.executedSteps.add(releaseOriginalFilterConfig());
-
-            if (isFindingStillPresent(plan.findingId)) {
-                new RollbackManager().restore(standardContext, currentFilterName, currentBackup);
-                result.rolledBack = true;
-                result.verifiedDisappeared = false;
-                result.failureReason = "verify failed: finding still present after clean";
-                result.executedSteps.add("phase-E: verify failed; rolled back");
-                return result;
-            }
-
-            result.success = true;
-            result.verifiedDisappeared = true;
-            result.executedSteps.add("phase-E: verified disappeared");
-            return result;
-        } catch (CleanExecutionException e) {
-            result.rolledBack = true;
-            result.failureReason = e.getMessage();
-            result.executedSteps.add("phase-C: failed; rolled back");
-            return result;
-        } catch (RollbackFailedException e) {
-            result.rolledBack = false;
-            result.failureReason = e.getMessage();
-            result.executedSteps.add("rollback failed");
-            return result;
-        } catch (Throwable t) {
-            result.failureReason = t.getMessage();
-            return result;
-        }
-    }
-
-    private String releaseOriginalFilterConfig() {
-        Object config = currentBackup == null ? null : currentBackup.originalFilterConfig;
-        if (config == null) {
-            // Null config (e.g. backup never captured one) is deliberately collapsed
-            // with NoSuchMethodException onto the same label. Both mean "release()
-            // was not invoked"; the runtime mutation already detached the filter.
-            return "phase-D: no-release-method";
-        }
-        try {
-            // getMethod is intentional: ApplicationFilterConfig.release() is public.
-            // We do not probe non-public declared methods; if a subclass downgrades
-            // release() to package-private, this falls through to no-release-method.
-            java.lang.reflect.Method m = config.getClass().getMethod("release");
-            m.invoke(config);
-            return "phase-D: destroy-ran";
-        } catch (NoSuchMethodException nsme) {
-            return "phase-D: no-release-method";
-        } catch (java.lang.reflect.InvocationTargetException ite) {
-            Throwable cause = ite.getCause() != null ? ite.getCause() : ite;
-            return phaseDThrew(cause);
-        } catch (Throwable t) {
-            return phaseDThrew(t);
-        }
-    }
-
-    private static String phaseDThrew(Throwable t) {
-        String msg = t.getMessage() == null ? "" : t.getMessage();
-        return "phase-D: destroy-threw: " + t.getClass().getSimpleName() + ": " + msg;
-    }
-
-    private boolean isFindingStillPresent(String findingId) {
-        TomcatFilterScanner scanner = new TomcatFilterScanner(standardContext);
-        List<Finding> findings = scanner.scan(new ScanReport());
-        for (Finding f : findings) {
-            if (f != null && findingId != null && findingId.equals(f.id)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
      * Phase C: atomic copy-replace of filterConfigs / filterMaps.array / filterDefs.
-     * Order per design §5.2: configs -> maps -> defs (request path drains first).
-     * On any failure, RollbackManager restores prior state and CleanExecutionException
-     * is re-thrown wrapping the original cause.
+     * Order: configs -> maps -> defs (request path drains first).
+     * On any failure, rollback via FilterRollbackStrategy and rethrow as
+     * CleanExecutionException so the base template surfaces "Phase C failed".
+     *
+     * Package-private visibility preserved so PhaseCTest can invoke doPhaseC() directly.
      */
+    @Override
     @SuppressWarnings("unchecked")
-    void doPhaseC() {
-        if (currentBackup == null || currentFilterName == null) {
+    protected void doPhaseC() throws CleanExecutionException {
+        if (currentBackup == null || currentTargetName == null) {
             throw new CleanExecutionException("doPhaseC called before plan()",
                     new IllegalStateException("no backup/filterName"));
         }
-        String filterName = currentFilterName;
+        String filterName = currentTargetName;
         try {
             // Step 1: filterConfigs (copy, remove, replace)
             Object configsObj = ReflectUtil.tryReadField(standardContext, "filterConfigs").orElse(null);
@@ -234,10 +138,9 @@ public class TomcatFilterCleaner implements Cleaner {
             newConfigs.remove(filterName);
             ReflectUtil.setField(standardContext, "filterConfigs", newConfigs);
 
-            // Test hook: allow tests to inject a failure between step 1 and step 2.
             hookAfterConfigsWrite.run();
 
-            // Step 2: filterMaps.array (filter out entries with filterName==target)
+            // Step 2: filterMaps.array
             Object mapsField = ReflectUtil.tryReadField(standardContext, "filterMaps").orElse(null);
             if (mapsField == null) {
                 throw new IllegalStateException("filterMaps field is null");
@@ -272,7 +175,7 @@ public class TomcatFilterCleaner implements Cleaner {
                 ReflectUtil.setField(standardContext, "filterMaps", newArr);
             }
 
-            // Step 3: filterDefs (copy, remove, replace)
+            // Step 3: filterDefs
             Object defsObj = ReflectUtil.tryReadField(standardContext, "filterDefs").orElse(null);
             Map<String, Object> newDefs = new HashMap<>();
             if (defsObj instanceof Map) {
@@ -282,10 +185,12 @@ public class TomcatFilterCleaner implements Cleaner {
             }
             newDefs.remove(filterName);
             ReflectUtil.setField(standardContext, "filterDefs", newDefs);
+
+            hookAfterPhaseC.run();
         } catch (Throwable forward) {
-            // Best-effort rollback; if rollback also fails, surface the rollback failure.
+            // Best-effort rollback via the captured strategy.
             try {
-                new RollbackManager().restore(standardContext, filterName, currentBackup);
+                rollback.restore();
             } catch (RollbackFailedException rbf) {
                 throw rbf;
             } catch (Throwable rbt) {
@@ -293,6 +198,17 @@ public class TomcatFilterCleaner implements Cleaner {
             }
             throw new CleanExecutionException("Phase C failed; rolled back", forward);
         }
+    }
+
+    @Override
+    protected List<String> phaseDLabels() {
+        Object cfg = currentBackup == null ? null : currentBackup.originalFilterConfig;
+        return Arrays.asList(releaseTargetByConvention(cfg, "release"));
+    }
+
+    @Override
+    protected boolean stillPresentOnRescan(String findingId) {
+        return locateOnRescan(findingId) != null;
     }
 
     private Object[] toCompatibleArray(List<Object> values, Object[] originalArray) {
@@ -305,18 +221,6 @@ public class TomcatFilterCleaner implements Cleaner {
             Array.set(typed, i, values.get(i));
         }
         return (Object[]) typed;
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<String> extractUrlPatterns(Finding finding) {
-        Object v = finding.attributes.get("urlPatterns");
-        if (v instanceof List) return (List<String>) v;
-        return new ArrayList<>();
-    }
-
-    private String extractContextPath(Finding finding) {
-        Object v = finding.attributes.get("contextPath");
-        return v == null ? "" : String.valueOf(v);
     }
 
     private Map<?, ?> asMap(Object v) {

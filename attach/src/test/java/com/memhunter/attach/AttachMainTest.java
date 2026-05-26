@@ -133,8 +133,9 @@ class AttachMainTest {
     private void writeCleanPlan(String id) throws Exception {
         CleanPlan plan = new CleanPlan();
         plan.findingId = id;
-        plan.filterName = "EvilFilter";
-        plan.filterClass = "com.evil.X";
+        plan.type = "tomcat-filter";
+        plan.targetName = "EvilFilter";
+        plan.targetClass = "com.evil.X";
         plan.level = "critical";
         plan.score = 12;
         writeJson(tempDir.resolve("evidence").resolve(id).resolve("clean-plan.json"), plan);

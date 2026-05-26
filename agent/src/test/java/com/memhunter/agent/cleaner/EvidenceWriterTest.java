@@ -37,11 +37,11 @@ class EvidenceWriterTest {
         CleanPlan p = new CleanPlan();
         p.findingId = "F-001";
         p.type = "tomcat.filter";
-        p.filterName = "EvilFilter";
-        p.filterClass = "com.evil.EvilFilter";
+        p.targetName = "EvilFilter";
+        p.targetClass = "com.evil.EvilFilter";
         p.contextPath = "/app";
         p.level = "HIGH";
-        p.urlPatterns = Arrays.asList("/*");
+        p.details.put("urlPatterns", Arrays.asList("/*"));
         p.steps = Arrays.asList("stop", "remove");
         p.score = 80;
         p.forced = false;

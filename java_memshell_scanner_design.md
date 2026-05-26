@@ -1774,6 +1774,19 @@ v0.6 E2E 证据已归档到 `docs/superpowers/specs/v0.6-clean-flow-evidence/`�
 - 新增 EXIT_PLAN_STALE=3 退出码
 - 新增 PlanReconciler + PlanStaleException
 
+### v0.7：Tomcat Cleaners 扩展（已完成）
+
+目标：
+
+- 新增 TomcatServletCleaner / TomcatListenerCleaner / TomcatValveCleaner
+- CleanPlan schema 抽象：targetName/targetClass + details
+- CleanerRegistry：type 到 Cleaner factory 查表（exact + prefix 匹配）
+- AbstractTomcatCleaner：共享 Phase A/D/E 模板
+- RollbackStrategy 接口：替换单一 RollbackManager；每个 Cleaner 自带 strategy
+- PlanReconciler：filterClass → targetClass 字段重命名
+- MemHunterAgent：polymorphic dispatch via CleanerRegistry
+- 197 单元/集成测试覆盖 4 类 Cleaner 全 Phase + dispatch + 旧 v0.6 plan 拒绝
+
 ### v1.0：生产可用
 
 目标：

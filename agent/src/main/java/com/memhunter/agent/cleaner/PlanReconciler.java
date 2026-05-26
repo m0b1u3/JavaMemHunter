@@ -11,12 +11,12 @@ import java.util.Objects;
  *
  * Compared fields (any mismatch -> stale):
  *   - findingId
- *   - filterClass
+ *   - targetClass
  *   - score
  *   - forced (must equal across persisted, fresh, AND confirmForceFlag)
  *
  * NOT compared (allowed to differ): generatedAt, evidenceDir, planFile, steps,
- *   level, urlPatterns, filterName, contextPath, type, rollbackSupported.
+ *   level, details, targetName, contextPath, type, rollbackSupported.
  */
 public final class PlanReconciler {
 
@@ -29,8 +29,8 @@ public final class PlanReconciler {
         if (!Objects.equals(persisted.findingId, fresh.findingId)) {
             throw stale("findingId", persisted.findingId, fresh.findingId);
         }
-        if (!Objects.equals(persisted.filterClass, fresh.filterClass)) {
-            throw stale("filterClass", persisted.filterClass, fresh.filterClass);
+        if (!Objects.equals(persisted.targetClass, fresh.targetClass)) {
+            throw stale("targetClass", persisted.targetClass, fresh.targetClass);
         }
         if (persisted.score != fresh.score) {
             throw stale("score", persisted.score, fresh.score);
