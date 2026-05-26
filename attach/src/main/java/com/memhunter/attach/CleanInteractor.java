@@ -15,8 +15,9 @@ public class CleanInteractor {
         if (output != null && plan != null) {
             output.println("Clean plan:");
             output.println("  findingId: " + nullToEmpty(plan.findingId));
-            output.println("  filterName: " + nullToEmpty(plan.filterName));
-            output.println("  filterClass: " + nullToEmpty(plan.filterClass));
+            output.println("  type: " + nullToEmpty(plan.type));
+            output.println("  targetName: " + nullToEmpty(plan.targetName));
+            output.println("  targetClass: " + nullToEmpty(plan.targetClass));
             output.println("  contextPath: " + nullToEmpty(plan.contextPath));
             output.println("  score: " + plan.score);
             output.println("  level: " + nullToEmpty(plan.level));

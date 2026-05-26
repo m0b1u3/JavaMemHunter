@@ -49,8 +49,9 @@ class CleanInteractorTest {
     private CleanPlan samplePlan() {
         CleanPlan plan = new CleanPlan();
         plan.findingId = "F-123";
-        plan.filterName = "EvilFilter";
-        plan.filterClass = "com.evil.X";
+        plan.type = "tomcat-filter";
+        plan.targetName = "EvilFilter";
+        plan.targetClass = "com.evil.X";
         plan.contextPath = "/app";
         plan.score = 12;
         plan.level = "critical";
