@@ -11,12 +11,12 @@ import java.util.Objects;
  *
  * Compared fields (any mismatch -> stale):
  *   - findingId
- *   - filterClass
+ *   - targetClass
  *   - score
  *   - forced (must equal across persisted, fresh, AND confirmForceFlag)
  *
  * NOT compared (allowed to differ): generatedAt, evidenceDir, planFile, steps,
- *   level, urlPatterns, filterName, contextPath, type, rollbackSupported.
+ *   level, details, targetName, contextPath, type, rollbackSupported.
  */
 public final class PlanReconciler {
 
