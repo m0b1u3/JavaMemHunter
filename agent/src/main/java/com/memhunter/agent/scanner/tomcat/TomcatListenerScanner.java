@@ -27,8 +27,8 @@ public class TomcatListenerScanner {
             String contextPath = ReflectUtil.tryInvoke(context, "getPath")
                     .map(String::valueOf).orElse("");
             Set<Object> seen = new HashSet<>();
-            collectFrom("applicationEventListeners", contextPath, findings, seen, report);
-            collectFrom("applicationLifecycleListeners", contextPath, findings, seen, report);
+            collectFrom(eventListeners(), contextPath, findings, seen);
+            collectFrom(lifecycleListeners(), contextPath, findings, seen);
         } catch (Throwable t) {
             report.partialErrors.add(new ScanReport.PartialError(
                     "TomcatListenerScanner", "exception: " + t.getMessage()));
@@ -47,16 +47,35 @@ public class TomcatListenerScanner {
         return result;
     }
 
-    private void collectFrom(String fieldName, String contextPath, List<Finding> out,
-                             Set<Object> seen, ScanReport report) {
-        Optional<Object> field = ReflectUtil.tryReadField(context, fieldName);
-        if (!field.isPresent()) return;
-        Object arr = field.get();
-        if (!(arr instanceof Object[])) return;
-        for (Object listener : (Object[]) arr) {
+    private void collectFrom(Object[] listeners, String contextPath, List<Finding> out,
+                             Set<Object> seen) {
+        if (listeners == null) return;
+        for (Object listener : listeners) {
             if (listener == null || !seen.add(listener)) continue;
             out.add(buildFinding(listener, contextPath));
         }
+    }
+
+    private Object[] eventListeners() {
+        Optional<Object> viaGetter = ReflectUtil.tryInvoke(context, "getApplicationEventListeners");
+        if (viaGetter.isPresent()) return toArray(viaGetter.get());
+        return toArray(ReflectUtil.tryReadAnyOf(context,
+            "applicationEventListeners",
+            "applicationEventListenersList").orElse(null));
+    }
+
+    private Object[] lifecycleListeners() {
+        Optional<Object> viaGetter = ReflectUtil.tryInvoke(context, "getApplicationLifecycleListeners");
+        if (viaGetter.isPresent()) return toArray(viaGetter.get());
+        return toArray(ReflectUtil.tryReadAnyOf(context,
+            "applicationLifecycleListeners",
+            "applicationLifecycleListenersObjects").orElse(null));
+    }
+
+    private Object[] toArray(Object value) {
+        if (value instanceof Object[]) return (Object[]) value;
+        if (value instanceof List) return ((List<?>) value).toArray();
+        return null;
     }
 
     private Finding buildFinding(Object listener, String contextPath) {

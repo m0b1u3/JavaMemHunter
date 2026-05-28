@@ -1,0 +1,9 @@
+{
+  "findingId" : "finding-tomcat-valve-1dd9c50c",
+  "failureReason" : null,
+  "success" : true,
+  "rolledBack" : false,
+  "verifiedDisappeared" : true,
+  "executedSteps" : [ "phase-C: atomic copy-replace done", "phase-D: destroy-ran", "phase-E: verified disappeared" ],
+  "executedAt" : 1779956792534
+}

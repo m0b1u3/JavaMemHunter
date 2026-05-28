@@ -75,7 +75,7 @@ v0.6 的 5-Phase 模板和 v0.6.1 的审计闸门。CLI 命令没有变化（`cl
 Tomcat）+ 调 `/inject/filter`、`/inject/servlet`、`/inject/listener`、
 `/inject/valve` 端点注入 4 类假马，然后按 v0.6 的 attach → scan → clean
 --dry-run → clean --confirm → verify 流程跑一遍，归档 evidence 到
-`docs/superpowers/specs/v0.7-clean-flow-evidence/`。
+`docs/superpowers/specs/v0.7.1-clean-flow-evidence/`。
 
 ## v0.5 能力
 
@@ -367,3 +367,13 @@ v0.5 含 112 个 agent 单元测试，新增覆盖：
 - v0.6 设计文档：[`docs/superpowers/specs/2026-05-22-v0.6-tomcat-filter-clean-design.md`](docs/superpowers/specs/2026-05-22-v0.6-tomcat-filter-clean-design.md)
 - v0.6 实施计划：[`docs/superpowers/plans/2026-05-22-v0.6-tomcat-filter-clean.md`](docs/superpowers/plans/2026-05-22-v0.6-tomcat-filter-clean.md)
 - v0.6 清理 E2E 证据：[`docs/superpowers/specs/v0.6-clean-flow-evidence/`](docs/superpowers/specs/v0.6-clean-flow-evidence/)
+
+## v0.7.1 - Tomcat Cleaners E2E evidence and Listener compatibility (2026-05-28)
+
+This patch archives the real `test-target` E2E clean-flow evidence under
+`docs/superpowers/specs/v0.7.1-clean-flow-evidence/`. The run covers
+`tomcat-filter`, `tomcat-servlet`, `tomcat-listener-request`, and `tomcat-valve`
+with dry-run, confirm, verify, and before/after scan artifacts.
+
+It also fixes Tomcat 9 listener compatibility by supporting both getter/setter
+APIs and legacy/new listener storage field names during scan and clean.

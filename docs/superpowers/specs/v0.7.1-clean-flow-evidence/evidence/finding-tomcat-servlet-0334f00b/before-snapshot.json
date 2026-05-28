@@ -1,0 +1,12 @@
+{
+  "findingId" : "finding-tomcat-servlet-0334f00b",
+  "name" : "FakeServlet",
+  "className" : "com.memhunter.testinjector.FakeServletInjector$FakeServlet",
+  "attributes" : {
+    "loadOnStartup" : -1,
+    "mappings" : [ "/fake-api" ],
+    "servletClass" : "com.memhunter.testinjector.FakeServletInjector$FakeServlet",
+    "contextPath" : ""
+  },
+  "type" : "tomcat-servlet"
+}

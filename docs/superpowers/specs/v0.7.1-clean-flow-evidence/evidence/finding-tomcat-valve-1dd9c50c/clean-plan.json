@@ -1,0 +1,19 @@
+{
+  "findingId" : "finding-tomcat-valve-1dd9c50c",
+  "type" : "tomcat-valve",
+  "targetName" : "$Proxy58",
+  "targetClass" : "jdk.proxy2.$Proxy58",
+  "contextPath" : "",
+  "level" : "critical",
+  "evidenceDir" : "docs\\superpowers\\specs\\v0.7.1-clean-flow-evidence",
+  "planFile" : "docs\\superpowers\\specs\\v0.7.1-clean-flow-evidence\\evidence\\finding-tomcat-valve-1dd9c50c\\clean-plan.json",
+  "details" : {
+    "pipelineIndex" : 1,
+    "containerLevel" : "Context"
+  },
+  "steps" : [ "backup pipeline links (prev/target/next)", "relink prev.setNext(next) OR pipeline.first = next", "call valve.stop()", "re-scan to verify" ],
+  "score" : 14,
+  "forced" : false,
+  "rollbackSupported" : true,
+  "generatedAt" : 1779956791681
+}

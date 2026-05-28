@@ -1,0 +1,18 @@
+{
+  "findingId" : "finding-tomcat-listener-request-41c52339",
+  "type" : "tomcat-listener-request",
+  "targetName" : "FakeListener",
+  "targetClass" : "com.memhunter.testinjector.FakeListenerInjector$FakeListener",
+  "contextPath" : "",
+  "level" : "high",
+  "evidenceDir" : "docs\\superpowers\\specs\\v0.7.1-clean-flow-evidence",
+  "planFile" : "docs\\superpowers\\specs\\v0.7.1-clean-flow-evidence\\evidence\\finding-tomcat-listener-request-41c52339\\clean-plan.json",
+  "details" : {
+    "listenerKind" : "request"
+  },
+  "steps" : [ "backup applicationEventListeners + applicationLifecycleListeners", "remove from applicationEventListeners", "remove from applicationLifecycleListeners", "re-scan to verify" ],
+  "score" : 9,
+  "forced" : false,
+  "rollbackSupported" : true,
+  "generatedAt" : 1779956789292
+}

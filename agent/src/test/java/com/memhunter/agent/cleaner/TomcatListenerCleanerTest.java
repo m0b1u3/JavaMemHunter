@@ -3,10 +3,14 @@ package com.memhunter.agent.cleaner;
 import com.memhunter.agent.model.CleanPlan;
 import com.memhunter.agent.model.CleanResult;
 import com.memhunter.agent.model.Finding;
+import com.memhunter.agent.model.ScanReport;
+import com.memhunter.agent.scanner.tomcat.TomcatListenerScanner;
 import com.memhunter.agent.util.FindingIdGenerator;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -21,6 +25,24 @@ public class TomcatListenerCleanerTest {
         public Object[] applicationEventListeners = new Object[0];
         public Object[] applicationLifecycleListeners = new Object[0];
         public String getPath() { return "/app"; }
+    }
+
+    public static class FakeTomcat9Context {
+        public List<Object> applicationEventListenersList = new ArrayList<>();
+        public Object[] applicationLifecycleListenersObjects = new Object[0];
+        public String getPath() { return "/app"; }
+        public Object[] getApplicationEventListeners() {
+            return applicationEventListenersList.toArray();
+        }
+        public void setApplicationEventListeners(Object[] listeners) {
+            applicationEventListenersList = new ArrayList<>(java.util.Arrays.asList(listeners));
+        }
+        public Object[] getApplicationLifecycleListeners() {
+            return applicationLifecycleListenersObjects;
+        }
+        public void setApplicationLifecycleListeners(Object[] listeners) {
+            applicationLifecycleListenersObjects = listeners;
+        }
     }
 
     public static class EvilEventListener implements javax.servlet.ServletRequestListener {
@@ -109,6 +131,27 @@ public class TomcatListenerCleanerTest {
         CleanResult result = cleaner.execute(plan, false);
         assertTrue(result.success);
         assertEquals(0, ctx.applicationLifecycleListeners.length);
+    }
+
+    @Test
+    void scannerAndCleanerSupportTomcat9ListenerStorageNames() {
+        FakeTomcat9Context ctx = new FakeTomcat9Context();
+        Object target = new EvilEventListener();
+        ctx.applicationEventListenersList.add(target);
+
+        List<Finding> scanned = new TomcatListenerScanner(ctx).scan(new ScanReport());
+        assertEquals(1, scanned.size());
+        assertEquals("tomcat-listener-request", scanned.get(0).type);
+
+        Finding f = scanned.get(0);
+        f.score = 12;
+        f.level = "critical";
+        TomcatListenerCleaner cleaner = new TomcatListenerCleaner(ctx);
+        CleanPlan plan = cleaner.plan(f, false);
+        assertNotNull(plan);
+        CleanResult result = cleaner.execute(plan, false);
+        assertTrue(result.success);
+        assertEquals(0, ctx.applicationEventListenersList.size());
     }
 
     @Test

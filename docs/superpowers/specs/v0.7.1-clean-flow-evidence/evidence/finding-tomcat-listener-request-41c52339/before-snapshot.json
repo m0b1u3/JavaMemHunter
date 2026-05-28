@@ -1,0 +1,10 @@
+{
+  "findingId" : "finding-tomcat-listener-request-41c52339",
+  "name" : "FakeListener",
+  "className" : "com.memhunter.testinjector.FakeListenerInjector$FakeListener",
+  "attributes" : {
+    "contextPath" : "",
+    "listenerKind" : "request"
+  },
+  "type" : "tomcat-listener-request"
+}

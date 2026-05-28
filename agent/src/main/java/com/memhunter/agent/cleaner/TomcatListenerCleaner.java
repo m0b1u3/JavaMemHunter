@@ -5,6 +5,7 @@ import com.memhunter.agent.model.ScanReport;
 import com.memhunter.agent.scanner.tomcat.TomcatListenerScanner;
 import com.memhunter.agent.util.ReflectUtil;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,8 +46,8 @@ public class TomcatListenerCleaner extends AbstractTomcatCleaner {
     @Override
     protected void doPhaseB(Finding finding) {
         ListenerBackup b = new ListenerBackup();
-        Object[] events = arrField("applicationEventListeners");
-        Object[] lifes = arrField("applicationLifecycleListeners");
+        Object[] events = eventListeners();
+        Object[] lifes = lifecycleListeners();
         b.originalEvents = events == null ? null : events.clone();
         b.originalLifecycles = lifes == null ? null : lifes.clone();
         b.targetClassName = finding.className;
@@ -57,17 +58,17 @@ public class TomcatListenerCleaner extends AbstractTomcatCleaner {
     @Override
     protected void doPhaseC() throws CleanExecutionException {
         try {
-            Object[] events = arrField("applicationEventListeners");
+            Object[] events = eventListeners();
             if (events != null) {
                 Object[] filtered = filterOutByClassName(events, currentBackup.targetClassName);
-                ReflectUtil.setField(standardContext, "applicationEventListeners", filtered);
+                setEventListeners(filtered);
             }
             hookAfterEventWrite.run();
 
-            Object[] lifes = arrField("applicationLifecycleListeners");
+            Object[] lifes = lifecycleListeners();
             if (lifes != null) {
                 Object[] filtered = filterOutByClassName(lifes, currentBackup.targetClassName);
-                ReflectUtil.setField(standardContext, "applicationLifecycleListeners", filtered);
+                setLifecycleListeners(filtered);
             }
         } catch (Throwable t) {
             try { rollback.restore(); }
@@ -95,9 +96,61 @@ public class TomcatListenerCleaner extends AbstractTomcatCleaner {
             "re-scan to verify");
     }
 
-    private Object[] arrField(String name) {
-        Object v = ReflectUtil.tryReadField(standardContext, name).orElse(null);
-        return v instanceof Object[] ? (Object[]) v : null;
+    private Object[] eventListeners() {
+        Object viaGetter = ReflectUtil.tryInvoke(standardContext, "getApplicationEventListeners")
+            .orElse(null);
+        if (viaGetter != null) return toArray(viaGetter);
+        return toArray(ReflectUtil.tryReadAnyOf(standardContext,
+            "applicationEventListeners",
+            "applicationEventListenersList").orElse(null));
+    }
+
+    private Object[] lifecycleListeners() {
+        Object viaGetter = ReflectUtil.tryInvoke(standardContext, "getApplicationLifecycleListeners")
+            .orElse(null);
+        if (viaGetter != null) return toArray(viaGetter);
+        return toArray(ReflectUtil.tryReadAnyOf(standardContext,
+            "applicationLifecycleListeners",
+            "applicationLifecycleListenersObjects").orElse(null));
+    }
+
+    private static Object[] toArray(Object value) {
+        if (value instanceof Object[]) return (Object[]) value;
+        if (value instanceof List) return ((List<?>) value).toArray();
+        return null;
+    }
+
+    private void setEventListeners(Object[] listeners) {
+        if (tryInvokeSetter("setApplicationEventListeners", listeners)) return;
+        if (trySetField("applicationEventListeners", listeners)) return;
+        if (trySetField("applicationEventListenersList", new ArrayList<>(Arrays.asList(listeners)))) return;
+        throw new RuntimeException("no writable event listener storage found");
+    }
+
+    private void setLifecycleListeners(Object[] listeners) {
+        if (tryInvokeSetter("setApplicationLifecycleListeners", listeners)) return;
+        if (trySetField("applicationLifecycleListeners", listeners)) return;
+        if (trySetField("applicationLifecycleListenersObjects", listeners)) return;
+        throw new RuntimeException("no writable lifecycle listener storage found");
+    }
+
+    private boolean tryInvokeSetter(String methodName, Object[] listeners) {
+        try {
+            Method m = standardContext.getClass().getMethod(methodName, Object[].class);
+            m.invoke(standardContext, new Object[] { listeners });
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private boolean trySetField(String fieldName, Object value) {
+        try {
+            ReflectUtil.setField(standardContext, fieldName, value);
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private static Object[] filterOutByClassName(Object[] arr, String className) {
@@ -123,11 +176,12 @@ public class TomcatListenerCleaner extends AbstractTomcatCleaner {
         ListenerRollbackStrategy(Object ctx, ListenerBackup b) { this.ctx = ctx; this.b = b; }
         @Override public void restore() throws RollbackFailedException {
             try {
+                TomcatListenerCleaner cleaner = new TomcatListenerCleaner(ctx);
                 if (b.originalLifecycles != null) {
-                    ReflectUtil.setField(ctx, "applicationLifecycleListeners", b.originalLifecycles);
+                    cleaner.setLifecycleListeners(b.originalLifecycles);
                 }
                 if (b.originalEvents != null) {
-                    ReflectUtil.setField(ctx, "applicationEventListeners", b.originalEvents);
+                    cleaner.setEventListeners(b.originalEvents);
                 }
             } catch (Throwable t) {
                 throw new RollbackFailedException("listener rollback failed", t);

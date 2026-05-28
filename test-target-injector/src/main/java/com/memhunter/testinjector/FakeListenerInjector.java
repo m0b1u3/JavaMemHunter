@@ -7,8 +7,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /**
- * Simulates a Java mem-shell ServletRequestListener injection by directly
- * appending to Tomcat StandardContext.applicationEventListeners via reflection.
+ * Simulates a Java mem-shell ServletRequestListener injection by appending to
+ * Tomcat StandardContext's event listener list.
  * Mirrors FakeFilterInjector's unwrapStandardContext approach.
  */
 public class FakeListenerInjector {
@@ -26,18 +26,9 @@ public class FakeListenerInjector {
                 throw new RuntimeException("could not unwrap StandardContext from ServletContext");
             }
             FakeListener listener = new FakeListener();
-
-            Field f = findField(standardContext.getClass(), "applicationEventListeners");
-            f.setAccessible(true);
-            Object cur = f.get(standardContext);
-            if (!(cur instanceof Object[])) {
-                throw new RuntimeException("applicationEventListeners is not an Object[]");
-            }
-            Object[] current = (Object[]) cur;
-            Object[] next = new Object[current.length + 1];
-            System.arraycopy(current, 0, next, 0, current.length);
-            next[current.length] = listener;
-            f.set(standardContext, next);
+            Method add = standardContext.getClass()
+                .getMethod("addApplicationEventListener", Object.class);
+            add.invoke(standardContext, listener);
         } catch (Throwable t) {
             throw new RuntimeException("inject fake listener failed", t);
         }

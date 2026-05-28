@@ -2101,3 +2101,14 @@ memshell-attach.jar + memshell-agent.jar
 - `memshell-agent.jar` 负责在目标 JVM 内部扫描、报告和清理。
 - 默认只读扫描。
 - 清理必须人工确认并指定 Finding ID。
+
+---
+
+## v0.7.1 - E2E evidence archive and Listener compatibility
+
+Goals:
+
+- Archive real `test-target` E2E artifacts in `docs/superpowers/specs/v0.7.1-clean-flow-evidence/`
+- Verify clean disappearance for filter, servlet, listener, and valve findings
+- Support Tomcat 9 listener storage names in scanner and cleaner paths
+- Keep the v0.7 cleaner CLI contract unchanged
