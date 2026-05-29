@@ -5,49 +5,62 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * Type-based dispatch table for Cleaner factories. Two registration modes:
- * <ul>
- *   <li>{@code register(type, prefix=false, factory)} — exact equals match on Finding.type</li>
- *   <li>{@code register(prefix, prefix=true, factory)} — startsWith match on Finding.type</li>
- * </ul>
+ * Type-based dispatch table for Cleaner factories. Each registration declares:
+ *   - exact equals match or startsWith prefix match on Finding.type
+ *   - the ContextKind the cleaner needs (TOMCAT or SPRING)
+ *   - a factory taking the chosen context object
  *
- * <p>Exact match takes precedence over prefix match. Insertion order is preserved
- * within each mode.
- *
- * <p>Factories take the standardContext and return a fresh Cleaner instance per call,
- * matching AbstractTomcatCleaner's "fresh instance per dispatch" requirement.
+ * Exact match takes precedence over prefix. Insertion order preserved per mode.
+ * resolve() routes the correct context (tomcatCtx vs springCtx) by ContextKind;
+ * if the required context is null, resolve returns null.
  */
 public final class CleanerRegistry {
 
-    private final Map<String, Function<Object, Cleaner>> byEquals = new LinkedHashMap<>();
-    private final Map<String, Function<Object, Cleaner>> byPrefix = new LinkedHashMap<>();
+    private static final class Registration {
+        final ContextKind kind;
+        final Function<Object, Cleaner> factory;
+        Registration(ContextKind kind, Function<Object, Cleaner> factory) {
+            this.kind = kind;
+            this.factory = factory;
+        }
+    }
+
+    private final Map<String, Registration> byEquals = new LinkedHashMap<>();
+    private final Map<String, Registration> byPrefix = new LinkedHashMap<>();
 
     public CleanerRegistry register(String typeOrPrefix, boolean prefix,
-                                    Function<Object, Cleaner> factory) {
-        (prefix ? byPrefix : byEquals).put(typeOrPrefix, factory);
+                                    ContextKind kind, Function<Object, Cleaner> factory) {
+        Registration r = new Registration(kind, factory);
+        (prefix ? byPrefix : byEquals).put(typeOrPrefix, r);
         return this;
     }
 
-    public Cleaner resolve(String findingType, Object standardContext) {
+    public Cleaner resolve(String findingType, Object tomcatCtx, Object springCtx) {
         if (findingType == null) return null;
-        Function<Object, Cleaner> f = byEquals.get(findingType);
-        if (f != null) return f.apply(standardContext);
-        for (Map.Entry<String, Function<Object, Cleaner>> e : byPrefix.entrySet()) {
-            if (findingType.startsWith(e.getKey())) return e.getValue().apply(standardContext);
+        Registration r = byEquals.get(findingType);
+        if (r == null) {
+            for (Map.Entry<String, Registration> e : byPrefix.entrySet()) {
+                if (findingType.startsWith(e.getKey())) {
+                    r = e.getValue();
+                    break;
+                }
+            }
         }
-        return null;
+        if (r == null) return null;
+        Object ctx = (r.kind == ContextKind.SPRING) ? springCtx : tomcatCtx;
+        if (ctx == null) return null;
+        return r.factory.apply(ctx);
     }
 
     /**
-     * Default registry wired with all 4 Tomcat cleaners (filter / servlet /
-     * listener-* / valve). Listener uses a prefix match because Finding.type
-     * carries the listener subtype suffix (e.g. tomcat-listener-lifecycle).
+     * Default registry. v0.8 Task 4 ships the 4 Tomcat cleaners; Spring cleaners
+     * are added in v0.8 Task 6 once they exist.
      */
     public static CleanerRegistry defaultRegistry() {
         return new CleanerRegistry()
-            .register("tomcat-filter",    false, TomcatFilterCleaner::new)
-            .register("tomcat-servlet",   false, TomcatServletCleaner::new)
-            .register("tomcat-listener-", true,  TomcatListenerCleaner::new)
-            .register("tomcat-valve",     false, TomcatValveCleaner::new);
+            .register("tomcat-filter",    false, ContextKind.TOMCAT, TomcatFilterCleaner::new)
+            .register("tomcat-servlet",   false, ContextKind.TOMCAT, TomcatServletCleaner::new)
+            .register("tomcat-listener-", true,  ContextKind.TOMCAT, TomcatListenerCleaner::new)
+            .register("tomcat-valve",     false, ContextKind.TOMCAT, TomcatValveCleaner::new);
     }
 }

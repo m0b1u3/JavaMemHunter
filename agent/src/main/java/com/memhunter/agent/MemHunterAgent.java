@@ -141,7 +141,7 @@ public class MemHunterAgent {
             if (finding == null) {
                 throw new IllegalStateException("finding not located: " + id);
             }
-            Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx);
+            Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx, null);
             if (cleaner == null) {
                 throw new IllegalStateException("no cleaner registered for type: " + finding.type);
             }
@@ -196,7 +196,7 @@ public class MemHunterAgent {
         if (finding == null) {
             throw new IllegalStateException("finding not located: " + id);
         }
-        Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx);
+        Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx, null);
         if (cleaner == null) {
             CleanResult unsupported = new CleanResult();
             unsupported.findingId = id;
