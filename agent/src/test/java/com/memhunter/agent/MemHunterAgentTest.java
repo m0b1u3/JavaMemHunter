@@ -484,6 +484,107 @@ class MemHunterAgentTest {
                 "failureReason should mention targetClass, was: " + cr.failureReason);
     }
 
+    // ---- v0.8 Task 9: Spring cleaner dispatch integration ----
+    //
+    // NOTE (design dependency, documented honestly):
+    // MemHunterAgent.findFindingById drives the *raw scanners*
+    // (SpringInterceptorScanner / SpringMappingScanner), NOT the cleaner-level
+    // locateOnRescan fallback. Both Spring scanners bail and return EMPTY when
+    // their anchor class (AbstractHandlerMapping / AbstractHandlerMethodMapping)
+    // is not loadable via the ApplicationContext classloader — which is the case
+    // with the fake test context here (no spring-webmvc on the classpath).
+    //
+    // Consequently, in the fake test environment findFindingById cannot locate a
+    // Spring finding, so dispatch throws IllegalStateException("finding not
+    // located"). These two tests assert exactly that — documenting the
+    // classloader dependency of Spring dispatch.
+    //
+    // In a REAL Spring application the anchor classes ARE loadable, so the
+    // scanners work and dispatch locates the finding normally; the gap is only
+    // observable with a fake (non-loadable-Spring) context.
+
+    @Test
+    void confirmSpringFindingNotLocatedWithoutLoadableSpringClasses_interceptor() throws Exception {
+        com.memhunter.agent.cleaner.SpringInterceptorCleanerTest.FakeApplicationContext springCtx =
+                new com.memhunter.agent.cleaner.SpringInterceptorCleanerTest.FakeApplicationContext();
+        com.memhunter.agent.cleaner.SpringInterceptorCleanerTest.FakeHandlerMapping mapping =
+                new com.memhunter.agent.cleaner.SpringInterceptorCleanerTest.FakeHandlerMapping();
+        com.memhunter.agent.cleaner.SpringInterceptorCleanerTest.EvilInterceptor target =
+                new com.memhunter.agent.cleaner.SpringInterceptorCleanerTest.EvilInterceptor();
+        mapping.adaptedInterceptors.add(target);
+
+        String findingId = FindingIdGenerator.generate(
+                "spring-interceptor",
+                com.memhunter.agent.cleaner.SpringInterceptorCleanerTest.EvilInterceptor.class.getName(),
+                "");
+
+        Path dir = tempDir.resolve("evidence").resolve(findingId);
+        Files.createDirectories(dir);
+
+        CleanPlan persisted = new CleanPlan();
+        persisted.findingId = findingId;
+        persisted.type = "spring-interceptor";
+        persisted.targetName = "EvilInterceptor";
+        persisted.targetClass =
+                com.memhunter.agent.cleaner.SpringInterceptorCleanerTest.EvilInterceptor.class.getName();
+        persisted.score = 12;
+        persisted.level = "critical";
+        persisted.forced = false;
+        persisted.rollbackSupported = true;
+        persisted.generatedAt = 1L;
+        new ObjectMapper().writerWithDefaultPrettyPrinter()
+                .writeValue(dir.resolve("clean-plan.json").toFile(), persisted);
+
+        AgentArgs args = AgentArgs.parse(
+                "clean --id " + findingId + " --confirm --evidence-dir " + tempDir);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> MemHunterAgent.dispatchForTest(null, springCtx, args));
+        assertTrue(ex.getMessage().contains("finding not located"),
+                "expected 'finding not located', was: " + ex.getMessage());
+    }
+
+    @Test
+    void confirmSpringFindingNotLocatedWithoutLoadableSpringClasses_mapping() throws Exception {
+        // The mapping fakes' bean wiring is package-private to the cleaner-test
+        // package, but it is irrelevant here: SpringMappingScanner bails at the
+        // unloadable-anchor-class check before ever calling getBeansOfType, so an
+        // empty fake context is sufficient to drive the "not located" path.
+        com.memhunter.agent.cleaner.SpringMappingCleanerTest.FakeApplicationContext springCtx =
+                new com.memhunter.agent.cleaner.SpringMappingCleanerTest.FakeApplicationContext();
+        String pattern = "/evil";
+
+        String findingId = FindingIdGenerator.generate(
+                "spring-mapping",
+                com.memhunter.agent.cleaner.SpringMappingCleanerTest.EvilController.class.getName(),
+                pattern);
+
+        Path dir = tempDir.resolve("evidence").resolve(findingId);
+        Files.createDirectories(dir);
+
+        CleanPlan persisted = new CleanPlan();
+        persisted.findingId = findingId;
+        persisted.type = "spring-mapping";
+        persisted.targetName = "m1#run";
+        persisted.targetClass =
+                com.memhunter.agent.cleaner.SpringMappingCleanerTest.EvilController.class.getName();
+        persisted.score = 12;
+        persisted.level = "critical";
+        persisted.forced = false;
+        persisted.rollbackSupported = true;
+        persisted.generatedAt = 1L;
+        new ObjectMapper().writerWithDefaultPrettyPrinter()
+                .writeValue(dir.resolve("clean-plan.json").toFile(), persisted);
+
+        AgentArgs args = AgentArgs.parse(
+                "clean --id " + findingId + " --confirm --evidence-dir " + tempDir);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> MemHunterAgent.dispatchForTest(null, springCtx, args));
+        assertTrue(ex.getMessage().contains("finding not located"),
+                "expected 'finding not located', was: " + ex.getMessage());
+    }
+
     private FakeContext contextWithFilter() {
         FakeContext ctx = new FakeContext();
         FakeFilterDef def = new FakeFilterDef();
