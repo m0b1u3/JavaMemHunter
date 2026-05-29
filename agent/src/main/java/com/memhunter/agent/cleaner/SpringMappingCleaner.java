@@ -129,15 +129,23 @@ public class SpringMappingCleaner extends AbstractSpringCleaner {
         if (currentBackup.mappingBean == null || currentBackup.info == null) {
             throw new CleanExecutionException("mapping not located during Phase B", false);
         }
+        // Step 1: unregister — the sole mutation. If this fails, nothing was
+        // removed, so there is nothing to roll back (didMutate=false).
         try {
             Method m = findMethod(currentBackup.mappingBean.getClass(), "unregisterMapping", 1);
             if (m == null) throw new NoSuchMethodException("unregisterMapping not found");
             m.invoke(currentBackup.mappingBean, currentBackup.info);
+        } catch (Throwable t) {
+            throw new CleanExecutionException("unregisterMapping failed", t, false);
+        }
+        // Step 2: post-mutation hook (test seam). A failure here means the
+        // unregister already succeeded, so roll back (didMutate=true).
+        try {
             hookAfterPhaseC.run();
         } catch (Throwable t) {
             try { rollback.restore(); }
             catch (RollbackFailedException rf) { throw rf; }
-            throw new CleanExecutionException("Phase C forward step failed", t, true);
+            throw new CleanExecutionException("Phase C post-step failed", t, true);
         }
     }
 
