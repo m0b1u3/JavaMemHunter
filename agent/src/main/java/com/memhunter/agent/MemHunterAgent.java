@@ -135,15 +135,17 @@ public class MemHunterAgent {
         }
         if ("clean".equals(args.command) && args.options.containsKey("dry-run")) {
             Object ctx = requireFirstContext(tomcatContexts);
+            Object springCtx = locateApplicationContext(ctx);
             String id = args.options.get("id");
             Path evidenceDir = evidenceDir(args);
-            Finding finding = findFindingById(ctx, id);
+            Finding finding = findFindingById(ctx, springCtx, id);
             if (finding == null) {
                 throw new IllegalStateException("finding not located: " + id);
             }
-            Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx, null);
+            Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx, springCtx);
             if (cleaner == null) {
-                throw new IllegalStateException("no cleaner registered for type: " + finding.type);
+                throw new IllegalStateException(
+                    "no cleaner available for type: " + finding.type + " (context not located)");
             }
             CleanPlan plan = cleaner.plan(finding, false);
             if (plan == null) {
@@ -178,25 +180,33 @@ public class MemHunterAgent {
      * no logic fork.
      */
     static int dispatchForTest(Object standardContext, AgentArgs args) throws Exception {
+        return dispatchForTest(standardContext, null, args);
+    }
+
+    static int dispatchForTest(Object tomcatCtx, Object springCtx, AgentArgs args) throws Exception {
         if (!"clean".equals(args.command) || !args.options.containsKey("confirm")) {
             throw new IllegalArgumentException(
                     "dispatchForTest only handles `clean --confirm`, got: " + args.command);
         }
-        return dispatchCleanConfirm(standardContext, args);
+        return dispatchCleanConfirm(tomcatCtx, springCtx, args);
     }
 
     private static int dispatchCleanConfirm(Object ctx, AgentArgs args) throws Exception {
+        return dispatchCleanConfirm(ctx, locateApplicationContext(ctx), args);
+    }
+
+    private static int dispatchCleanConfirm(Object ctx, Object springCtx, AgentArgs args) throws Exception {
         String id = args.options.get("id");
         boolean confirmForceFlag = args.options.containsKey("force");
         Path evidenceDir = evidenceDir(args);
         Path planFile = evidenceDir.resolve("evidence").resolve(id).resolve("clean-plan.json");
         CleanPlan persistedPlan = CleanPlanReader.read(planFile);
 
-        Finding finding = findFindingById(ctx, id);
+        Finding finding = findFindingById(ctx, springCtx, id);
         if (finding == null) {
             throw new IllegalStateException("finding not located: " + id);
         }
-        Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx, null);
+        Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx, springCtx);
         if (cleaner == null) {
             CleanResult unsupported = new CleanResult();
             unsupported.findingId = id;
@@ -204,8 +214,9 @@ public class MemHunterAgent {
             unsupported.rolledBack = false;
             unsupported.verifiedDisappeared = false;
             unsupported.executedSteps = Arrays.asList(
-                    "pre-execute: unsupported finding type");
-            unsupported.failureReason = "no cleaner registered for type: " + finding.type;
+                    "pre-execute: no cleaner available for type " + finding.type);
+            unsupported.failureReason = "no cleaner available for type: " + finding.type
+                    + " (context not located)";
             unsupported.executedAt = System.currentTimeMillis();
             new EvidenceWriter(evidenceDir).writeResult(id, unsupported);
             return EXIT_EXECUTE_FAILED;
@@ -256,16 +267,20 @@ public class MemHunterAgent {
         return Paths.get(args.options.getOrDefault("evidence-dir", "."));
     }
 
-    private static Finding findFindingById(Object ctx, String id) {
+    private static Finding findFindingById(Object tomcatCtx, Object springCtx, String id) {
         if (id == null) return null;
         ScanReport report = new ScanReport();
         List<Finding> all = new ArrayList<>();
-        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatFilterScanner(ctx).scan(report));
-        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatServletScanner(ctx).scan(report));
-        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatListenerScanner(ctx).scan(report));
-        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatValveScanner(ctx).scan(report));
+        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatFilterScanner(tomcatCtx).scan(report));
+        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatServletScanner(tomcatCtx).scan(report));
+        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatListenerScanner(tomcatCtx).scan(report));
+        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatValveScanner(tomcatCtx).scan(report));
+        if (springCtx != null) {
+            all.addAll(new com.memhunter.agent.scanner.spring.SpringMappingScanner(springCtx).scan(report));
+            all.addAll(new com.memhunter.agent.scanner.spring.SpringInterceptorScanner(springCtx).scan(report));
+        }
         new RuleEngine().evaluate(all,
-                new ScanContext(null, Whitelist.defaults(), false, BaselineIndex.empty()));
+                new ScanContext(springCtx, Whitelist.defaults(), false, BaselineIndex.empty()));
         for (Finding f : all) {
             if (f != null && id.equals(f.id)) {
                 return f;
@@ -318,6 +333,20 @@ public class MemHunterAgent {
             }
         }
         return instances;
+    }
+
+    private static Object locateApplicationContext(Object tomcatCtx) {
+        try {
+            java.util.List<Object> tomcatContexts = new java.util.ArrayList<>();
+            if (tomcatCtx != null) tomcatContexts.add(tomcatCtx);
+            java.util.List<Object> servletInstances = extractServletInstances(tomcatContexts);
+            com.memhunter.agent.model.ScanReport report = new com.memhunter.agent.model.ScanReport();
+            java.util.List<Object> appCtxs = new com.memhunter.agent.scanner.spring.SpringScanner()
+                .locateContexts(tomcatContexts, servletInstances, report);
+            return appCtxs.isEmpty() ? null : appCtxs.get(0);
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     private static Object pickFirstAppContext(List<Object> servletInstances) {
