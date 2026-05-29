@@ -87,7 +87,7 @@ public class TomcatServletCleaner extends AbstractTomcatCleaner {
         } catch (Throwable t) {
             try { rollback.restore(); }
             catch (RollbackFailedException rf) { throw rf; }
-            throw new CleanExecutionException("Phase C forward step failed", t);
+            throw new CleanExecutionException("Phase C forward step failed", t, true);
         }
     }
 

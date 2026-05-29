@@ -114,11 +114,12 @@ public abstract class AbstractTomcatCleaner implements Cleaner {
             doPhaseC();
             result.executedSteps.add("phase-C: atomic copy-replace done");
         } catch (CleanExecutionException ce) {
-            // doPhaseC ran rollback internally
             result.success = false;
-            result.rolledBack = true;
+            result.rolledBack = ce.didMutate();
             result.failureReason = "Phase C failed: " + ce.getMessage();
-            result.executedSteps.add("phase-C: FAILED, rolled back");
+            result.executedSteps.add(ce.didMutate()
+                    ? "phase-C: FAILED, rolled back"
+                    : "phase-C: FAILED before mutation");
             return result;
         } catch (RollbackFailedException rf) {
             result.success = false;
