@@ -53,14 +53,15 @@ public final class CleanerRegistry {
     }
 
     /**
-     * Default registry. v0.8 Task 4 ships the 4 Tomcat cleaners; Spring cleaners
-     * are added in v0.8 Task 6 once they exist.
+     * Default registry. Ships all 6 cleaners: 4 Tomcat (v0.7) + 2 Spring (v0.8).
      */
     public static CleanerRegistry defaultRegistry() {
         return new CleanerRegistry()
-            .register("tomcat-filter",    false, ContextKind.TOMCAT, TomcatFilterCleaner::new)
-            .register("tomcat-servlet",   false, ContextKind.TOMCAT, TomcatServletCleaner::new)
-            .register("tomcat-listener-", true,  ContextKind.TOMCAT, TomcatListenerCleaner::new)
-            .register("tomcat-valve",     false, ContextKind.TOMCAT, TomcatValveCleaner::new);
+            .register("tomcat-filter",      false, ContextKind.TOMCAT, TomcatFilterCleaner::new)
+            .register("tomcat-servlet",     false, ContextKind.TOMCAT, TomcatServletCleaner::new)
+            .register("tomcat-listener-",   true,  ContextKind.TOMCAT, TomcatListenerCleaner::new)
+            .register("tomcat-valve",       false, ContextKind.TOMCAT, TomcatValveCleaner::new)
+            .register("spring-mapping",     false, ContextKind.SPRING, SpringMappingCleaner::new)
+            .register("spring-interceptor", false, ContextKind.SPRING, SpringInterceptorCleaner::new);
     }
 }

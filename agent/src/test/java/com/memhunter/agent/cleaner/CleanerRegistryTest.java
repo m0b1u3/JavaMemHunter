@@ -78,7 +78,7 @@ class CleanerRegistryTest {
     }
 
     @Test
-    void defaultRegistryRegistersTomcatCleaners() {
+    void defaultRegistryRegistersAllSixCleaners() {
         CleanerRegistry reg = CleanerRegistry.defaultRegistry();
         Object tomcatCtx = new Object();
         Object springCtx = new Object();
@@ -86,6 +86,7 @@ class CleanerRegistryTest {
         assertNotNull(reg.resolve("tomcat-servlet", tomcatCtx, springCtx));
         assertNotNull(reg.resolve("tomcat-listener-request", tomcatCtx, springCtx));
         assertNotNull(reg.resolve("tomcat-valve", tomcatCtx, springCtx));
-        // Spring cleaners registered in v0.8 Task 6
+        assertNotNull(reg.resolve("spring-mapping", tomcatCtx, springCtx));
+        assertNotNull(reg.resolve("spring-interceptor", tomcatCtx, springCtx));
     }
 }
