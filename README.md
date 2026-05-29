@@ -77,6 +77,35 @@ Tomcat）+ 调 `/inject/filter`、`/inject/servlet`、`/inject/listener`、
 --dry-run → clean --confirm → verify 流程跑一遍，归档 evidence 到
 `docs/superpowers/specs/v0.7.1-clean-flow-evidence/`。
 
+## v0.8 — Spring Cleaners 扩展（2026-05-29）
+
+把清理能力从 Tomcat 4 类扩展到 Spring MVC 两类（Mapping / Interceptor），
+沿用 v0.6 的 5-Phase 模板 + v0.6.1 审计闸门。CLI 命令不变；MemHunterAgent
+现在同时扫描 Tomcat + Spring，并按 finding.type 路由到对应 Cleaner：
+
+| Finding type | Cleaner | Phase C 手段 |
+|---|---|---|
+| `tomcat-*` | 4 个 Tomcat Cleaner | 反射副本替换 / 链表重接 |
+| `spring-mapping` | SpringMappingCleaner | 官方 unregisterMapping(info) |
+| `spring-interceptor` | SpringInterceptorCleaner | adaptedInterceptors 副本替换 |
+
+**架构变更：**
+
+1. **AbstractCleaner**：容器无关模板基类（plan/execute/Phase-D/Phase-E）。
+   AbstractTomcatCleaner 与新的 AbstractSpringCleaner 都继承它。
+2. **CleanerRegistry**：register 增加 ContextKind（TOMCAT/SPRING）；resolve
+   按类型路由对应 context（Tomcat StandardContext vs Spring ApplicationContext）。
+3. **SpringMappingCleaner**：Phase B 通过 String.valueOf(info) 重定位活的
+   RequestMappingInfo，Phase C 调官方 unregisterMapping，rollback 用
+   registerMapping 重新注册。
+4. **SpringInterceptorCleaner**：跨所有 HandlerMapping bean 的 adaptedInterceptors
+   做原子副本替换（一个 interceptor 可能注册到多个 bean）。
+5. **CleanExecutionException.didMutate**：区分"未动运行时的前置失败"与
+   "已动并回滚的前向失败"，让 rolledBack 标志准确（同时修掉 v0.7 Valve nit）。
+
+**范围说明：** v0.8 只注销 Spring 路由 / 移除 interceptor；handler bean 仍留在
+BeanFactory（Spring Bean 清理是 v0.9 范围）。
+
 ## v0.5 能力
 
 在 v0.4 基础上新增：
