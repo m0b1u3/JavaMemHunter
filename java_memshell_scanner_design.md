@@ -1816,6 +1816,18 @@ v0.6 E2E 证据已归档到 `docs/superpowers/specs/v0.6-clean-flow-evidence/`�
   2. `clean --confirm` 在 plan 文件不存在时仍执行清理 → PlanReconciler 审计
      链有后门
 
+### v0.8.2：Audit-Chain 修复（已完成）
+
+目标：
+
+- 修复 VerifyExecutor 只扫 Filter 假阴性 bug（抽 FindingLocator；VerifyExecutor
+  接受双 context，覆盖全部 6 类 finding）
+- 删除 AgentArgs.validate 中阻断 dry-run --force 的 force-gate（一致性已由 v0.6.1
+  PlanReconciler 三方一致性保证）
+- AttachMain 在 confirm 时若 plan 文件不存在 → 友好 stderr + 退出码 2，不触达 agent
+- 新增 FindingLocator 单测（4 个），VerifyExecutor 单测扩展到 Spring 类型，
+  AttachMain 单测覆盖 plan-missing 路径
+
 ### v1.0：生产可用
 
 目标：
