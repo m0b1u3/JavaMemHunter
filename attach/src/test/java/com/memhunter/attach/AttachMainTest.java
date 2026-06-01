@@ -121,6 +121,27 @@ class AttachMainTest {
         assertTrue(out.toString(StandardCharsets.UTF_8).contains("stillPresent=true"));
     }
 
+    @org.junit.jupiter.api.Test
+    void confirm_with_missing_plan_returns_2_and_does_not_invoke_agent() throws Exception {
+        RecordingExecutor executor = new RecordingExecutor();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        String id = "finding-no-plan";
+        // No writeCleanPlan() call — plan file deliberately absent.
+
+        int code = AttachMain.run(new String[]{
+                "123", "agent.jar", "clean", "--id", id, "--confirm",
+                "--evidence-dir", tempDir.toString()
+        }, input(""), new PrintStream(new ByteArrayOutputStream()), new PrintStream(err), executor);
+
+        assertEquals(2, code, "missing plan must return EXIT_USAGE (2)");
+        assertFalse(executor.called, "agent must not be invoked when plan is missing");
+        String stderr = err.toString(StandardCharsets.UTF_8);
+        assertTrue(stderr.contains("plan file not found"),
+                "stderr must explain the failure, was: " + stderr);
+        assertTrue(stderr.contains("run --dry-run first"),
+                "stderr must hint at the fix, was: " + stderr);
+    }
+
     private int run(String[] args, String stdin, RecordingExecutor executor) throws Exception {
         return AttachMain.run(args, input(stdin), new PrintStream(new ByteArrayOutputStream()),
                 new PrintStream(new ByteArrayOutputStream()), executor);
