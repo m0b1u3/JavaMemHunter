@@ -55,8 +55,12 @@ public class FakeValveInjector {
             if ("invoke".equals(name)) {
                 deadCode();
                 if (next != null) {
+                    // Tomcat's StandardContextValve.invoke() is public but lives in
+                    // a JDK-module-encapsulated package; reflective Method.invoke
+                    // requires setAccessible under JDK 17+ even on public methods.
                     Method nextInvoke = next.getClass().getMethod("invoke",
                         method.getParameterTypes());
+                    nextInvoke.setAccessible(true);
                     return nextInvoke.invoke(next, args);
                 }
                 return null;
