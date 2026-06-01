@@ -2,6 +2,7 @@ package com.memhunter.agent.verify;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.memhunter.agent.cleaner.SpringInterceptorCleanerTest;
 import com.memhunter.agent.util.FindingIdGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -36,11 +37,11 @@ class VerifyExecutorTest {
     Path tempDir;
 
     @Test
-    void writes_still_present_true_when_finding_exists() throws Exception {
+    void writes_still_present_true_when_tomcat_filter_finding_exists() throws Exception {
         FakeContext ctx = contextWithFilter();
         String id = FindingIdGenerator.generate("tomcat-filter", "com.evil.X", "EvilFilter");
 
-        VerifyExecutor.VerifyResult result = new VerifyExecutor(ctx).verify(id, tempDir);
+        VerifyExecutor.VerifyResult result = new VerifyExecutor(ctx, null).verify(id, tempDir);
 
         assertTrue(result.stillPresent);
         JsonNode json = new ObjectMapper().readTree(tempDir.resolve("evidence").resolve(id)
@@ -55,10 +56,40 @@ class VerifyExecutorTest {
         FakeContext ctx = new FakeContext();
         String id = "missing";
 
-        VerifyExecutor.VerifyResult result = new VerifyExecutor(ctx).verify(id, tempDir);
+        VerifyExecutor.VerifyResult result = new VerifyExecutor(ctx, null).verify(id, tempDir);
 
         assertFalse(result.stillPresent);
         assertTrue(Files.exists(tempDir.resolve("evidence").resolve(id).resolve("verify-result.json")));
+    }
+
+    @Test
+    void writes_still_present_true_when_spring_interceptor_finding_exists() throws Exception {
+        SpringInterceptorCleanerTest.FakeApplicationContext springCtx =
+                new SpringInterceptorCleanerTest.FakeApplicationContext();
+        SpringInterceptorCleanerTest.FakeHandlerMapping mapping =
+                new SpringInterceptorCleanerTest.FakeHandlerMapping();
+        SpringInterceptorCleanerTest.EvilInterceptor target =
+                new SpringInterceptorCleanerTest.EvilInterceptor();
+        mapping.adaptedInterceptors.add(target);
+        springCtx.mappingBeans.put("m1", mapping);
+
+        String id = FindingIdGenerator.generate("spring-interceptor",
+                target.getClass().getName(), "");
+        VerifyExecutor.VerifyResult result = new VerifyExecutor(null, springCtx).verify(id, tempDir);
+
+        assertTrue(result.stillPresent,
+                "Spring finding must be detected (v0.8.2 fix; was always false in v0.8.1)");
+    }
+
+    @Test
+    void deprecated_single_arg_constructor_still_works() throws Exception {
+        FakeContext ctx = contextWithFilter();
+        String id = FindingIdGenerator.generate("tomcat-filter", "com.evil.X", "EvilFilter");
+
+        @SuppressWarnings("deprecation")
+        VerifyExecutor.VerifyResult result = new VerifyExecutor(ctx).verify(id, tempDir);
+
+        assertTrue(result.stillPresent, "single-arg constructor equivalent to (ctx, null)");
     }
 
     private FakeContext contextWithFilter() {
