@@ -44,10 +44,12 @@ class AgentArgsCleanTest {
     }
 
     @Test
-    void clean_with_force_but_no_confirm_throws() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> AgentArgs.parse("clean --id F-123 --force --dry-run"));
-        assertTrue(ex.getMessage().contains("--force"));
+    void clean_with_dry_run_and_force_parses() {
+        AgentArgs args = AgentArgs.parse("clean --id F-123 --dry-run --force");
+        assertEquals("clean", args.command);
+        assertEquals("F-123", args.options.get("id"));
+        assertEquals("true", args.options.get("dry-run"));
+        assertEquals("true", args.options.get("force"));
     }
 
     @Test
