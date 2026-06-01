@@ -1,204 +1,24 @@
 # JavaMemHunter
 
-Java 内存马扫描与清理工具（v0.6 — Tomcat Filter 安全清理 + 基线对比 + 字节码扫描 + 评分规则引擎 + 白名单）。
+Java 内存马扫描与清理工具 — **v0.8 当前**：6 类内存马完整闭环（4 Tomcat + 2 Spring），扫描 + 评分 + 基线对比 + 字节码分析 + 安全清理。
 
-## v0.6 能力
+## 当前能力总览
 
-在 v0.5 基础上新增：
+| Finding type | 扫描 | 清理 | 清理手段 |
+|---|---|---|---|
+| `tomcat-filter` | ✅ | ✅ TomcatFilterCleaner | filterDefs/Maps/Configs 原子副本替换 |
+| `tomcat-servlet` | ✅ | ✅ TomcatServletCleaner | children/servletMappings 原子副本替换 |
+| `tomcat-listener-{request,session,context,other}` | ✅ | ✅ TomcatListenerCleaner | applicationEventListeners / applicationLifecycleListeners 副本替换 |
+| `tomcat-valve` | ✅ | ✅ TomcatValveCleaner | Pipeline 链表重接 |
+| `spring-mapping` | ✅ | ✅ SpringMappingCleaner | 官方 `unregisterMapping(info)` |
+| `spring-interceptor` | ✅ | ✅ SpringInterceptorCleaner | adaptedInterceptors 跨多 bean 副本替换 |
+| `class-*`（JVM 类层面） | ✅ | — | （不需要清理，扫描类只用于评分） |
 
-- **Tomcat Filter 安全清理**：支持 `clean --id <id> --dry-run` 生成清理计划和证据包，再通过 `clean --id <id> --confirm` 二次确认后执行。
-- **清理证据目录**：默认写入 `evidence/<findingId>/`，包含 `finding.json`、`clean-plan.json`、`before-snapshot.json`、`clean-result.json`、`verify-result.json` 等文件。
-- **原子副本替换 + 回滚**：清理顺序为 `filterConfigs -> filterMaps -> filterDefs`，失败时尽量按反向顺序回滚。
-- **清理后验证**：支持 `verify --id <id>` 复扫确认 finding 是否仍存在；v0.6 E2E 已验证 FakeFilter 清理后 `stillPresent=false`。
-- **attach 侧交互确认**：`clean --confirm` 会读取 dry-run 生成的计划摘要，stdin 必须严格输入小写 `yes` 才会执行。
+**所有清理都是：** dry-run（落盘计划+证据）→ attach 端 `yes` 二次确认 → confirm（原子替换 + 验证 + 失败回滚）→ verify（独立复扫确认）。
 
-### 清理命令
+## 快速开始
 
-```bash
-# 1. 先生成清理计划和证据包
-java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar clean --id <findingId> --dry-run --evidence-dir ./evidence-root
-
-# 2. 人工审阅 evidence-root/evidence/<findingId>/clean-plan.json 后确认
-java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar clean --id <findingId> --confirm --evidence-dir ./evidence-root
-
-# 3. 独立复核 finding 是否仍存在
-java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar verify --id <findingId> --evidence-dir ./evidence-root
-```
-
-生产环境建议：清理完成后仍应在维护窗口重启服务，避免业务框架或第三方组件保留运行时缓存引用。
-
-## v0.6.1 — Clean 流程审计链修复（2026-05-22）
-
-在 v0.6 基础上修复三项审计链安全问题：
-
-1. **计划过时校验**：`clean --confirm` 现在会将持久化的 `clean-plan.json` 与新生成的计划在 `findingId / filterClass / score / forced` 四个字段上做比对。任何不一致将直接短路并返回 `CleanResult.success=false`（`EXIT_PLAN_STALE=3`）；runtime 在计划过时时不会被修改。
-2. **forced 标志三方一致性**：`--force` 在 confirm 时必须同时等于持久化计划的 `forced` 字段和新生成计划的 `forced` 字段，三方一致才允许执行。
-3. **Phase D 步骤标签精度**：`executedSteps` 现在区分 `phase-D: destroy-ran`、`phase-D: no-release-method`、`phase-D: destroy-threw: <Class>: <msg>`（所有 Throwable 仍会被容忍；Phase D 不触发回滚）。
-
-无新增 CLI 接口；证据目录布局无变化。正确使用时所有 v0.6 命令行为不变。
-
-## v0.7 — Tomcat Cleaners 扩展（2026-05-26）
-
-把 v0.6 的 Tomcat Filter 清理能力扩展到 Servlet / Listener / Valve 三类，沿用
-v0.6 的 5-Phase 模板和 v0.6.1 的审计闸门。CLI 命令没有变化（`clean --id <fid>
---dry-run/--confirm`、`verify --id <fid>`）；MemHunterAgent 根据 finding.type
-自动路由到对应的 Cleaner：
-
-| Finding type | Cleaner |
-|---|---|
-| `tomcat-filter` | TomcatFilterCleaner |
-| `tomcat-servlet` | TomcatServletCleaner |
-| `tomcat-listener-*` | TomcatListenerCleaner |
-| `tomcat-valve` | TomcatValveCleaner |
-
-**架构变更：**
-
-1. **CleanPlan schema**：`filterName/filterClass/urlPatterns` →
-   `targetName/targetClass + details: Map<String,Object>`。details 携带类型专属
-   信息（filter 的 urlPatterns、servlet 的 mappings、listener 的 listenerKind、
-   valve 的 pipelineIndex）。
-2. **CleanerRegistry**：type 到 Cleaner factory 的查表（equals + prefix 匹配，
-   exact 优先）。
-3. **AbstractTomcatCleaner**：模板基类共享 Phase A/D/E，子类填 Phase B/C。
-4. **RollbackStrategy**：从单一 RollbackManager 抽象为接口，每个 Cleaner 自带
-   strategy 实现（FilterRollbackStrategy/ListenerRollbackStrategy/
-   ServletRollbackStrategy/ValveRollbackStrategy）。
-5. **PlanReconciler**：`filterClass` 比对改名 `targetClass`，三方一致性
-   （persisted ≡ fresh ≡ confirmFlag）行为不变。
-
-**重要不兼容：** v0.6 老 evidence 文件不可用于 v0.7 confirm
-（schema 不匹配会被 PlanReconciler 拒绝并 `EXIT_PLAN_STALE`）。操作员应
-对每个 finding 重跑 dry-run。
-
-**端到端验证：** v0.7 单元测试已覆盖 4 个 Cleaner 的完整 Phase A→E + dispatch
-路径（197 tests）。完整 E2E 跑通需要手动启动 `test-target`（Spring Boot 内嵌
-Tomcat）+ 调 `/inject/filter`、`/inject/servlet`、`/inject/listener`、
-`/inject/valve` 端点注入 4 类假马，然后按 v0.6 的 attach → scan → clean
---dry-run → clean --confirm → verify 流程跑一遍，归档 evidence 到
-`docs/superpowers/specs/v0.7.1-clean-flow-evidence/`。
-
-## v0.8 — Spring Cleaners 扩展（2026-05-29）
-
-把清理能力从 Tomcat 4 类扩展到 Spring MVC 两类（Mapping / Interceptor），
-沿用 v0.6 的 5-Phase 模板 + v0.6.1 审计闸门。CLI 命令不变；MemHunterAgent
-现在同时扫描 Tomcat + Spring，并按 finding.type 路由到对应 Cleaner：
-
-| Finding type | Cleaner | Phase C 手段 |
-|---|---|---|
-| `tomcat-*` | 4 个 Tomcat Cleaner | 反射副本替换 / 链表重接 |
-| `spring-mapping` | SpringMappingCleaner | 官方 unregisterMapping(info) |
-| `spring-interceptor` | SpringInterceptorCleaner | adaptedInterceptors 副本替换 |
-
-**架构变更：**
-
-1. **AbstractCleaner**：容器无关模板基类（plan/execute/Phase-D/Phase-E）。
-   AbstractTomcatCleaner 与新的 AbstractSpringCleaner 都继承它。
-2. **CleanerRegistry**：register 增加 ContextKind（TOMCAT/SPRING）；resolve
-   按类型路由对应 context（Tomcat StandardContext vs Spring ApplicationContext）。
-3. **SpringMappingCleaner**：Phase B 通过 String.valueOf(info) 重定位活的
-   RequestMappingInfo，Phase C 调官方 unregisterMapping，rollback 用
-   registerMapping 重新注册。
-4. **SpringInterceptorCleaner**：跨所有 HandlerMapping bean 的 adaptedInterceptors
-   做原子副本替换（一个 interceptor 可能注册到多个 bean）。
-5. **CleanExecutionException.didMutate**：区分"未动运行时的前置失败"与
-   "已动并回滚的前向失败"，让 rolledBack 标志准确（同时修掉 v0.7 Valve nit）。
-
-**范围说明：** v0.8 只注销 Spring 路由 / 移除 interceptor；handler bean 仍留在
-BeanFactory（Spring Bean 清理是 v0.9 范围）。
-
-## v0.5 能力
-
-在 v0.4 基础上新增：
-
-- **基线对比**：扫描时与历史 ScanReport 对比，新增 finding 会命中 `baseline-new` 并加分。这是识别“启动后被注入”组件的核心信号
-- **`baseline-new` 评分规则**（+4）：对所有 finding type 生效，与白名单独立累加
-- **CLI 新增 `--baseline <file>`**：复用已有 ScanReport JSON，不引入新的基线文件格式
-- **Summary 新增字段**：`baselineNewCount` / `baselineMatchedCount`，便于快速判断本次扫描相对基线新增了多少对象
-- **Finding ID 稳定性修复**：Listener / Interceptor ID 不再包含 `identityHashCode`，跨 JVM 重启稳定
-- **字节码 INVOKEDYNAMIC 支持**：可识别 lambda / invokedynamic bootstrap args 中隐藏的可疑 method handle
-- **BytecodeAnalysis 加固**：`methodCalls` 改为不可变 Set，并新增 `hasMethodCallByOwnerPrefix` helper
-
-## v0.4 能力
-
-在 v0.3 基础上新增：
-
-- **字节码扫描**：通过 ASM 9.7 读取目标类的 .class 字节流，精确匹配 method call（owner + name）而非字符串包含，避免误报
-- **5 条字节码规则**（覆盖 RCE 攻击者必须使用的 API）：
-  - `bytecode-runtime-exec`（+4）：`Runtime.getRuntime().exec(...)`
-  - `bytecode-process-builder`（+4）：`new ProcessBuilder(...).start()`
-  - `bytecode-define-class`（+3）：`ClassLoader.defineClass(...)` 动态加载字节码
-  - `bytecode-reflection-abuse`（+2）：`setAccessible` / `getDeclaredField` / `getDeclaredMethod`
-  - `bytecode-crypto`（+2）：`Cipher.doFinal` / `Base64.Decoder` 加解密通信
-- **lazy 字节码缓存**：ScanContext 持有 `bytecodeOf(className)` 缓存；单次扫描每个类至多解析一次
-- **效果**：v0.3 中 FakeFilter / FakeServlet / FakeInterceptor 注入项 score 从 10-12 进一步升至 17-21（全部 critical）；类层面 finding 同时获得字节码加分
-- **死代码清理**：删除 ClassLoadedContextProvider 约 80 行 v0.2 遗留代码
-
-## v0.3 能力
-
-在 v0.2 基础上新增：
-
-- **12 条评分规则**：覆盖类型识别、CodeSource 异常、运行时存在、URL pattern 通配、类名熵、包名归属、ClassLoader 异常、路径伪装等多维度判定
-- **白名单系统**：内置 Spring/Tomcat/Jackson 等框架包名、APM Agent 名和可信 CodeSource 路径；用户可通过 `--whitelist <file>` 追加业务包名
-- **4 级风险等级**：`low (0-3)` / `suspicious (4-6)` / `high (7-9)` / `critical (10+)`
-- **`--explain` 详细模式**：报告中加入 `ruleHits` 数组，展示每条命中规则的得分
-- **误报压降**：v0.2 中 WsFilter、StandardContextValve 等框架组件通过白名单降回 low；FakeFilter、FakeServlet、FakeInterceptor 升至 critical
-
-## v0.2 能力
-
-在 v0.1 基础上新增：
-
-- **Tomcat 容器内部扫描**：定位 `StandardContext` 并枚举其 Filter、Servlet、Listener、Valve 注册表（含 URL pattern、dispatcherTypes、loadOnStartup、pipeline index 等属性）
-- **Spring 运行时扫描**：枚举 `RequestMappingHandlerMapping` 中的 HandlerMethod 与 `HandlerInterceptor` 列表
-- **runtime-only 评分规则**：对容器/Spring 中存在但**类上没有 @WebFilter/@WebServlet/@WebListener 注解、也不是 Spring Bean** 的对象自动标 `suspicious` 并加分
-- **Listener 子类型细分**：v0.2 将 `class-listener` 拆为 `class-listenerrequest`、`class-listenercontext`、`class-listenersession` 三类
-- **多 Context 支持**：自动遍历同 JVM 中的所有 Tomcat StandardContext（多应用部署场景）
-- **跨版本反射**：通过 `ReflectUtil` 工具处理 Tomcat 7-10、Spring 5.x/6.x 内部字段差异
-- **报告原子写入**：写到 `<path>.tmp` 然后 rename，避免 JVM 被中断时残留半写入文件
-- **CLI 选项校验**：未知 `--option` 输出 stderr 警告（如 `--ouput` typo）
-- **BFS 接口环防护**：`WebComponentDetector` 改用 visited Set + BFS，防御恶意 class file 构造的接口环
-
-v0.1 已有能力保留：JVM 类枚举、Web 组件接口识别、稳定 Finding ID、JSON 报告。
-
-## 架构
-
-```text
-memhunter-attach.jar          — 外部 CLI（JDK 11+）
-memhunter-agent.jar           — Java Agent fat jar（JDK 8 字节码，含 Jackson）
-memhunter-test-target.jar     — Spring Boot 2.7 测试应用
-memhunter-test-target-injector — 模拟内存马注入器（仅测试用，**勿放生产**）
-```
-
-通信：`agentmain` 阻塞执行 + 报告原子写入到本地文件。不使用 Socket（避免容器网络隔离问题）。
-
-### v0.2 扫描器结构
-
-```text
-agent/scanner/
-├── ClassScanner.java          # 类层面扫描（v0.1 行为）
-├── WebComponentDetector.java  # BFS 接口检测，含 Listener 子类型
-├── tomcat/                    # Tomcat 容器扫描
-│   ├── TomcatScanner          # 入口，遍历所有 Context
-│   ├── StandardContextProvider 链
-│   │   ├── MBeanContextProvider          (Catalina:type=Context 查询)
-│   │   └── ClassLoadedContextProvider    (WebappClassLoader / Thread-walk 兜底)
-│   ├── TomcatFilterScanner    # filterDefs + filterMaps + filterConfigs
-│   ├── TomcatServletScanner   # StandardWrapper 枚举
-│   ├── TomcatListenerScanner  # applicationEventListeners / applicationLifecycleListeners
-│   └── TomcatValveScanner     # Pipeline 链表
-├── spring/                    # Spring 运行时扫描
-│   ├── SpringScanner          # 入口
-│   ├── ApplicationContextProvider 链
-│   │   ├── DispatcherServletProvider     (主路径)
-│   │   └── ServletContextAttrProvider    (兜底)
-│   ├── SpringMappingScanner   # AbstractHandlerMethodMapping → HandlerMethod
-│   └── SpringInterceptorScanner # adaptedInterceptors
-└── scoring/                   # v0.3 评分规则引擎
-    ├── RuleEngine             # 统一计算 score / level / reasons
-    ├── Whitelist              # framework / business / agent / codesource 白名单
-    └── rules/                 # 12 条 ScoringRule
-```
-
-## 构建
+### 构建
 
 ```bash
 ./mvnw package -DskipTests
@@ -209,48 +29,217 @@ Windows Git Bash：
 cmd //c "mvnw.cmd package -DskipTests"
 ```
 
-产物：
-- `attach/target/memhunter-attach.jar`
-- `agent/target/memhunter-agent.jar`
-- `test-target/target/memhunter-test-target.jar`
-- `test-target-injector` 作为依赖打入 test-target
+产物：`attach/target/memhunter-attach.jar`、`agent/target/memhunter-agent.jar`、`test-target/target/memhunter-test-target.jar`。
 
-## 使用
-
-### 列出 Java 进程
+### 扫描 + 清理 + 复核
 
 ```bash
+# 1. 列出 Java 进程
 java -jar attach/target/memhunter-attach.jar list
+
+# 2. 扫描（可选：带基线对比 + 详细规则）
+java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar \
+    scan --baseline clean-baseline.json --output now.json --explain
+
+# 3. 生成清理计划（dry-run，不修改运行时）
+java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar \
+    clean --id <findingId> --dry-run --evidence-dir ./evidence-root
+
+# 4. 人工审阅 evidence-root/evidence/<findingId>/clean-plan.json
+
+# 5. 确认执行（stdin 必须严格输入小写 yes）
+java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar \
+    clean --id <findingId> --confirm --evidence-dir ./evidence-root
+
+# 6. 独立复核
+java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar \
+    verify --id <findingId> --evidence-dir ./evidence-root
 ```
 
-### 执行扫描
+生产环境建议：清理完成后仍应在维护窗口重启服务，避免业务框架或第三方组件保留运行时缓存引用。
 
-```bash
-java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar scan --output /tmp/report.json
+## CLI 参数
+
+| 参数 | 命令 | 说明 |
+|---|---|---|
+| `--output <file>` | scan | 报告输出路径（默认 stdout） |
+| `--baseline <file>` | scan | 历史 ScanReport JSON；不在基线中的 finding 命中 `baseline-new` (+4) |
+| `--whitelist <file>` | scan | 用户白名单，每行 `<type>:<value>`，`<type>` ∈ {framework, business, agent, codesource} |
+| `--explain` | scan | 在每个 finding 中输出 `ruleHits` 明细 |
+| `--id <findingId>` | clean / verify | 目标 finding ID（来自 scan 报告） |
+| `--dry-run` | clean | 生成 `clean-plan.json` + 证据包，不修改运行时 |
+| `--confirm` | clean | 读取 dry-run 计划，stdin `yes` 确认后执行 |
+| `--force` | clean | 跳过 score < 7 闸门；持久化和 confirm 标志必须一致 |
+| `--evidence-dir <dir>` | clean / verify | 证据目录根（默认当前目录） |
+
+### 白名单文件示例
+
+```text
+business:com.mycompany.app.
+framework:com.acme.shared.
+agent:com.custom.tracer
+codesource:/opt/myapp/
 ```
 
-v0.3 新增参数：
+### 清理证据目录结构
 
-- `--whitelist <file>`：追加用户白名单。文件格式为每行 `<type>:<value>`，其中 `<type>` 可为 `framework`、`business`、`agent`、`codesource`。
+```text
+<evidence-dir>/evidence/<findingId>/
+├── finding.json           # 原始 Finding（含 score/level/reasons）
+├── clean-plan.json        # dry-run 生成；confirm 时严格比对 4 字段
+├── before-snapshot.json   # 反射读出的 Tomcat/Spring 内部结构快照
+├── clean-result.json      # confirm 后写出（success/rolledBack/verifiedDisappeared/executedSteps）
+└── verify-result.json     # 独立 verify 命令写出
+```
 
-  ```text
-  business:com.mycompany.app.
-  framework:com.acme.shared.
-  agent:com.custom.tracer
-  codesource:/opt/myapp/
-  ```
+## 版本演进
 
-- `--explain`：在每个 finding 中输出 `ruleHits`，展示每条命中规则和加分/减分明细。
+### v0.8 — Spring Cleaners 扩展（2026-05-29）
 
-- `--baseline <file>`：基线对比文件，格式为任意历史 ScanReport JSON。当前扫描中所有 `finding.id` 不在 baseline 中的对象会命中 `baseline-new` +4。
+把清理能力从 Tomcat 4 类扩展到 Spring MVC 两类（Mapping / Interceptor）。CLI 不变；MemHunterAgent 同时扫描 Tomcat + Spring，按 `finding.type` 路由到对应 Cleaner。
 
-  ```bash
-  # 1. 系统启动后先打干净基线
-  java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar scan --output clean-baseline.json
+**架构变更：**
 
-  # 2. 应急排查时带基线对比
-  java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.jar scan --baseline clean-baseline.json --output now.json --explain
-  ```
+1. **AbstractCleaner**：容器无关的模板基类（plan/execute/Phase-D/Phase-E）。AbstractTomcatCleaner 与新的 AbstractSpringCleaner 都继承它。
+2. **CleanerRegistry**：register 增加 `ContextKind`（TOMCAT/SPRING）；resolve 按类型路由对应 context。
+3. **SpringMappingCleaner**：Phase B 通过 `String.valueOf(info)` + className 重定位活的 RequestMappingInfo，Phase C 调官方 `unregisterMapping`，rollback 用 `registerMapping` 重新注册（优先用 `HandlerMethod.getBean()`）。
+4. **SpringInterceptorCleaner**：跨所有 HandlerMapping bean 的 `adaptedInterceptors` 做原子副本替换（同一 interceptor 可能注册到多个 bean）。
+5. **CleanExecutionException.didMutate**：区分"未动运行时的前置失败"与"已动并回滚的前向失败"，让 `rolledBack` 标志准确（同时修掉 v0.7 Valve nit）。
+6. **SpringMappingCleaner Phase C bug 修复**：unregister 失败不再触发 rollback（避免 `registerMapping` 双注册）。
+
+**范围说明：** v0.8 只注销 Spring 路由 / 移除 interceptor；handler bean 仍留在 BeanFactory（**Spring Bean 清理留 v0.9**）。
+
+### v0.7.1 — Tomcat Cleaners E2E + Listener 兼容（2026-05-28）
+
+- 归档真实 `test-target` E2E 清理流程证据到 `docs/superpowers/specs/v0.7.1-clean-flow-evidence/`，覆盖 `tomcat-filter` / `tomcat-servlet` / `tomcat-listener-request` / `tomcat-valve` 的 dry-run / confirm / verify / before-after scan artifacts
+- 修复 Tomcat 9 Listener 兼容性：scan/clean 同时支持 getter/setter API 和 legacy/new listener storage 字段名
+
+### v0.7 — Tomcat Cleaners 扩展（2026-05-26）
+
+把 v0.6 的 Tomcat Filter 清理能力扩展到 Servlet / Listener / Valve 三类。
+
+**架构变更：**
+
+1. **CleanPlan schema**：`filterName/filterClass/urlPatterns` → `targetName/targetClass + details: Map<String,Object>`。details 携带类型专属信息。
+2. **CleanerRegistry**：type → Cleaner factory 查表（equals + prefix，exact 优先）。
+3. **AbstractTomcatCleaner**：模板基类共享 Phase A/D/E，子类填 Phase B/C。
+4. **RollbackStrategy**：从单一 RollbackManager 抽象为接口，每个 Cleaner 自带 strategy。
+5. **PlanReconciler**：`filterClass` 比对改名 `targetClass`，三方一致性行为不变。
+
+**重要不兼容：** v0.6 老 evidence 文件不可用于 v0.7+ confirm（schema 不匹配会被 PlanReconciler 拒绝并返回 `EXIT_PLAN_STALE`）。操作员需对每个 finding 重跑 dry-run。
+
+### v0.6.1 — Clean 流程审计链修复（2026-05-22）
+
+修复三项审计链安全问题：
+
+1. **计划过时校验**：`clean --confirm` 将持久化 `clean-plan.json` 与新生成计划在 `findingId / targetClass / score / forced` 四字段做比对。任何不一致直接短路 `CleanResult.success=false`（`EXIT_PLAN_STALE=3`）；runtime 不会被修改。
+2. **forced 标志三方一致性**：`--force` 在 confirm 时必须同时等于持久化计划的 `forced` 字段和新生成计划的 `forced` 字段。
+3. **Phase D 步骤标签精度**：`executedSteps` 区分 `phase-D: destroy-ran`、`phase-D: no-release-method`、`phase-D: destroy-threw: <Class>: <msg>`（所有 Throwable 仍被容忍；Phase D 不触发回滚）。
+
+### v0.6 — Tomcat Filter 安全清理（2026-05-22）
+
+- **Tomcat Filter 安全清理**：`clean --id <id> --dry-run` 生成清理计划和证据包，再通过 `clean --id <id> --confirm` 二次确认后执行
+- **清理证据目录**：默认写入 `evidence/<findingId>/`
+- **原子副本替换 + 回滚**：清理顺序 `filterConfigs → filterMaps → filterDefs`，失败时按反向顺序回滚
+- **清理后验证**：`verify --id <id>` 复扫确认 finding 是否仍存在
+- **attach 侧交互确认**：`clean --confirm` 读取 dry-run 生成的计划摘要，stdin 必须严格输入小写 `yes`
+
+### v0.5 — 基线对比（2026-05-21）
+
+- **基线对比**：扫描时与历史 ScanReport 对比，新增 finding 命中 `baseline-new` (+4)。识别"启动后被注入"组件的核心信号
+- **CLI 新增 `--baseline <file>`**：复用已有 ScanReport JSON
+- **Summary 新增字段**：`baselineNewCount` / `baselineMatchedCount`
+- **Finding ID 稳定性修复**：Listener / Interceptor ID 不再包含 `identityHashCode`，跨 JVM 重启稳定
+- **字节码 INVOKEDYNAMIC 支持**：可识别 lambda / invokedynamic bootstrap args 中隐藏的可疑 method handle
+- **BytecodeAnalysis 加固**：`methodCalls` 改为不可变 Set，新增 `hasMethodCallByOwnerPrefix` helper
+
+### v0.4 — 字节码扫描（2026-05-21）
+
+- **字节码扫描**：通过 ASM 9.7 读取目标类的 `.class` 字节流，精确匹配 method call（owner + name）而非字符串包含
+- **5 条字节码规则**：
+  - `bytecode-runtime-exec` (+4)：`Runtime.getRuntime().exec(...)`
+  - `bytecode-process-builder` (+4)：`new ProcessBuilder(...).start()`
+  - `bytecode-define-class` (+3)：`ClassLoader.defineClass(...)` 动态加载字节码
+  - `bytecode-reflection-abuse` (+2)：`setAccessible` / `getDeclaredField` / `getDeclaredMethod`
+  - `bytecode-crypto` (+2)：`Cipher.doFinal` / `Base64.Decoder`
+- **lazy 字节码缓存**：ScanContext 持有 `bytecodeOf(className)` 缓存；单次扫描每个类至多解析一次
+
+### v0.3 — 评分规则与白名单（2026-05-20）
+
+- **12 条评分规则**：覆盖类型识别、CodeSource 异常、运行时存在、URL pattern 通配、类名熵、包名归属、ClassLoader 异常、路径伪装等
+- **白名单系统**：内置 Spring/Tomcat/Jackson 等框架包名、APM Agent 名和可信 CodeSource 路径；用户可通过 `--whitelist <file>` 追加业务包名
+- **4 级风险等级**：`low (0-3)` / `suspicious (4-6)` / `high (7-9)` / `critical (10+)`
+- **`--explain` 详细模式**：报告中加入 `ruleHits` 数组，展示每条命中规则的得分
+
+### v0.2 — 容器扫描（2026-05-19）
+
+- **Tomcat 容器内部扫描**：定位 `StandardContext` 并枚举 Filter / Servlet / Listener / Valve 注册表
+- **Spring 运行时扫描**：枚举 `RequestMappingHandlerMapping` 的 HandlerMethod 与 `HandlerInterceptor` 列表
+- **runtime-only 评分规则**：对容器/Spring 中存在但**类上没有 `@WebFilter/@WebServlet/@WebListener` 注解、也不是 Spring Bean** 的对象自动标 `suspicious`
+- **多 Context 支持**：自动遍历同 JVM 中的所有 Tomcat StandardContext
+- **跨版本反射**：通过 `ReflectUtil` 处理 Tomcat 7-10、Spring 5.x/6.x 内部字段差异
+- **报告原子写入**：写到 `<path>.tmp` 后 rename，避免 JVM 被中断时残留半写入文件
+
+### v0.1 — 最小可用扫描（2026-05-18）
+
+JVM 类枚举、Web 组件接口识别（Filter/Servlet/Listener/Valve/HandlerInterceptor）、稳定 Finding ID、JSON 报告。
+
+## 架构
+
+```text
+memhunter-attach.jar          — 外部 CLI（JDK 11+）
+memhunter-agent.jar           — Java Agent fat jar（JDK 8 字节码，含 Jackson + ASM 9.7）
+memhunter-test-target.jar     — Spring Boot 2.7 测试应用
+memhunter-test-target-injector — 模拟内存马注入器（仅测试用，**勿放生产**）
+```
+
+通信：`agentmain` 阻塞执行 + 报告原子写入到本地文件。不使用 Socket（避免容器网络隔离问题）。
+
+### 包结构
+
+```text
+agent/src/main/java/com/memhunter/agent/
+├── MemHunterAgent.java        # agentmain 入口，dispatch scan/clean/verify
+├── AgentArgs.java             # CLI 参数解析 + 互斥校验
+├── model/                     # Finding / ScanReport / CleanPlan / CleanResult / FilterBackup
+├── report/                    # JsonReportWriter（原子写入）
+├── scanner/
+│   ├── ClassScanner / WebComponentDetector    # 类层面扫描
+│   ├── tomcat/                                 # Tomcat Context 定位 + 4 类组件扫描
+│   │   ├── StandardContextProvider 链
+│   │   │   ├── MBeanContextProvider
+│   │   │   └── ClassLoadedContextProvider (含 Thread-walk 兜底)
+│   │   └── TomcatFilter/Servlet/Listener/ValveScanner
+│   └── spring/                                 # Spring ApplicationContext 定位 + 2 类组件扫描
+│       ├── ApplicationContextProvider 链
+│       │   ├── DispatcherServletProvider
+│       │   └── ServletContextAttrProvider
+│       ├── SpringMappingScanner
+│       └── SpringInterceptorScanner（locateContexts 公开供清理路径复用）
+├── scoring/                   # 评分规则引擎 + 白名单 + 18 条 ScoringRule
+│   ├── RuleEngine
+│   ├── Whitelist
+│   ├── baseline/              # BaselineIndex / BaselineLoader / BaselineNewRule
+│   ├── bytecode/              # ASM-based BytecodeAnalyzer / BytecodeAnalysis 缓存
+│   └── rules/
+├── cleaner/                   # v0.6+ 清理子系统
+│   ├── Cleaner（接口）+ AbstractCleaner（模板基类）
+│   ├── AbstractTomcatCleaner / AbstractSpringCleaner
+│   ├── TomcatFilter/Servlet/Listener/ValveCleaner
+│   ├── SpringMapping/InterceptorCleaner
+│   ├── CleanerRegistry（type → factory 路由，ContextKind 区分）
+│   ├── RollbackStrategy（接口）+ 6 个 strategy 实现
+│   ├── PlanReconciler（4 字段三方一致性闸门）
+│   ├── EvidenceWriter / CleanPlanReader
+│   └── Clean/Rollback Exceptions
+└── verify/
+    └── VerifyExecutor         # 独立 verify 命令
+
+attach/src/main/java/com/memhunter/attach/
+├── AttachMain                 # CLI 入口
+├── AttachExecutor             # VirtualMachine attach
+└── CleanInteractor            # stdin 严格 yes 确认
+```
 
 ## Finding 类型表
 
@@ -260,12 +249,12 @@ v0.3 新增参数：
 | `class-listenerrequest` / `class-listenercontext` / `class-listenersession` | Listener 子类型（v0.2 细分） | — |
 | `tomcat-filter` | StandardContext.filterDefs 注册的 Filter | filterClass, urlPatterns, dispatcherTypes, contextPath |
 | `tomcat-servlet` | StandardContext.children 中的 Wrapper | servletClass, mappings, loadOnStartup, contextPath |
-| `tomcat-listener-request/session/context/other` | applicationEventListeners + applicationLifecycleListeners | listenerKind, contextPath |
+| `tomcat-listener-{request,session,context,other}` | applicationEventListeners + applicationLifecycleListeners | listenerKind, contextPath |
 | `tomcat-valve` | Context Pipeline 中的 Valve | containerLevel, pipelineIndex, contextPath |
 | `spring-mapping` | AbstractHandlerMethodMapping 注册的 mapping | pattern, methods, handlerMethod, beanName |
 | `spring-interceptor` | AbstractHandlerMapping.adaptedInterceptors | order, includePatterns, excludePatterns |
 
-## 评分规则参考（v0.5）
+## 评分规则参考
 
 | Rule | 命中条件 | Delta |
 |---|---|---|
@@ -290,7 +279,7 @@ v0.3 新增参数：
 
 等级阈值：`0-3 low / 4-6 suspicious / 7-9 high / 10+ critical`
 
-## runtime-only 判定
+### runtime-only 判定
 
 对每个 `tomcat-*` 和 `spring-*` finding，两链检查（任一命中即不标 runtime-only，维持 level=low）：
 
@@ -299,7 +288,7 @@ v0.3 新增参数：
 
 全部 miss → reasons 追加 `"runtime-only"`，level 从 `low` 升至 `suspicious`，score +3。
 
-> v0.2 设计文档初版有第三链（web.xml 检查），但代码评审发现 ServletContext.getFilterRegistration() 对程序化注册的 Filter 也返回非 null（与 web.xml 注册无法区分），会让 v0.2 demo 用 `addFilter()` 注册的 FakeFilter 误判为合法。修复决定移除第三链；annotation + Spring Bean 两链已足够。
+> v0.2 设计文档初版有第三链（web.xml 检查），但代码评审发现 ServletContext.getFilterRegistration() 对程序化注册的 Filter 也返回非 null（与 web.xml 注册无法区分），会让 v0.2 demo 用 `addFilter()` 注册的 FakeFilter 误判为合法。修复决定移除第三链。
 
 ## 端到端验证
 
@@ -308,16 +297,18 @@ v0.3 新增参数：
 ```bash
 java -Djava.net.preferIPv4Stack=true -jar test-target/target/memhunter-test-target.jar &
 
-curl http://localhost:8080/inject/filter           # 反射插入 FilterDef + FilterMap + ApplicationFilterConfig
-curl http://localhost:8080/inject/servlet          # 反射创建 Wrapper 并 addChild + addServletMappingDecoded
-curl http://localhost:8080/inject/spring-mapping   # 反射 RequestMappingHandlerMapping.registerHandlerMethod
+curl http://localhost:8080/inject/filter             # 反射插入 FilterDef + FilterMap + ApplicationFilterConfig
+curl http://localhost:8080/inject/servlet            # 反射创建 Wrapper 并 addChild + addServletMappingDecoded
+curl http://localhost:8080/inject/listener           # 反射追加 applicationEventListeners
+curl http://localhost:8080/inject/valve              # 反射插入 Context Pipeline
+curl http://localhost:8080/inject/spring-mapping     # 反射 RequestMappingHandlerMapping.registerHandlerMethod
 curl http://localhost:8080/inject/spring-interceptor # 直接 mutate adaptedInterceptors
 
 PID=$(java -jar attach/target/memhunter-attach.jar list | grep memhunter-test-target | awk '{print $1}')
 java -jar attach/target/memhunter-attach.jar $PID agent/target/memhunter-agent.jar scan
 ```
 
-v0.3 样例报告：[`docs/superpowers/specs/v0.3-sample-report.json`](docs/superpowers/specs/v0.3-sample-report.json) — 63 findings。FakeFilter、FakeServlet、FakeInterceptor 均为 critical；WsFilter、StandardContextValve 通过白名单降为 low。
+v0.7.1 真实 Tomcat E2E 清理流程证据归档在 `docs/superpowers/specs/v0.7.1-clean-flow-evidence/`，覆盖 4 类 Tomcat finding 的完整 dry-run → confirm → verify → before/after scan artifacts。
 
 ## 兼容性
 
@@ -327,28 +318,36 @@ v0.3 样例报告：[`docs/superpowers/specs/v0.3-sample-report.json`](docs/supe
 | agent | JDK 8 字节码 | 目标 JVM JDK 8 / 11 / 17 / 21 |
 | test-target | JDK 8 字节码（Spring Boot 2.7） | JDK 8+ |
 
+容器版本支持：Tomcat 7 / 8 / 9 / 10（含 Spring Boot 内嵌），Spring MVC 4.x / 5.x / 6.x。Spring cleaner 使用纯反射，无编译期 Spring 依赖。
+
 ### 已知环境 issue：JDK 17 + Windows 11 NIO Selector bug
 
 某些 Windows 11 环境上 JDK 17 创建 NIO Selector 时 `UnixDomainSockets.connect0` 抛 `SocketException: Invalid argument: connect`，导致 Tomcat acceptor 启动失败。Workaround：用 JDK 8 启动 test-target。Agent JAR 仍是 JDK 8 字节码，可以 attach 到 JDK 8 / 11 / 17 / 21 任意目标 JVM。
 
 ### Tomcat Context 定位策略
 
-- **MBeanContextProvider**：查询 `Catalina:type=Context,*` MBean → managedResource。**Spring Boot 内嵌 Tomcat 默认不注册这些 MBean，此路径会返回空**。
+- **MBeanContextProvider**：查询 `Catalina:type=Context,*` MBean → managedResource。Spring Boot 内嵌 Tomcat 默认不注册这些 MBean，此路径会返回空。
 - **ClassLoadedContextProvider**：兜底链
   - WebappClassLoader → resources.context（标准 Tomcat 部署用）
   - Engine 静态字段扫描（少数老 Tomcat）
   - **Thread-walk 兜底**：扫描 `http-nio-*-Acceptor/Poller/exec-*` 线程的字段图，最深 12 层，找到 Engine 实例（Spring Boot 场景下唯一可靠路径）
 
+### Spring ApplicationContext 定位策略
+
+- **DispatcherServletProvider**：主路径，从 DispatcherServlet.webApplicationContext 反射读
+- **ServletContextAttrProvider**：兜底，从 ServletContext attribute 中查 `WebApplicationContext.ROOT.SCOPE_HIERARCHY` 等键
+- v0.8 起 `SpringScanner.locateContexts()` 已公开，清理路径与扫描路径复用同一定位逻辑
+
 ## 限制
 
-v0.6 仍**不包含**：
+v0.8 **不包含**：
 
-- WebFlux 应用（不支持）
-- Tomcat Servlet / Listener / Valve 清理
-- Spring Mapping / Interceptor 清理
-- HTML / Markdown 报告
-- v0.2 评审遗留 #2/#3/#4：Provider strategies 重构、FindingClassMetadata 抽取、ScanContext 解耦
-- 完整路线图见 [`java_memshell_scanner_design.md`](java_memshell_scanner_design.md) 第 25 节
+- WebFlux 应用（架构上目前不支持响应式栈）
+- Spring Bean 清理（BeanDefinition / singletonObjects 移除，留 v0.9）
+- HTML / Markdown 报告（仅 JSON）
+- 多 Tomcat 版本系统化集成测试（依赖手动 E2E）
+- 容器/K8s 环境下的进程发现自动化
+- 完整路线图见 [`java_memshell_scanner_design.md`](java_memshell_scanner_design.md) §25
 
 ## 单元测试
 
@@ -356,53 +355,29 @@ v0.6 仍**不包含**：
 cmd //c "mvnw.cmd -pl agent test"
 ```
 
-v0.6 当前含 159 个 agent 单元测试、12 个 attach 单元测试，新增覆盖：
-- `TomcatFilterCleaner` / `RollbackManager` — dry-run 计划、Phase C/D/E、强类型 filterMaps 数组、失败回滚
-- `EvidenceWriter` / `CleanPlanReader` — 清理证据包读写
-- `VerifyExecutor` — `verify-result.json` 输出
-- `CleanInteractor` / `AttachMain` — stdin 严格 `yes` 确认、clean/verify CLI 分发
+v0.8 当前含 **214 个 agent 单元测试 + 12 个 attach 单元测试**（共 226 个），新增覆盖（相对 v0.7.1）：
 
-v0.5 含 112 个 agent 单元测试，新增覆盖：
-- `ReflectUtil`（9）— 跨版本反射工具
-- `WebComponentDetector`（6）— BFS 接口检测 + Listener 细分
-- `AgentArgs`（7）— 未知选项告警 + `--whitelist` / `--explain` / `--baseline`
-- `Whitelist`（5）— 默认白名单 + 用户文件追加
-- `RuleEngine`（8）— 分数累计、等级映射、explain、异常隔离、默认规则装配
-- `BaselineIndex` / `BaselineLoader` / `BaselineNewRule`（15）— 基线 ID 集合、ScanReport 读取、新增 finding 加分
-- `MemHunterAgent`（2）— Summary 统计与 baseline matched/new 计数
-- `JsonReportWriter`（2）— 原子写入 + 覆盖已有文件
-- `FindingIdGenerator`（3）— v0.1 保留
+- `AbstractCleaner` / `AbstractSpringCleaner` — 容器无关模板基类 + Spring 共享 helper
+- `CleanerRegistry` — ContextKind 路由 + 6 cleaner defaultRegistry
+- `SpringMappingCleaner` / `SpringInterceptorCleaner` — Phase A-E + 多 bean 副本替换 + rollback
+- `MemHunterAgent` 双 context dispatch（dispatchForTest 3-arg seam）
+- `CleanExecutionException.didMutate` 标志在 6 个 cleaner 中的精确传递
 
-容器层 Scanner（TomcatScanner / SpringScanner / 各子 Scanner）通过 Task 20 端到端集成验证，未做单元测试（Tomcat/Spring 对象 mock 成本高）。
+容器层 Scanner（TomcatScanner / SpringScanner / 各子 Scanner）通过端到端集成验证，未做单元测试（Tomcat/Spring 对象 mock 成本高）。
 
 ## 开发文档
 
-- 设计文档：[`java_memshell_scanner_design.md`](java_memshell_scanner_design.md)（含 v0.1 ~ v1.0 全部里程碑）
-- v0.1 实施计划：[`docs/superpowers/plans/2026-05-18-v0.1-minimal-scan.md`](docs/superpowers/plans/2026-05-18-v0.1-minimal-scan.md)
-- v0.1 样例报告：[`docs/superpowers/specs/v0.1-sample-report.json`](docs/superpowers/specs/v0.1-sample-report.json)
-- v0.2 设计文档：[`docs/superpowers/specs/2026-05-19-v0.2-container-scanning-design.md`](docs/superpowers/specs/2026-05-19-v0.2-container-scanning-design.md)
-- v0.2 实施计划：[`docs/superpowers/plans/2026-05-19-v0.2-container-scanning.md`](docs/superpowers/plans/2026-05-19-v0.2-container-scanning.md)
-- v0.2 样例报告：[`docs/superpowers/specs/v0.2-sample-report.json`](docs/superpowers/specs/v0.2-sample-report.json)
-- v0.3 设计文档：[`docs/superpowers/specs/2026-05-20-v0.3-scoring-rules-design.md`](docs/superpowers/specs/2026-05-20-v0.3-scoring-rules-design.md)
-- v0.3 实施计划：[`docs/superpowers/plans/2026-05-20-v0.3-scoring-rules.md`](docs/superpowers/plans/2026-05-20-v0.3-scoring-rules.md)
-- v0.3 样例报告：[`docs/superpowers/specs/v0.3-sample-report.json`](docs/superpowers/specs/v0.3-sample-report.json)
-- v0.4 设计文档：[`docs/superpowers/specs/2026-05-21-v0.4-bytecode-scanning-design.md`](docs/superpowers/specs/2026-05-21-v0.4-bytecode-scanning-design.md)
-- v0.4 实施计划：[`docs/superpowers/plans/2026-05-21-v0.4-bytecode-scanning.md`](docs/superpowers/plans/2026-05-21-v0.4-bytecode-scanning.md)
-- v0.4 样例报告：[`docs/superpowers/specs/v0.4-sample-report.json`](docs/superpowers/specs/v0.4-sample-report.json)
-- v0.5 设计文档：[`docs/superpowers/specs/2026-05-21-v0.5-baseline-comparison-design.md`](docs/superpowers/specs/2026-05-21-v0.5-baseline-comparison-design.md)
-- v0.5 实施计划：[`docs/superpowers/plans/2026-05-21-v0.5-baseline-comparison.md`](docs/superpowers/plans/2026-05-21-v0.5-baseline-comparison.md)
-- v0.5 干净基线：[`docs/superpowers/specs/v0.5-clean-baseline.json`](docs/superpowers/specs/v0.5-clean-baseline.json)
-- v0.5 注入后报告：[`docs/superpowers/specs/v0.5-after-inject-report.json`](docs/superpowers/specs/v0.5-after-inject-report.json)
-- v0.6 设计文档：[`docs/superpowers/specs/2026-05-22-v0.6-tomcat-filter-clean-design.md`](docs/superpowers/specs/2026-05-22-v0.6-tomcat-filter-clean-design.md)
-- v0.6 实施计划：[`docs/superpowers/plans/2026-05-22-v0.6-tomcat-filter-clean.md`](docs/superpowers/plans/2026-05-22-v0.6-tomcat-filter-clean.md)
-- v0.6 清理 E2E 证据：[`docs/superpowers/specs/v0.6-clean-flow-evidence/`](docs/superpowers/specs/v0.6-clean-flow-evidence/)
+设计文档：[`java_memshell_scanner_design.md`](java_memshell_scanner_design.md)（含 v0.1 ~ v1.0 全部里程碑）
 
-## v0.7.1 - Tomcat Cleaners E2E evidence and Listener compatibility (2026-05-28)
-
-This patch archives the real `test-target` E2E clean-flow evidence under
-`docs/superpowers/specs/v0.7.1-clean-flow-evidence/`. The run covers
-`tomcat-filter`, `tomcat-servlet`, `tomcat-listener-request`, and `tomcat-valve`
-with dry-run, confirm, verify, and before/after scan artifacts.
-
-It also fixes Tomcat 9 listener compatibility by supporting both getter/setter
-APIs and legacy/new listener storage field names during scan and clean.
+| 版本 | 设计文档 | 实施计划 | 样例报告 / E2E 证据 |
+|---|---|---|---|
+| v0.1 | — | [v0.1 minimal-scan plan](docs/superpowers/plans/2026-05-18-v0.1-minimal-scan.md) | [v0.1 sample](docs/superpowers/specs/v0.1-sample-report.json) |
+| v0.2 | [v0.2 container-scanning](docs/superpowers/specs/2026-05-19-v0.2-container-scanning-design.md) | [v0.2 plan](docs/superpowers/plans/2026-05-19-v0.2-container-scanning.md) | [v0.2 sample](docs/superpowers/specs/v0.2-sample-report.json) |
+| v0.3 | [v0.3 scoring-rules](docs/superpowers/specs/2026-05-20-v0.3-scoring-rules-design.md) | [v0.3 plan](docs/superpowers/plans/2026-05-20-v0.3-scoring-rules.md) | [v0.3 sample](docs/superpowers/specs/v0.3-sample-report.json) |
+| v0.4 | [v0.4 bytecode-scanning](docs/superpowers/specs/2026-05-21-v0.4-bytecode-scanning-design.md) | [v0.4 plan](docs/superpowers/plans/2026-05-21-v0.4-bytecode-scanning.md) | [v0.4 sample](docs/superpowers/specs/v0.4-sample-report.json) |
+| v0.5 | [v0.5 baseline-comparison](docs/superpowers/specs/2026-05-21-v0.5-baseline-comparison-design.md) | [v0.5 plan](docs/superpowers/plans/2026-05-21-v0.5-baseline-comparison.md) | [clean baseline](docs/superpowers/specs/v0.5-clean-baseline.json) / [after inject](docs/superpowers/specs/v0.5-after-inject-report.json) |
+| v0.6 | [v0.6 tomcat-filter-clean](docs/superpowers/specs/2026-05-22-v0.6-tomcat-filter-clean-design.md) | [v0.6 plan](docs/superpowers/plans/2026-05-22-v0.6-tomcat-filter-clean.md) | [v0.6 evidence](docs/superpowers/specs/v0.6-clean-flow-evidence/) |
+| v0.6.1 | [v0.6.1 clean-audit-fixes](docs/superpowers/specs/2026-05-22-v0.6.1-clean-audit-fixes-design.md) | [v0.6.1 plan](docs/superpowers/plans/2026-05-22-v0.6.1-clean-audit-fixes.md) | — |
+| v0.7 | [v0.7 tomcat-cleaners-extension](docs/superpowers/specs/2026-05-22-v0.7-tomcat-cleaners-extension-design.md) | [v0.7 plan](docs/superpowers/plans/2026-05-22-v0.7-tomcat-cleaners-extension.md) | — |
+| v0.7.1 | — | — | [v0.7.1 4-类 E2E 证据](docs/superpowers/specs/v0.7.1-clean-flow-evidence/) |
+| v0.8 | [v0.8 spring-cleaners](docs/superpowers/specs/2026-05-29-v0.8-spring-cleaners-design.md) | [v0.8 plan](docs/superpowers/plans/2026-05-29-v0.8-spring-cleaners.md) | — |
