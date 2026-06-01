@@ -30,7 +30,7 @@ public class SpringInterceptorCleanerTest {
         @Override public String toString() { return "BystanderInterceptor"; }
     }
     public static class FakeApplicationContext {
-        final Map<String, Object> mappingBeans = new LinkedHashMap<>();
+        public final Map<String, Object> mappingBeans = new LinkedHashMap<>();
         public Map<String, Object> getBeansOfType(Class<?> type) {
             return new LinkedHashMap<>(mappingBeans);
         }
