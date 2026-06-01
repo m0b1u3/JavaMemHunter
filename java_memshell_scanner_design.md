@@ -1787,6 +1787,20 @@ v0.6 E2E 证据已归档到 `docs/superpowers/specs/v0.6-clean-flow-evidence/`�
 - MemHunterAgent：polymorphic dispatch via CleanerRegistry
 - 197 单元/集成测试覆盖 4 类 Cleaner 全 Phase + dispatch + 旧 v0.6 plan 拒绝
 
+### v0.8：Spring Cleaners 扩展（已完成）
+
+目标：
+
+- 新增 SpringMappingCleaner（官方 unregisterMapping）/ SpringInterceptorCleaner
+  （adaptedInterceptors 副本替换）
+- 提取容器无关的 AbstractCleaner；AbstractTomcatCleaner / AbstractSpringCleaner
+  继承它
+- CleanerRegistry：ContextKind 路由（TOMCAT / SPRING）
+- MemHunterAgent：dual-context dispatch（同时定位 Tomcat StandardContext +
+  Spring ApplicationContext）
+- CleanExecutionException.didMutate：精确 rolledBack 标志（修 v0.7 Valve nit）
+- 单元/集成测试覆盖两类 Spring Cleaner 全 Phase + dispatch
+
 ### v1.0：生产可用
 
 目标：

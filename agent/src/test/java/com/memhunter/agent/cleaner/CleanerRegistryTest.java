@@ -20,44 +20,73 @@ class CleanerRegistryTest {
     }
 
     @Test
-    void resolvesByExactTypeMatch() {
+    void resolvesTomcatTypeWithTomcatContext() {
         CleanerRegistry reg = new CleanerRegistry()
-            .register("tomcat-filter", false, StubCleaner::new);
-        Object ctx = new Object();
-        Cleaner c = reg.resolve("tomcat-filter", ctx);
+            .register("tomcat-filter", false, ContextKind.TOMCAT, StubCleaner::new);
+        Object tomcatCtx = new Object();
+        Object springCtx = new Object();
+        Cleaner c = reg.resolve("tomcat-filter", tomcatCtx, springCtx);
         assertNotNull(c);
-        assertTrue(c instanceof StubCleaner);
-        assertSame(ctx, ((StubCleaner) c).capturedCtx);
+        assertSame(tomcatCtx, ((StubCleaner) c).capturedCtx);
     }
 
     @Test
-    void resolvesByPrefixMatch() {
+    void resolvesSpringTypeWithSpringContext() {
         CleanerRegistry reg = new CleanerRegistry()
-            .register("tomcat-listener-", true, StubCleaner::new);
-        Object ctx = new Object();
-        assertNotNull(reg.resolve("tomcat-listener-request", ctx));
-        assertNotNull(reg.resolve("tomcat-listener-session", ctx));
-        assertNotNull(reg.resolve("tomcat-listener-other", ctx));
+            .register("spring-mapping", false, ContextKind.SPRING, StubCleaner::new);
+        Object tomcatCtx = new Object();
+        Object springCtx = new Object();
+        Cleaner c = reg.resolve("spring-mapping", tomcatCtx, springCtx);
+        assertNotNull(c);
+        assertSame(springCtx, ((StubCleaner) c).capturedCtx);
+    }
+
+    @Test
+    void resolvesByPrefixWithCorrectContext() {
+        CleanerRegistry reg = new CleanerRegistry()
+            .register("tomcat-listener-", true, ContextKind.TOMCAT, StubCleaner::new);
+        Object tomcatCtx = new Object();
+        assertNotNull(reg.resolve("tomcat-listener-request", tomcatCtx, null));
+        assertSame(tomcatCtx,
+            ((StubCleaner) reg.resolve("tomcat-listener-session", tomcatCtx, null)).capturedCtx);
+    }
+
+    @Test
+    void returnsNullWhenRequiredContextIsNull() {
+        CleanerRegistry reg = new CleanerRegistry()
+            .register("spring-mapping", false, ContextKind.SPRING, StubCleaner::new);
+        assertNull(reg.resolve("spring-mapping", new Object(), null));
     }
 
     @Test
     void returnsNullForUnknownType() {
         CleanerRegistry reg = new CleanerRegistry()
-            .register("tomcat-filter", false, StubCleaner::new);
-        assertNull(reg.resolve("tomcat-unknown", new Object()));
-        assertNull(reg.resolve(null, new Object()));
+            .register("tomcat-filter", false, ContextKind.TOMCAT, StubCleaner::new);
+        assertNull(reg.resolve("tomcat-unknown", new Object(), new Object()));
+        assertNull(reg.resolve(null, new Object(), new Object()));
     }
 
     @Test
     void exactMatchTakesPrecedenceOverPrefix() {
         class ExactCleaner extends StubCleaner { ExactCleaner(Object c) { super(c); } }
         class PrefixCleaner extends StubCleaner { PrefixCleaner(Object c) { super(c); } }
-
         CleanerRegistry reg = new CleanerRegistry()
-            .register("tomcat-listener-", true, PrefixCleaner::new)
-            .register("tomcat-listener-request", false, ExactCleaner::new);
-
-        Cleaner c = reg.resolve("tomcat-listener-request", new Object());
+            .register("tomcat-listener-", true, ContextKind.TOMCAT, PrefixCleaner::new)
+            .register("tomcat-listener-request", false, ContextKind.TOMCAT, ExactCleaner::new);
+        Cleaner c = reg.resolve("tomcat-listener-request", new Object(), null);
         assertTrue(c instanceof ExactCleaner);
+    }
+
+    @Test
+    void defaultRegistryRegistersAllSixCleaners() {
+        CleanerRegistry reg = CleanerRegistry.defaultRegistry();
+        Object tomcatCtx = new Object();
+        Object springCtx = new Object();
+        assertNotNull(reg.resolve("tomcat-filter", tomcatCtx, springCtx));
+        assertNotNull(reg.resolve("tomcat-servlet", tomcatCtx, springCtx));
+        assertNotNull(reg.resolve("tomcat-listener-request", tomcatCtx, springCtx));
+        assertNotNull(reg.resolve("tomcat-valve", tomcatCtx, springCtx));
+        assertNotNull(reg.resolve("spring-mapping", tomcatCtx, springCtx));
+        assertNotNull(reg.resolve("spring-interceptor", tomcatCtx, springCtx));
     }
 }

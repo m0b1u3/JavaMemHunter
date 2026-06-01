@@ -24,7 +24,7 @@ public class SpringScanner {
 
     public List<Finding> scan(List<Object> tomcatContexts, List<Object> tomcatServletInstances,
                               ScanReport report) {
-        List<Object> appCtxs = locate(tomcatContexts, tomcatServletInstances, report);
+        List<Object> appCtxs = locateContexts(tomcatContexts, tomcatServletInstances, report);
         if (appCtxs.isEmpty()) return new ArrayList<>();
         List<Finding> findings = new ArrayList<>();
         for (Object appCtx : appCtxs) {
@@ -34,7 +34,7 @@ public class SpringScanner {
         return findings;
     }
 
-    private List<Object> locate(List<Object> tomcatContexts, List<Object> tomcatServletInstances,
+    public List<Object> locateContexts(List<Object> tomcatContexts, List<Object> tomcatServletInstances,
                                 ScanReport report) {
         for (ApplicationContextProvider p : providers) {
             try {

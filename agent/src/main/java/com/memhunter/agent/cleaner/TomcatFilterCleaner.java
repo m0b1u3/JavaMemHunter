@@ -123,7 +123,7 @@ public class TomcatFilterCleaner extends AbstractTomcatCleaner {
     protected void doPhaseC() throws CleanExecutionException {
         if (currentBackup == null || currentTargetName == null) {
             throw new CleanExecutionException("doPhaseC called before plan()",
-                    new IllegalStateException("no backup/filterName"));
+                    new IllegalStateException("no backup/filterName"), false);
         }
         String filterName = currentTargetName;
         try {
@@ -196,7 +196,7 @@ public class TomcatFilterCleaner extends AbstractTomcatCleaner {
             } catch (Throwable rbt) {
                 throw new RollbackFailedException("rollback failed after forward failure", rbt);
             }
-            throw new CleanExecutionException("Phase C failed; rolled back", forward);
+            throw new CleanExecutionException("Phase C failed; rolled back", forward, true);
         }
     }
 

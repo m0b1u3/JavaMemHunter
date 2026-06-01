@@ -82,10 +82,11 @@ public class TomcatValveCleaner extends AbstractTomcatCleaner {
 
     @Override
     protected void doPhaseC() throws CleanExecutionException {
+        if (currentBackup.target == null) {
+            throw new CleanExecutionException(
+                "target valve not located during Phase B", false);
+        }
         try {
-            if (currentBackup.target == null) {
-                throw new IllegalStateException("target valve not located during Phase B");
-            }
             if (currentBackup.prev == null) {
                 // target was first; reassign pipeline.first via reflection
                 ReflectUtil.setField(currentBackup.pipeline, "first", currentBackup.targetNext);
@@ -107,7 +108,7 @@ public class TomcatValveCleaner extends AbstractTomcatCleaner {
         } catch (Throwable t) {
             try { rollback.restore(); }
             catch (RollbackFailedException rf) { throw rf; }
-            throw new CleanExecutionException("Phase C forward step failed", t);
+            throw new CleanExecutionException("Phase C forward step failed", t, true);
         }
     }
 
