@@ -60,7 +60,6 @@ public class AgentArgs {
         if ("clean".equals(args.command)) {
             boolean hasDryRun = args.options.containsKey("dry-run");
             boolean hasConfirm = args.options.containsKey("confirm");
-            boolean hasForce = args.options.containsKey("force");
             if (!args.options.containsKey("id")) {
                 throw new IllegalArgumentException("clean requires --id");
             }
@@ -69,9 +68,6 @@ public class AgentArgs {
             }
             if (hasDryRun && hasConfirm) {
                 throw new IllegalArgumentException("clean cannot combine --dry-run and --confirm");
-            }
-            if (hasForce && !hasConfirm) {
-                throw new IllegalArgumentException("--force must be used with --confirm");
             }
         } else if ("verify".equals(args.command)) {
             if (!args.options.containsKey("id")) {

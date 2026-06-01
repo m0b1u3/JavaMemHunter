@@ -2,21 +2,26 @@ package com.memhunter.agent.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.memhunter.agent.model.Finding;
-import com.memhunter.agent.model.ScanReport;
-import com.memhunter.agent.scanner.tomcat.TomcatFilterScanner;
+import com.memhunter.agent.FindingLocator;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 public class VerifyExecutor {
 
-    private final Object standardContext;
+    private final Object tomcatContext;
+    private final Object springContext;
 
+    public VerifyExecutor(Object tomcatContext, Object springContext) {
+        this.tomcatContext = tomcatContext;
+        this.springContext = springContext;
+    }
+
+    /** @deprecated use {@link #VerifyExecutor(Object, Object)} */
+    @Deprecated
     public VerifyExecutor(Object standardContext) {
-        this.standardContext = standardContext;
+        this(standardContext, null);
     }
 
     public VerifyResult verify(String findingId, Path baseDir) throws IOException {
@@ -35,13 +40,7 @@ public class VerifyExecutor {
     }
 
     private boolean stillPresent(String findingId) {
-        List<Finding> findings = new TomcatFilterScanner(standardContext).scan(new ScanReport());
-        for (Finding f : findings) {
-            if (f != null && findingId != null && findingId.equals(f.id)) {
-                return true;
-            }
-        }
-        return false;
+        return FindingLocator.find(tomcatContext, springContext, findingId) != null;
     }
 
     public static class VerifyResult {

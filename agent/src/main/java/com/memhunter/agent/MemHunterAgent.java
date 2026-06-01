@@ -127,7 +127,9 @@ public class MemHunterAgent {
     private static boolean dispatchNonScan(AgentArgs args, List<?> tomcatContexts) throws Exception {
         if ("verify".equals(args.command)) {
             String id = args.options.get("id");
-            VerifyExecutor.VerifyResult result = new VerifyExecutor(requireFirstContext(tomcatContexts))
+            Object ctx = requireFirstContext(tomcatContexts);
+            Object springCtx = locateApplicationContext(ctx);
+            VerifyExecutor.VerifyResult result = new VerifyExecutor(ctx, springCtx)
                     .verify(id, evidenceDir(args));
             System.out.println("[memhunter] verify finished, id=" + id
                     + ", stillPresent=" + result.stillPresent);
@@ -138,7 +140,7 @@ public class MemHunterAgent {
             Object springCtx = locateApplicationContext(ctx);
             String id = args.options.get("id");
             Path evidenceDir = evidenceDir(args);
-            Finding finding = findFindingById(ctx, springCtx, id);
+            Finding finding = FindingLocator.find(ctx, springCtx, id);
             if (finding == null) {
                 throw new IllegalStateException("finding not located: " + id);
             }
@@ -202,7 +204,7 @@ public class MemHunterAgent {
         Path planFile = evidenceDir.resolve("evidence").resolve(id).resolve("clean-plan.json");
         CleanPlan persistedPlan = CleanPlanReader.read(planFile);
 
-        Finding finding = findFindingById(ctx, springCtx, id);
+        Finding finding = FindingLocator.find(ctx, springCtx, id);
         if (finding == null) {
             throw new IllegalStateException("finding not located: " + id);
         }
@@ -265,28 +267,6 @@ public class MemHunterAgent {
 
     private static Path evidenceDir(AgentArgs args) {
         return Paths.get(args.options.getOrDefault("evidence-dir", "."));
-    }
-
-    private static Finding findFindingById(Object tomcatCtx, Object springCtx, String id) {
-        if (id == null) return null;
-        ScanReport report = new ScanReport();
-        List<Finding> all = new ArrayList<>();
-        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatFilterScanner(tomcatCtx).scan(report));
-        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatServletScanner(tomcatCtx).scan(report));
-        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatListenerScanner(tomcatCtx).scan(report));
-        all.addAll(new com.memhunter.agent.scanner.tomcat.TomcatValveScanner(tomcatCtx).scan(report));
-        if (springCtx != null) {
-            all.addAll(new com.memhunter.agent.scanner.spring.SpringMappingScanner(springCtx).scan(report));
-            all.addAll(new com.memhunter.agent.scanner.spring.SpringInterceptorScanner(springCtx).scan(report));
-        }
-        new RuleEngine().evaluate(all,
-                new ScanContext(springCtx, Whitelist.defaults(), false, BaselineIndex.empty()));
-        for (Finding f : all) {
-            if (f != null && id.equals(f.id)) {
-                return f;
-            }
-        }
-        return null;
     }
 
     private static Map<String, Object> beforeSnapshot(Finding finding) {

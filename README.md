@@ -94,6 +94,27 @@ codesource:/opt/myapp/
 
 ## 版本演进
 
+### v0.8.2 — Audit-Chain 修复（2026-06-01）
+
+修补 v0.8.1 手动 E2E 中发现的三个 audit-chain / verify 漏洞：
+
+1. **VerifyExecutor 只扫 Filter（最严重）**：v0.6 引入的 `VerifyExecutor.stillPresent`
+   只跑 `TomcatFilterScanner`。v0.7+v0.8 加了 5 个新 Cleaner（Servlet/Listener/Valve/
+   Spring-Mapping/Spring-Interceptor）但 verify 未同步升级，结果对非 Filter 类型
+   永远返回 `stillPresent=false`（假阴性，让操作员误判清理成功）。**修复：** 抽
+   `findFindingById` 到新 `FindingLocator`；VerifyExecutor 接受 `(tomcatCtx, springCtx)`
+   双 context，调 FindingLocator 跑 6 类 scanner。
+2. **Force-gate 阻断 dry-run**：`AgentArgs.validate` 拒绝 `--force` 与 `--dry-run` 组合，
+   导致 sub-threshold finding（score < 7）无法生成 evidence bundle。**修复：**
+   删除该校验；force 跨阶段一致性由 v0.6.1 PlanReconciler 三方一致性闸门保证。
+3. **Plan-missing 崩栈**：`clean --confirm` 时若 plan 文件不存在，AttachMain 抛
+   Jackson IOException 崩出 17 行 Java 栈。**修复：** AttachMain 提前 `Files.exists`
+   检查；缺失则友好打印 `"plan file not found at <path>; run --dry-run first"`
+   并返回 `2` (EXIT_USAGE)，不触达 agent。
+
+无新 CLI 选项；evidence schema 不变；既有 binary 完全兼容（`VerifyExecutor` 单
+参构造器保留为 `@Deprecated`）。
+
 ### v0.8 — Spring Cleaners 扩展（2026-05-29）
 
 把清理能力从 Tomcat 4 类扩展到 Spring MVC 两类（Mapping / Interceptor）。CLI 不变；MemHunterAgent 同时扫描 Tomcat + Spring，按 `finding.type` 路由到对应 Cleaner。

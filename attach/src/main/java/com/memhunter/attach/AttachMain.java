@@ -7,6 +7,7 @@ import com.memhunter.agent.verify.VerifyExecutor;
 
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -47,8 +48,13 @@ public class AttachMain {
         if ("clean".equals(command) && options.containsKey("confirm")) {
             String id = requireOption(options, "id");
             Path evidenceDir = evidenceDir(options);
-            CleanPlan plan = CleanPlanReader.read(evidenceDir.resolve("evidence").resolve(id)
-                    .resolve("clean-plan.json"));
+            Path planFile = evidenceDir.resolve("evidence").resolve(id).resolve("clean-plan.json");
+            if (!Files.exists(planFile)) {
+                err.println("[memhunter] plan file not found at " + planFile
+                        + "; run --dry-run first to generate the plan");
+                return 2;
+            }
+            CleanPlan plan = CleanPlanReader.read(planFile);
             if (!new CleanInteractor().promptYes(input, out, plan)) {
                 err.println("[memhunter] clean cancelled");
                 return 1;
