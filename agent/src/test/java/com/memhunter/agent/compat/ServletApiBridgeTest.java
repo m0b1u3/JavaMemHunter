@@ -30,4 +30,21 @@ class ServletApiBridgeTest {
     void isFilter_rejects_arbitrary_object() {
         assertFalse(ServletApiBridge.isFilter("not a filter"));
     }
+
+    @Test
+    void servletClass_returns_javax_servlet_Servlet_when_flavor_is_javax() throws Exception {
+        assertEquals(Class.forName("javax.servlet.Servlet"), ServletApiBridge.servletClass());
+    }
+
+    @Test
+    void listenerClass_returns_javax_ServletContextListener_when_flavor_is_javax() throws Exception {
+        assertEquals(Class.forName("javax.servlet.ServletContextListener"), ServletApiBridge.listenerClass());
+    }
+
+    @Test
+    void isServlet_and_isListener_are_null_safe() {
+        assertFalse(ServletApiBridge.isServlet(null));
+        assertFalse(ServletApiBridge.isListener(null));
+        assertFalse(ServletApiBridge.isFilter(null));
+    }
 }

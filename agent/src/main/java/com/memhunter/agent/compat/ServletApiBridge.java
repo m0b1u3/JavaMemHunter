@@ -13,9 +13,9 @@ public final class ServletApiBridge {
     public enum Flavor { JAVAX, JAKARTA }
 
     private static final Flavor FLAVOR        = detect();
-    private static final Class<?> FILTER_CLASS   = load("Filter");
-    private static final Class<?> SERVLET_CLASS  = load("Servlet");
-    private static final Class<?> LISTENER_CLASS = load("ServletContextListener");
+    private static final Class<?> FILTER_CLASS   = load(FLAVOR, "Filter");
+    private static final Class<?> SERVLET_CLASS  = load(FLAVOR, "Servlet");
+    private static final Class<?> LISTENER_CLASS = load(FLAVOR, "ServletContextListener");
 
     public static Flavor flavor()           { return FLAVOR; }
     public static Class<?> filterClass()    { return FILTER_CLASS; }
@@ -31,8 +31,8 @@ public final class ServletApiBridge {
         catch (ClassNotFoundException e) { return Flavor.JAVAX; }
     }
 
-    private static Class<?> load(String simpleName) {
-        String pkg = FLAVOR == Flavor.JAKARTA ? "jakarta.servlet." : "javax.servlet.";
+    private static Class<?> load(Flavor flavor, String simpleName) {
+        String pkg = flavor == Flavor.JAKARTA ? "jakarta.servlet." : "javax.servlet.";
         try { return Class.forName(pkg + simpleName); }
         catch (ClassNotFoundException e) {
             throw new IllegalStateException("ServletApiBridge: missing " + pkg + simpleName, e);
