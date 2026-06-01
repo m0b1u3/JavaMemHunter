@@ -1801,6 +1801,21 @@ v0.6 E2E 证据已归档到 `docs/superpowers/specs/v0.6-clean-flow-evidence/`�
 - CleanExecutionException.didMutate：精确 rolledBack 标志（修 v0.7 Valve nit）
 - 单元/集成测试覆盖两类 Spring Cleaner 全 Phase + dispatch
 
+### v0.8.1：E2E evidence 归档 + FakeValve JDK 17 兼容修复（已完成）
+
+目标：
+
+- 真实 test-target 跑通 6 类内存马清理 E2E（filter / servlet / listener / valve
+  / spring-mapping / spring-interceptor），证据归档到
+  `docs/superpowers/specs/v0.8-clean-flow-evidence/`
+- FakeValveInjector 在 JDK 17 下 setAccessible(true) 修复（catalina 包模块封装
+  导致 public 方法仍需 setAccessible 才能反射调用）
+- 发现并记录两个 v0.8.2 patch 候选：
+  1. `--force` 不能与 `--dry-run` 组合 → sub-threshold finding 无法生成
+     evidence bundle
+  2. `clean --confirm` 在 plan 文件不存在时仍执行清理 → PlanReconciler 审计
+     链有后门
+
 ### v1.0：生产可用
 
 目标：

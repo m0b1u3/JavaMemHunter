@@ -1,0 +1,16 @@
+{
+  "findingId" : "finding-spring-interceptor-fac4e2b6",
+  "type" : "spring-interceptor",
+  "targetName" : "FakeInterceptor",
+  "targetClass" : "com.memhunter.testinjector.FakeSpringInterceptorInjector$FakeInterceptor",
+  "contextPath" : "",
+  "level" : "critical",
+  "evidenceDir" : "docs\\superpowers\\specs\\v0.8-clean-flow-evidence",
+  "planFile" : "docs\\superpowers\\specs\\v0.8-clean-flow-evidence\\evidence\\finding-spring-interceptor-fac4e2b6\\clean-plan.json",
+  "details" : { },
+  "steps" : [ "backup adaptedInterceptors across affected mapping beans", "remove target interceptor from each adaptedInterceptors list", "re-scan to verify" ],
+  "score" : 19,
+  "forced" : false,
+  "rollbackSupported" : true,
+  "generatedAt" : 1780279870499
+}

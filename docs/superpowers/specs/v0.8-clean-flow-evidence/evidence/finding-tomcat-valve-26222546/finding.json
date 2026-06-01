@@ -1,0 +1,17 @@
+{
+  "id" : "finding-tomcat-valve-26222546",
+  "type" : "tomcat-valve",
+  "level" : "critical",
+  "score" : 14,
+  "name" : "$Proxy58",
+  "className" : "com.sun.proxy.$Proxy58",
+  "codeSource" : null,
+  "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+  "reasons" : [ "implements-web-component (+3)", "code-source-null (+3)", "runtime-only (+4)", "filter-order-at-top (+2)", "non-business-package (+2)" ],
+  "recommendation" : "Immediate review required: highly likely a memshell.",
+  "attributes" : {
+    "pipelineIndex" : 1,
+    "contextPath" : "",
+    "containerLevel" : "Context"
+  }
+}

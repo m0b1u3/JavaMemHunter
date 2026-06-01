@@ -1,0 +1,16 @@
+{
+  "id" : "finding-tomcat-listener-request-41c52339",
+  "type" : "tomcat-listener-request",
+  "level" : "critical",
+  "score" : 19,
+  "name" : "FakeListener",
+  "className" : "com.memhunter.testinjector.FakeListenerInjector$FakeListener",
+  "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+  "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+  "reasons" : [ "implements-web-component (+3)", "runtime-only (+4)", "non-business-package (+2)", "bytecode-runtime-exec (+4)", "bytecode-process-builder (+4)", "bytecode-reflection-abuse (+2)" ],
+  "recommendation" : "Immediate review required: highly likely a memshell.",
+  "attributes" : {
+    "contextPath" : "",
+    "listenerKind" : "request"
+  }
+}

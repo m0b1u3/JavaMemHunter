@@ -1,0 +1,19 @@
+{
+  "findingId" : "finding-tomcat-servlet-0334f00b",
+  "type" : "tomcat-servlet",
+  "targetName" : "FakeServlet",
+  "targetClass" : "com.memhunter.testinjector.FakeServletInjector$FakeServlet",
+  "contextPath" : "",
+  "level" : "critical",
+  "evidenceDir" : "docs\\superpowers\\specs\\v0.8-clean-flow-evidence",
+  "planFile" : "docs\\superpowers\\specs\\v0.8-clean-flow-evidence\\evidence\\finding-tomcat-servlet-0334f00b\\clean-plan.json",
+  "details" : {
+    "loadOnStartup" : -1,
+    "mappings" : [ "/fake-api" ]
+  },
+  "steps" : [ "backup children + servletMappings", "remove from children", "remove from servletMappings", "call wrapper.unload + servlet.destroy", "re-scan to verify" ],
+  "score" : 17,
+  "forced" : false,
+  "rollbackSupported" : true,
+  "generatedAt" : 1780279867353
+}

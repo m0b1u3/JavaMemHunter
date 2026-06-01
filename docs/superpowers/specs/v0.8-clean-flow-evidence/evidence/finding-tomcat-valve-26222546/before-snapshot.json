@@ -1,0 +1,11 @@
+{
+  "findingId" : "finding-tomcat-valve-26222546",
+  "name" : "$Proxy58",
+  "className" : "com.sun.proxy.$Proxy58",
+  "attributes" : {
+    "pipelineIndex" : 1,
+    "contextPath" : "",
+    "containerLevel" : "Context"
+  },
+  "type" : "tomcat-valve"
+}
