@@ -1,0 +1,9 @@
+{
+  "findingId" : "finding-tomcat-servlet-0334f00b",
+  "failureReason" : null,
+  "success" : true,
+  "rolledBack" : false,
+  "verifiedDisappeared" : true,
+  "executedSteps" : [ "phase-C: atomic copy-replace done", "phase-D: destroy-ran", "phase-D: no-release-method", "phase-E: verified disappeared" ],
+  "executedAt" : 1780279867933
+}

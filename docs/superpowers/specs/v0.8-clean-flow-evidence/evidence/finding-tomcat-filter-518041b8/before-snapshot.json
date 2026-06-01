@@ -1,0 +1,12 @@
+{
+  "findingId" : "finding-tomcat-filter-518041b8",
+  "name" : "FakeFilter",
+  "className" : "com.memhunter.testinjector.FakeFilterInjector$FakeFilter",
+  "attributes" : {
+    "urlPatterns" : [ "/*" ],
+    "dispatcherTypes" : [ ],
+    "filterClass" : "com.memhunter.testinjector.FakeFilterInjector$FakeFilter",
+    "contextPath" : ""
+  },
+  "type" : "tomcat-filter"
+}

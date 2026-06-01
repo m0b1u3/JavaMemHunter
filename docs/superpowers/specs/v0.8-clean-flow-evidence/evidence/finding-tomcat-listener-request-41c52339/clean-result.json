@@ -1,0 +1,9 @@
+{
+  "findingId" : "finding-tomcat-listener-request-41c52339",
+  "failureReason" : null,
+  "success" : true,
+  "rolledBack" : false,
+  "verifiedDisappeared" : true,
+  "executedSteps" : [ "phase-C: atomic copy-replace done", "phase-D: no-release-method", "phase-E: verified disappeared" ],
+  "executedAt" : 1780279869505
+}

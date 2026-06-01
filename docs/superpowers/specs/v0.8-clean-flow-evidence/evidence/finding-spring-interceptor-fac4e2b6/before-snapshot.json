@@ -1,0 +1,9 @@
+{
+  "findingId" : "finding-spring-interceptor-fac4e2b6",
+  "name" : "FakeInterceptor",
+  "className" : "com.memhunter.testinjector.FakeSpringInterceptorInjector$FakeInterceptor",
+  "attributes" : {
+    "order" : 0
+  },
+  "type" : "spring-interceptor"
+}

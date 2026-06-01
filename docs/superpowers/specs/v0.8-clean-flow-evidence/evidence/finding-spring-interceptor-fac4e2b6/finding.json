@@ -1,0 +1,15 @@
+{
+  "id" : "finding-spring-interceptor-fac4e2b6",
+  "type" : "spring-interceptor",
+  "level" : "critical",
+  "score" : 19,
+  "name" : "FakeInterceptor",
+  "className" : "com.memhunter.testinjector.FakeSpringInterceptorInjector$FakeInterceptor",
+  "codeSource" : "jar:file:/E:/learn/JavaMemHunter/test-target/target/memhunter-test-target.jar!/BOOT-INF/lib/memhunter-test-target-injector-0.1.0.jar!/",
+  "classLoader" : "org.springframework.boot.loader.LaunchedURLClassLoader",
+  "reasons" : [ "implements-web-component (+3)", "runtime-only (+4)", "filter-order-at-top (+2)", "non-business-package (+2)", "bytecode-runtime-exec (+4)", "bytecode-reflection-abuse (+2)", "bytecode-crypto (+2)" ],
+  "recommendation" : "Immediate review required: highly likely a memshell.",
+  "attributes" : {
+    "order" : 0
+  }
+}
