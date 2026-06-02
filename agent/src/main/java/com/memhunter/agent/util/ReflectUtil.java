@@ -62,13 +62,17 @@ public final class ReflectUtil {
         if (target == null || methodName == null) return Optional.empty();
         Class<?> c = target.getClass();
         while (c != null) {
-            for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
+            for (Method m : c.getDeclaredMethods()) {
                 if (!m.getName().equals(methodName) || m.getParameterCount() != 1) continue;
                 try {
                     m.setAccessible(true);
+                } catch (Throwable t) {
+                    continue;  // can't access this method, try next
+                }
+                try {
                     return Optional.ofNullable(m.invoke(target, arg));
                 } catch (Throwable t) {
-                    return Optional.empty();
+                    return Optional.empty();  // invocation failed
                 }
             }
             c = c.getSuperclass();
