@@ -2,9 +2,8 @@ package com.memhunter.agent.scanner.agent;
 
 import com.memhunter.agent.model.Finding;
 import com.memhunter.agent.model.ScanReport;
+import fixtures.EvilTransformer;
 import org.junit.jupiter.api.Test;
-import java.lang.instrument.ClassFileTransformer;
-import java.security.ProtectionDomain;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,13 +19,9 @@ class TransformerScannerTest {
         FakeInstrumentation(Object tm) { this.mTransformerManager = tm; }
     }
 
-    static class EvildoerTransformer implements ClassFileTransformer {
-        public byte[] transform(ClassLoader l, String n, Class<?> c, ProtectionDomain pd, byte[] b) { return null; }
-    }
-
     @Test
     void unknown_transformer_is_reported_as_agent_transformer() {
-        EvildoerTransformer evil = new EvildoerTransformer();
+        EvilTransformer evil = new EvilTransformer();
         Object inst = new FakeInstrumentation(new FakeTransformerManager(new Object[]{evil}));
         List<Finding> findings = new TransformerScanner().scan(inst, new ScanReport());
         assertEquals(1, findings.size());

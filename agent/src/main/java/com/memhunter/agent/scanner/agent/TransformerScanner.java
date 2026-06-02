@@ -27,11 +27,9 @@ public class TransformerScanner {
         "co.elastic.apm.",
         "com.newrelic.",
         "com.dynatrace.",
-        "io.opentelemetry."
+        "io.opentelemetry.",
+        "com.memhunter."   // this agent itself
     };
-
-    /** Self-exemption: TransformerScanner (and any subclass) is never suspicious. */
-    private static final String SELF_CLASS = TransformerScanner.class.getName();
 
     public List<Finding> scan(Object inst, ScanReport report) {
         List<Finding> findings = new ArrayList<>();
@@ -74,7 +72,6 @@ public class TransformerScanner {
     }
 
     private boolean isKnownSafe(String className) {
-        if (className.equals(SELF_CLASS)) return true;
         for (String prefix : SAFE_PREFIXES) {
             if (className.startsWith(prefix)) return true;
         }
