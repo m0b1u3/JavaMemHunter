@@ -102,7 +102,10 @@ public class MemHunterAgent {
             List<Finding> springFindings = spring.scan(tomcatContexts, tomcatServletInstances, report);
             all.addAll(springFindings);
 
-            // 4. v0.3 scoring
+            // 4. Agent-type memshell scan (v0.10)
+            all.addAll(new com.memhunter.agent.scanner.agent.AgentTypeScanner().scan(inst, report));
+
+            // 5. v0.3 scoring
             Object appCtx = pickFirstAppContext(tomcatServletInstances);
             new RuleEngine().evaluate(all, new ScanContext(appCtx, whitelist, explain, baselineIndex));
 
