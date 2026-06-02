@@ -363,6 +363,22 @@ v0.7.1 真实 Tomcat E2E 清理流程证据归档在 `docs/superpowers/specs/v0.
 
 ## 限制
 
+**JDK 17+ 需要给 target JVM 加 `--add-opens`**（v0.9.1 起的已知限制）。
+Agent 反射遍历 Thread/field graph 来定位 Tomcat `StandardEngine`，
+JDK 9+ 的模块封装会阻止此反射，必须在启动 target 时加：
+
+```
+java --add-opens=java.base/java.lang=ALL-UNNAMED \
+     --add-opens=java.base/java.lang.reflect=ALL-UNNAMED \
+     --add-opens=java.base/java.util=ALL-UNNAMED \
+     --add-opens=java.base/java.util.concurrent=ALL-UNNAMED \
+     -jar your-app.jar
+```
+
+不加这些 flag，scanner 会退化到精度更差的 class-loaded 模式
+（findings 形如 `class-filter` / `class-servlet`），cleaner 无法工作。
+JDK 8 无模块系统，无需此 flag。
+
 v0.8 **不包含**：
 
 - WebFlux 应用（架构上目前不支持响应式栈）

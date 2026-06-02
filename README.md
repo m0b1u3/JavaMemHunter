@@ -68,6 +68,23 @@ java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.
 
 ## Known limitations
 
+- **JDK 17+ requires `--add-opens` on the target JVM.** The agent
+  walks Thread/field graphs reflectively to locate Tomcat
+  `StandardEngine`. JDK 9 module encapsulation blocks this unless you
+  start the target with:
+
+  ```
+  java --add-opens=java.base/java.lang=ALL-UNNAMED \
+       --add-opens=java.base/java.lang.reflect=ALL-UNNAMED \
+       --add-opens=java.base/java.util=ALL-UNNAMED \
+       --add-opens=java.base/java.util.concurrent=ALL-UNNAMED \
+       -jar your-app.jar
+  ```
+
+  Without these flags the scanner falls back to a less precise
+  class-loaded mode (`class-filter` / `class-servlet` etc.) and the
+  cleaner cannot operate. JDK 8 has no module system and needs no
+  flags.
 - **Windows + JDK 17 NIO Selector bug** — use JDK 8 to run the target
   JVM, or run the target on Linux.
 - **Standalone Tomcat (non-embedded) not in CI** — likely works but
