@@ -69,6 +69,12 @@ public class TomcatFilterScanner {
         }
 
         f.id = FindingIdGenerator.generate(TYPE, f.className == null ? "" : f.className, filterName);
+
+        // v0.10: tag isDynamic from FilterDef.dynamic field (true = addFilter() runtime registration)
+        Optional<Object> dynField = ReflectUtil.tryReadField(def, "dynamic");
+        boolean isDynamic = dynField.map(v -> Boolean.TRUE.equals(v)).orElse(true);
+        f.attributes.put("isDynamic", isDynamic);
+
         return f;
     }
 
