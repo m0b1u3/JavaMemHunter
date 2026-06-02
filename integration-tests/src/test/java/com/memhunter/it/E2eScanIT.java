@@ -41,10 +41,14 @@ class E2eScanIT {
         // Note: TomcatListenerScanner emits "tomcat-listener-<kind>" where kind is derived
         // from the listener interface. FakeListener implements ServletRequestListener so
         // its type is "tomcat-listener-request" on both sb27 (javax) and sb32 (jakarta).
+        // The scan may additionally surface lower-precision "class-*" fallback findings for
+        // the same components; the test only requires the 6 precise types are *present*,
+        // not that nothing else is reported.
         Set<String> expected = Set.of(
                 "tomcat-filter", "tomcat-servlet", "tomcat-listener-request",
                 "tomcat-valve", "spring-interceptor", "spring-mapping");
-        assertEquals(expected, seenTypes,
-                "all 6 finding types must be reported; saw " + seenTypes);
+        assertTrue(seenTypes.containsAll(expected),
+                "all 6 finding types must be present; expected " + expected
+                        + " but saw " + seenTypes);
     }
 }
