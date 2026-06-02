@@ -1828,6 +1828,29 @@ v0.6 E2E 证据已归档到 `docs/superpowers/specs/v0.6-clean-flow-evidence/`�
 - 新增 FindingLocator 单测（4 个），VerifyExecutor 单测扩展到 Spring 类型，
   AttachMain 单测覆盖 plan-missing 路径
 
+### v0.9：多版本兼容 + 开源准备（已完成）
+
+目标：
+
+- 同一份 agent.jar 同时支持 Spring Boot 2.7 + Tomcat 9 + javax 与 Spring Boot 3.2 +
+  Tomcat 10 + jakarta；新增 `ServletApiBridge` 抽象 javax/jakarta servlet API
+- 4 处 scanner / 规则字符串字面量列表镜像 jakarta 命名（DefaultWhitelist、
+  WebComponentDetector、TomcatListenerScanner、RuntimeOnlyRule —— 此前迭代已
+  接近完成，本期确认并扩展单测覆盖）
+- 新增 `test-target-sb32` + `test-target-injector-sb32` 模块（Spring Boot 3.2 +
+  jakarta + JDK 17 编译目标）
+- 新增 `integration-tests` 模块，sb27 / sb32 双 Maven profile，通过
+  ProcessBuilder fork attach.jar 子进程驱动真实 attach 流程，覆盖 6 finding
+  type × scan / clean / verify 完整 E2E
+- 新增 `.github/workflows/test.yml`（unit + sb27/sb32 矩阵）与 `release.yml`
+  （tag v* 触发，上传 memhunter-agent.jar + memhunter-attach.jar）
+- 新增 Apache 2.0 LICENSE、CONTRIBUTING.md、Issue/PR 模板
+- README 拆为双语：英文 README.md 作为入口，中文 README.zh-CN.md 作为详细文档
+- 补 v0.1 → v0.8.2 共 12 个历史 release tag，v0.9 为首个走 release.yml 自动
+  打包的官方 release
+- 参考：`docs/superpowers/specs/2026-06-01-v0.9-multiversion-opensource-design.md`、
+  `docs/superpowers/plans/2026-06-01-v0.9-multiversion-opensource.md`
+
 ### v1.0：生产可用
 
 目标：
