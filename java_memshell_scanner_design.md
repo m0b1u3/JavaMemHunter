@@ -1851,6 +1851,38 @@ v0.6 E2E 证据已归档到 `docs/superpowers/specs/v0.6-clean-flow-evidence/`�
 - 参考：`docs/superpowers/specs/2026-06-01-v0.9-multiversion-opensource-design.md`、
   `docs/superpowers/plans/2026-06-01-v0.9-multiversion-opensource.md`
 
+### v0.10：Agent 型内存马检测 + 误报降低（已完成）
+
+目标：
+
+- 新增 `AgentTypeScanner`（com.memhunter.agent.scanner.agent），聚合三个子检测器：
+  - `TransformerScanner`：反射 `InstrumentationImpl.mTransformerManager.mTransformers`
+    扫已注册的 `ClassFileTransformer`，非白名单的 → finding `agent-transformer`
+    （high, score=10）。白名单含 com.memhunter. 自身 + 9 个主流 APM 前缀
+    （Skywalking/Arthas/Pinpoint/Byte-buddy/Jacoco/Elastic APM/NewRelic/
+    Dynatrace/OpenTelemetry）
+  - `DynamicClassScanner`：扫所有已加载类，找 codeSource==null 且
+    （classLoader 非标准 OR 短类名）的类 → finding `agent-dynamic-class`
+    （suspicious, score=4）
+  - `BytecodeTamperScanner`：对 5 个关键类（ApplicationFilterChain、
+    StandardContextValve、CoyoteAdapter、HttpServlet、DispatcherServlet）做
+    内存字节码（retransformClasses 捕获）vs JAR 字节码（getResourceAsStream）
+    对比，不一致 → finding `agent-bytecode-tampered`（critical, score=15）。
+    捕获用临时 transformer + finally removeTransformer，不污染目标 JVM
+- `RuleEngine.evaluateOne` 对 `agent-*` 型 finding 早返回，保留 scanner 设置的
+  权威固定分数（不被规则集重算降级）
+- 误报降低：`TomcatServletScanner` 调用
+  `StandardContext.wasCreatedDynamicServlet(servlet)`、`TomcatFilterScanner`
+  读 `FilterDef.dynamic` 字段，给 finding 打 `isDynamic` 属性。
+  `RuntimeOnlyRule` 对 `isDynamic=false`（web.xml 静态声明）早返回，
+  消除 Tomcat examples（HelloWorldExample/async0~3 等）的大量误报
+- `ReflectUtil.tryInvokeWithArg` 新增单参数方法调用重载（continue on
+  setAccessible failure，遍历类层级）
+- 实测背景：冰蝎 AgentNoFile 在 JDK 8 + Windows 注入失败（pointerLength 字段
+  缺失），但本期检测能力覆盖注入成功的场景
+- 参考：`docs/superpowers/specs/2026-06-02-v0.10-agent-type-scanner-design.md`、
+  `docs/superpowers/plans/2026-06-02-v0.10-agent-type-scanner.md`
+
 ### v1.0：生产可用
 
 目标：
