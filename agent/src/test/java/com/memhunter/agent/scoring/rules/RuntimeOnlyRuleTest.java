@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RuntimeOnlyRuleTest {
     private final RuntimeOnlyRule rule = new RuntimeOnlyRule();
@@ -44,6 +45,37 @@ class RuntimeOnlyRuleTest {
         f.type = type;
         f.className = className;
         return f;
+    }
+
+    @Test
+    void returns_zero_for_tomcat_filter_with_isDynamic_false() {
+        Finding f = new Finding();
+        f.type = "tomcat-filter";
+        f.className = "com.example.MyFilter";
+        f.attributes.put("isDynamic", Boolean.FALSE);
+        int score = new RuntimeOnlyRule().evaluate(f, null);
+        assertEquals(0, score, "web.xml-declared filter must not trigger runtime-only penalty");
+    }
+
+    @Test
+    void returns_positive_for_tomcat_filter_with_isDynamic_true() {
+        Finding f = new Finding();
+        f.type = "tomcat-filter";
+        f.className = "com.evil.EvilFilter";
+        f.attributes.put("isDynamic", Boolean.TRUE);
+        int score = new RuntimeOnlyRule().evaluate(f, null);
+        assertTrue(score > 0, "dynamically registered filter must trigger runtime-only penalty");
+    }
+
+    @Test
+    void returns_positive_for_finding_without_isDynamic_attribute() {
+        // backward compat: old findings have no isDynamic key → behave as before (return +4)
+        Finding f = new Finding();
+        f.type = "tomcat-servlet";
+        f.className = "com.example.Servlet";
+        // no attributes.put("isDynamic", ...)
+        int score = new RuntimeOnlyRule().evaluate(f, null);
+        assertTrue(score > 0, "missing isDynamic must behave as dynamic (backward compat)");
     }
 
     @javax.servlet.annotation.WebFilter("/dummy")

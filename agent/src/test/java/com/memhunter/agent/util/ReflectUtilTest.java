@@ -71,4 +71,37 @@ class ReflectUtilTest {
         Sample s = new Sample();
         assertFalse(ReflectUtil.tryInvoke(s, "nonexistent").isPresent());
     }
+
+    @Test
+    void tryInvokeWithArg_calls_method_with_matching_arg_type() {
+        Object target = new Object() {
+            @SuppressWarnings("unused")
+            public String greet(String name) { return "hello-" + name; }
+        };
+        Optional<Object> result = ReflectUtil.tryInvokeWithArg(target, "greet", "world");
+        assertTrue(result.isPresent());
+        assertEquals("hello-world", result.get());
+    }
+
+    @Test
+    void tryInvokeWithArg_returns_empty_when_method_not_found() {
+        Optional<Object> result = ReflectUtil.tryInvokeWithArg("anyString", "noSuchMethod", 42);
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    void tryInvokeWithArg_returns_empty_when_target_is_null() {
+        Optional<Object> result = ReflectUtil.tryInvokeWithArg(null, "anything", "arg");
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    void tryInvokeWithArg_returns_empty_when_method_throws() {
+        Object target = new Object() {
+            @SuppressWarnings("unused")
+            public void boom(String s) { throw new RuntimeException("bang"); }
+        };
+        Optional<Object> result = ReflectUtil.tryInvokeWithArg(target, "boom", "x");
+        assertFalse(result.isPresent());
+    }
 }

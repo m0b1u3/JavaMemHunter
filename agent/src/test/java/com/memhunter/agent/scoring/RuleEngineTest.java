@@ -93,6 +93,36 @@ class RuleEngineTest {
                 .anyMatch(rule -> "baseline-new".equals(rule.name())));
     }
 
+    @Test
+    void agent_type_finding_keeps_its_fixed_score_and_level() {
+        Finding agentFinding = new Finding();
+        agentFinding.type = "agent-bytecode-tampered";
+        agentFinding.score = 15;
+        agentFinding.level = "critical";
+        agentFinding.className = "org.apache.catalina.core.ApplicationFilterChain";
+
+        java.util.List<Finding> findings = new java.util.ArrayList<>();
+        findings.add(agentFinding);
+        new RuleEngine().evaluate(findings, null);
+
+        assertEquals(15, agentFinding.score, "agent-* finding 分数不应被 RuleEngine 重置");
+        assertEquals("critical", agentFinding.level, "agent-* finding level 不应被改");
+    }
+
+    @Test
+    void non_agent_finding_still_rescored_by_rules() {
+        Finding tomcatFinding = new Finding();
+        tomcatFinding.type = "tomcat-filter";
+        tomcatFinding.score = 999;  // 故意设个假分数
+        tomcatFinding.className = "com.example.SomeFilter";
+
+        java.util.List<Finding> findings = new java.util.ArrayList<>();
+        findings.add(tomcatFinding);
+        new RuleEngine().evaluate(findings, null);
+
+        assertNotEquals(999, tomcatFinding.score, "非 agent finding 应被规则重新评分");
+    }
+
     private ScoringRule rule(String name, int delta) {
         return new ScoringRule() {
             public String name() { return name; }
