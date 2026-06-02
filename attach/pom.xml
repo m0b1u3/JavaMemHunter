@@ -13,7 +13,21 @@
     <description>CLI launcher that attaches the JavaMemHunter agent to a target JVM.</description>
 
     <properties>
-        <maven.compiler.release>11</maven.compiler.release>
+        <!--
+          Emit Java 8 bytecode so a single attach.jar can attach to JDK 8 target JVMs
+          (the dominant production Tomcat runtime). We use source/target 8 instead of the
+          release flag on purpose: the release flag restricts the API to the Java 8 standard
+          surface, which hides com.sun.tools.attach (it lives in tools.jar on JDK 8 and in
+          the jdk.attach module on JDK 9+). source/target keeps the JDK 17 jdk.attach module
+          visible at compile time while still producing 8-compatible bytecode.
+
+          Runtime note: when running this jar ON a JDK 8 runtime, put tools.jar on the
+          classpath: java -cp "$JAVA_HOME/lib/tools.jar;attach.jar" com.memhunter.attach.AttachMain
+          On JDK 9+ runtimes the jdk.attach module is present automatically.
+        -->
+        <maven.compiler.release></maven.compiler.release>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
     <dependencies>

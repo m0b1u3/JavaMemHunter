@@ -45,15 +45,17 @@ public class ClassLoadedContextProvider implements StandardContextProvider {
             // LaunchedURLClassLoader, so this strategy returns empty there.
             List<Object> viaClassLoader = findContextsViaWebappClassLoader(inst, seen);
             contexts.addAll(viaClassLoader);
-            if (!contexts.isEmpty()) return contexts;
 
-            // Fallback: Engine → Host → Context traversal.
+            // Always run Engine → Host → Context traversal too (do NOT stop after Strategy 0).
+            // Strategy 0 only finds webapps whose classes were loaded by a WebappClassLoader;
+            // a webapp serving JSPs via JasperLoader (e.g. ROOT) would be missed. The full
+            // Engine traversal enumerates every deployed context. `seen` de-dups across both.
             Class<?> engineClass = findClass(inst, STANDARD_ENGINE);
-            if (engineClass == null) return contexts;
-
-            Object engine = locateEngine(inst, engineClass);
-            if (engine != null) {
-                collectContexts(engine, contexts, seen);
+            if (engineClass != null) {
+                Object engine = locateEngine(inst, engineClass);
+                if (engine != null) {
+                    collectContexts(engine, contexts, seen);
+                }
             }
         } catch (Throwable t) {
             // swallow — best effort
@@ -102,11 +104,16 @@ public class ClassLoadedContextProvider implements StandardContextProvider {
 
     private boolean looksLikeTomcatThread(String name) {
         return name.contains("http-")
+                || name.contains("ajp-")
                 || name.contains("acceptor")
                 || name.contains("Acceptor")
                 || name.contains("poller")
                 || name.contains("Poller")
                 || name.contains("ContainerBackgroundProcessor")
+                // Catalina-utility-N holds a reachable path to the StandardEngine on a
+                // standalone Tomcat where no request thread has run yet; without it the
+                // Engine (and thus all webapp contexts) cannot be located.
+                || name.contains("Catalina")
                 || name.contains("tomcat");
     }
 
