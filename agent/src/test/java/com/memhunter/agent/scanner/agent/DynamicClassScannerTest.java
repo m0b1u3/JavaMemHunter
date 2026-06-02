@@ -50,6 +50,15 @@ class DynamicClassScannerTest {
         assertFalse(report.partialErrors.isEmpty());
     }
 
+    @Test
+    void class_with_valid_codeSource_is_not_reported() {
+        // org.junit.jupiter.api.Test 这个类来自 junit jar，有真实 codeSource，
+        // 由标准 classLoader 加载 → 不应被标记为可疑
+        FakeInst inst = new FakeInst(org.junit.jupiter.api.Test.class);
+        List<Finding> findings = new DynamicClassScanner().scan(inst, new ScanReport());
+        assertTrue(findings.isEmpty(), "有 codeSource 的标准类不应上报");
+    }
+
     // 最小合法 class 字节码：public class Payload {}（class 文件版本 49 = Java 5）
     private static byte[] makeEmptyClass() {
         return new byte[]{
