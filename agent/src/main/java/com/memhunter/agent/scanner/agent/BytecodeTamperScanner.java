@@ -89,11 +89,13 @@ public class BytecodeTamperScanner {
             ? cl.getResourceAsStream(path)
             : ClassLoader.getSystemResourceAsStream(path);
         if (is == null) return null;
-        ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        byte[] tmp = new byte[4096];
-        int n;
-        while ((n = is.read(tmp)) != -1) buf.write(tmp, 0, n);
-        return buf.toByteArray();
+        try (InputStream in = is) {
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            byte[] tmp = new byte[4096];
+            int n;
+            while ((n = in.read(tmp)) != -1) buf.write(tmp, 0, n);
+            return buf.toByteArray();
+        }
     }
 
     private Finding buildFinding(String cn, int memSize, int diskSize) {
