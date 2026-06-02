@@ -50,7 +50,15 @@ public class ProfileFixture implements BeforeAllCallback, AfterAllCallback {
         evidenceDir = Paths.get("target", "evidence", profile).toAbsolutePath();
         Files.createDirectories(evidenceDir);
 
-        target = new ProcessBuilder("java", "-jar", jar)
+        // JDK 17 module encapsulation blocks the agent's reflective Thread/field walk
+        // used by ClassLoadedContextProvider to locate Tomcat StandardEngine.
+        // Open the relevant java.base packages so the attached agent can reach them.
+        target = new ProcessBuilder("java",
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+                "--add-opens=java.base/java.util=ALL-UNNAMED",
+                "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+                "-jar", jar)
                 .redirectErrorStream(true)
                 .redirectOutput(evidenceDir.resolve("target.log").toFile())
                 .start();
