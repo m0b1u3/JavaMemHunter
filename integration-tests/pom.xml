@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.memhunter</groupId>
+        <artifactId>memhunter-parent</artifactId>
+        <version>0.1.0</version>
+    </parent>
+    <artifactId>memhunter-integration-tests</artifactId>
+    <name>memhunter-integration-tests</name>
+    <description>End-to-end scan/clean/verify across Spring Boot 2.7 (sb27) and 3.2 (sb32) profiles.</description>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>sb27</id>
+            <activation><activeByDefault>true</activeByDefault></activation>
+            <properties>
+                <test-target.jar>${project.basedir}/../test-target/target/memhunter-test-target.jar</test-target.jar>
+                <profile.id>sb27</profile.id>
+            </properties>
+        </profile>
+        <profile>
+            <id>sb32</id>
+            <properties>
+                <test-target.jar>${project.basedir}/../test-target-sb32/target/memhunter-test-target-sb32.jar</test-target.jar>
+                <profile.id>sb32</profile.id>
+            </properties>
+        </profile>
+    </profiles>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.memhunter</groupId>
+            <artifactId>memhunter-attach</artifactId>
+            <version>0.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.memhunter</groupId>
+            <artifactId>memhunter-agent</artifactId>
+            <version>0.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <test-target.jar>${test-target.jar}</test-target.jar>
+                        <profile.id>${profile.id}</profile.id>
+                        <agent.jar>${project.basedir}/../agent/target/memhunter-agent.jar</agent.jar>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
