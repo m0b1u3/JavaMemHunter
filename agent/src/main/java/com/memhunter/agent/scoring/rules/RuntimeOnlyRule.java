@@ -24,6 +24,9 @@ public class RuntimeOnlyRule implements ScoringRule {
     public int evaluate(Finding finding, ScanContext ctx) {
         if (finding == null || finding.className == null) return 0;
         if (!isRuntimeRegistryFinding(finding.type)) return 0;
+        // v0.10: web.xml-declared components must not be penalised
+        Object isDynamic = finding.attributes.get("isDynamic");
+        if (Boolean.FALSE.equals(isDynamic)) return 0;
         if (hasWebAnnotation(finding.className, ctx)) return 0;
         if (isSpringManaged(finding.className, ctx)) return 0;
         return 4;
