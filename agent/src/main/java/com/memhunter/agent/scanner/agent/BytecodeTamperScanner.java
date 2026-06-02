@@ -43,7 +43,12 @@ public class BytecodeTamperScanner {
         "org.apache.catalina.core.ApplicationFilterChain",
         "org.apache.catalina.core.StandardContextValve",
         "org.apache.catalina.connector.CoyoteAdapter",
+        // Servlet base classes are Behinder's primary redefine targets (service()/execute()
+        // method bodies get a shellcode prologue). Cover both javax and jakarta namespaces,
+        // plus WebLogic's ServletStubImpl which Behinder explicitly probes for.
         "javax.servlet.http.HttpServlet",
+        "jakarta.servlet.http.HttpServlet",
+        "weblogic.servlet.internal.ServletStubImpl",
         "org.springframework.web.servlet.DispatcherServlet"
     };
 
