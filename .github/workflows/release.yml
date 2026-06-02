@@ -16,11 +16,9 @@ jobs:
           java-version: 17
       - name: Build
         run: ./mvnw -B -ntp -DskipTests package
-        continue-on-error: true
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             agent/target/memhunter-agent.jar
             attach/target/memhunter-attach.jar
           generate_release_notes: true
-          fail_on_unmatched_files: false
