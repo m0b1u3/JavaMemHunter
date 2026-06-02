@@ -64,6 +64,13 @@ public class RuleEngine {
 
     private void evaluateOne(Finding finding, ScanContext ctx) {
         if (finding == null) return;
+
+        // v0.10: agent-* findings carry authoritative fixed scores set by their scanners;
+        // the rule set does not know these types, so skip re-scoring to preserve them.
+        if (finding.type != null && finding.type.startsWith("agent-")) {
+            return;
+        }
+
         finding.score = 0;
         finding.reasons.clear();
         if (ctx != null && ctx.explain) finding.ruleHits = new ArrayList<>();
