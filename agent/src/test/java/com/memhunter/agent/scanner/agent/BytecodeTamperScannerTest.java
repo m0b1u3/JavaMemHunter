@@ -13,6 +13,21 @@ import static org.junit.jupiter.api.Assertions.*;
 class BytecodeTamperScannerTest {
 
     @Test
+    void target_classes_cover_behinder_redefine_targets() throws Exception {
+        java.lang.reflect.Field f = BytecodeTamperScanner.class.getDeclaredField("TARGET_CLASSES");
+        f.setAccessible(true);
+        String[] targets = (String[]) f.get(null);
+        java.util.List<String> list = java.util.Arrays.asList(targets);
+        // Behinder probes/redefines these servlet base classes (service()/execute()).
+        assertTrue(list.contains("javax.servlet.http.HttpServlet"),
+                "must monitor javax HttpServlet");
+        assertTrue(list.contains("jakarta.servlet.http.HttpServlet"),
+                "must monitor jakarta HttpServlet (Spring Boot 3 / Tomcat 10)");
+        assertTrue(list.contains("weblogic.servlet.internal.ServletStubImpl"),
+                "must monitor WebLogic ServletStubImpl (explicit Behinder target)");
+    }
+
+    @Test
     void no_loaded_target_classes_means_no_findings() {
         Object fakeInst = new Object() {
             public Class<?>[] getAllLoadedClasses() { return new Class<?>[0]; }
