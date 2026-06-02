@@ -39,14 +39,21 @@ public class SpringScanner {
         for (ApplicationContextProvider p : providers) {
             try {
                 List<Object> r = p.findAll(tomcatContexts, tomcatServletInstances);
+                int count = r == null ? 0 : r.size();
+                report.partialErrors.add(new ScanReport.PartialError(
+                        p.name(), "located " + count + " ApplicationContext(s)"));
                 if (r != null && !r.isEmpty()) return r;
             } catch (Throwable t) {
                 report.partialErrors.add(new ScanReport.PartialError(
-                        p.name(), "exception: " + t.getMessage()));
+                        p.name(), "exception: " + t.getClass().getSimpleName() + ": " + t.getMessage()));
             }
         }
+        int tcCount = tomcatContexts == null ? 0 : tomcatContexts.size();
+        int tsCount = tomcatServletInstances == null ? 0 : tomcatServletInstances.size();
         report.partialErrors.add(new ScanReport.PartialError(
-                "SpringScanner", "no Spring ApplicationContext located"));
+                "SpringScanner",
+                "no Spring ApplicationContext located; tomcatContexts=" + tcCount
+                        + ", tomcatServletInstances=" + tsCount));
         return new ArrayList<>();
     }
 }
