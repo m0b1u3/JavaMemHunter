@@ -35,7 +35,10 @@ public class TomcatServletScanner {
             for (Object wrapper : (Object[]) children.get()) {
                 if (wrapper == null) continue;
                 String wrapperClassName = wrapper.getClass().getName();
-                if (!wrapperClassName.endsWith("StandardWrapper")) continue;
+                // Accept StandardWrapper (production) or any wrapper with getServletClass (tests / embedded containers)
+                boolean isStandardWrapper = wrapperClassName.endsWith("StandardWrapper");
+                boolean hasServletClass = ReflectUtil.tryInvoke(wrapper, "getServletClass").isPresent();
+                if (!isStandardWrapper && !hasServletClass) continue;
                 findings.add(buildFinding(wrapper, contextPath));
             }
         } catch (Throwable t) {
@@ -63,6 +66,11 @@ public class TomcatServletScanner {
         if (instance.isPresent() && instance.get() != null) {
             f.codeSource = codeSourceOf(instance.get().getClass());
             f.classLoader = clName(instance.get().getClass().getClassLoader());
+            // v0.10: tag isDynamic — false means declared in web.xml, true means runtime injection
+            boolean isDynamic = ReflectUtil.tryInvokeWithArg(context, "wasCreatedDynamicServlet", instance.get())
+                    .map(v -> Boolean.TRUE.equals(v))
+                    .orElse(true);  // conservative: if API absent, assume dynamic (don't suppress scoring)
+            f.attributes.put("isDynamic", isDynamic);
         }
 
         f.id = FindingIdGenerator.generate(TYPE, f.className == null ? "" : f.className,
