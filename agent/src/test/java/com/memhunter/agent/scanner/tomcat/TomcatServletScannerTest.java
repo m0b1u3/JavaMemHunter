@@ -51,12 +51,24 @@ class TomcatServletScannerTest {
 
     @Test
     void when_wasCreatedDynamicServlet_not_available_isDynamic_defaults_to_true() {
-        Object bareContext = new Object() {
-            public Object[] findChildren() { return new Object[0]; }
-            public String getPath() { return "/"; }
+        // Context has a servlet wrapper but NO wasCreatedDynamicServlet method
+        Object servlet = new Object();
+        Object wrapper = new Object() {
+            public String getName() { return "testServlet"; }
+            public String getServletClass() { return "com.example.TestServlet"; }
+            public Object getServlet() { return servlet; }
+            public String[] findMappings() { return new String[0]; }
+            public int getLoadOnStartup() { return -1; }
         };
-        TomcatServletScanner scanner = new TomcatServletScanner(bareContext);
+        Object ctx = new Object() {
+            public String getPath() { return "/app"; }
+            public Object[] findChildren() { return new Object[]{wrapper}; }
+            // NOTE: NO wasCreatedDynamicServlet method — tests the orElse(true) fallback
+        };
+        TomcatServletScanner scanner = new TomcatServletScanner(ctx);
         List<Finding> findings = scanner.scan(new ScanReport());
-        assertTrue(findings.isEmpty());  // empty because findChildren returns empty
+        assertFalse(findings.isEmpty(), "should find the servlet");
+        assertEquals(Boolean.TRUE, findings.get(0).attributes.get("isDynamic"),
+                "missing wasCreatedDynamicServlet API must default isDynamic=true");
     }
 }
