@@ -72,6 +72,7 @@
                         <test-target.jar>${test-target.jar}</test-target.jar>
                         <profile.id>${profile.id}</profile.id>
                         <agent.jar>${project.basedir}/../agent/target/memhunter-agent.jar</agent.jar>
+                        <attach.jar>${project.basedir}/../attach/target/memhunter-attach.jar</attach.jar>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
