@@ -1883,6 +1883,29 @@ v0.6 E2E 证据已归档到 `docs/superpowers/specs/v0.6-clean-flow-evidence/`�
 - 参考：`docs/superpowers/specs/2026-06-02-v0.10-agent-type-scanner-design.md`、
   `docs/superpowers/plans/2026-06-02-v0.10-agent-type-scanner.md`
 
+### v0.10.1：真实环境复测修复（已完成）
+
+在真实独立 Tomcat 9.0.94 + JDK 8 上用真实手法（JSP 从请求线程反射注册 Filter
+内存马到 ROOT webapp、后门可执行命令）实测，暴露并修复 4 个真实问题：
+
+- **多 webapp 检测盲区（漏报核心威胁）**：`ClassLoadedContextProvider`
+  原先在 WebappClassLoader 策略找到任意一个 context 后就提前 return，从不执行
+  Engine→Host→Context 完整遍历。实测只定位到 /examples 一个，注入到 ROOT 的
+  ShellFilter 完全漏报。修复：两个策略都跑、seen 去重；并在 `looksLikeTomcatThread`
+  加入 `Catalina`（独立 Tomcat 刚启动时 StandardEngine 仅通过 Catalina-utility-N
+  线程可达）。修复后定位到全部 5 个 webapp context，ShellFilter 被检出为
+  tomcat-filter / critical。
+- **BytecodeTamperScanner 100% 误报**：逐字节 `Arrays.equals` 比对内存 vs JAR
+  字节码，常量池/debug/属性顺序的良性差异导致 4 个关键类全报 critical（memSize
+  == diskSize 却 byte 不等）。修复：改用 ASM 提取每方法的操作码指纹
+  （SKIP_DEBUG|SKIP_FRAMES），只在方法增/删/方法体改时报告。误报清零。
+- **attach.jar 无法在 JDK 8 运行**：attach 模块编译为 Java 11 字节码（class v55），
+  在 JDK 8 上跑报 UnsupportedClassVersionError——而 JDK 8 是主流生产 Tomcat 运行时。
+  修复：attach 改用 source/target 8（非 release，否则会隐藏 com.sun.tools.attach）
+  产出 Java 8 字节码，一份 attach.jar 既能在 JDK 8（带 tools.jar）也能在 JDK 9+ 运行。
+- 附带发现并记录：用不匹配的 JDK 版本 attach 一次会污染目标 JVM 的 attach 通道，
+  后续正确版本也连不上，只能重启目标 JVM 恢复（应急取证注意事项）。
+
 ### v1.0：生产可用
 
 目标：
