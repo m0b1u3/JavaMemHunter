@@ -104,11 +104,16 @@ public class ClassLoadedContextProvider implements StandardContextProvider {
 
     private boolean looksLikeTomcatThread(String name) {
         return name.contains("http-")
+                || name.contains("ajp-")
                 || name.contains("acceptor")
                 || name.contains("Acceptor")
                 || name.contains("poller")
                 || name.contains("Poller")
                 || name.contains("ContainerBackgroundProcessor")
+                // Catalina-utility-N holds a reachable path to the StandardEngine on a
+                // standalone Tomcat where no request thread has run yet; without it the
+                // Engine (and thus all webapp contexts) cannot be located.
+                || name.contains("Catalina")
                 || name.contains("tomcat");
     }
 
