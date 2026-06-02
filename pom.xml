@@ -16,6 +16,9 @@
         <module>agent</module>
         <module>test-target</module>
         <module>test-target-injector</module>
+        <module>test-target-injector-sb32</module>
+        <module>test-target-sb32</module>
+        <module>integration-tests</module>
     </modules>
 
     <properties>
