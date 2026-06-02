@@ -54,6 +54,28 @@ public final class ReflectUtil {
         throw new RuntimeException("field not found: " + fieldName);
     }
 
+    /**
+     * Invoke a single-argument method by name on {@code target}, walking up the class hierarchy.
+     * Returns {@link Optional#empty()} if the method is not found, inaccessible, or throws.
+     */
+    public static Optional<Object> tryInvokeWithArg(Object target, String methodName, Object arg) {
+        if (target == null || methodName == null) return Optional.empty();
+        Class<?> c = target.getClass();
+        while (c != null) {
+            for (java.lang.reflect.Method m : c.getDeclaredMethods()) {
+                if (!m.getName().equals(methodName) || m.getParameterCount() != 1) continue;
+                try {
+                    m.setAccessible(true);
+                    return Optional.ofNullable(m.invoke(target, arg));
+                } catch (Throwable t) {
+                    return Optional.empty();
+                }
+            }
+            c = c.getSuperclass();
+        }
+        return Optional.empty();
+    }
+
     public static Optional<Object> tryInvoke(Object target, String methodName) {
         if (target == null || methodName == null) return Optional.empty();
         Class<?> c = target.getClass();
