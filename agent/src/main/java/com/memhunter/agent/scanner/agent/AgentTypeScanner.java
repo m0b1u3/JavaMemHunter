@@ -17,7 +17,7 @@ public class AgentTypeScanner {
         List<Finding> all = new ArrayList<>();
         all.addAll(new TransformerScanner().scan(inst, report));
         all.addAll(new DynamicClassScanner().scan(inst, report));
-        all.addAll(new BytecodeTamperScanner().scan(inst, report));
+        all.addAll(new BytecodeTamperScanner().scan(inst, report, null));
         return all;
     }
 }
