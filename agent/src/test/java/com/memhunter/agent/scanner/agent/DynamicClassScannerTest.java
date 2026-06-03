@@ -16,22 +16,42 @@ class DynamicClassScannerTest {
     }
 
     // 非标准 ClassLoader（不在 STANDARD_LOADERS 里），super(null) 使 codeSource 为空
+    // getResourceAsStream 重载让 ClassBytecodeReader 能读到字节
     static class WeirdClassLoader extends ClassLoader {
+        private final java.util.Map<String, byte[]> defined = new java.util.HashMap<>();
         WeirdClassLoader() { super(null); }
-        Class<?> define(String name, byte[] b) { return defineClass(name, b, 0, b.length); }
+        Class<?> define(String name, byte[] b) {
+            defined.put(name.replace('.', '/') + ".class", b);
+            return defineClass(name, b, 0, b.length);
+        }
+        @Override
+        public java.io.InputStream getResourceAsStream(String resourcePath) {
+            byte[] b = defined.get(resourcePath);
+            if (b != null) return new java.io.ByteArrayInputStream(b);
+            return super.getResourceAsStream(resourcePath);
+        }
     }
 
     @Test
-    void class_with_null_codeSource_and_unusual_classLoader_is_suspicious() {
+    void dynamic_class_without_malicious_bytecode_is_not_reported() throws Exception {
         WeirdClassLoader wcl = new WeirdClassLoader();
         byte[] classBytes = makeEmptyClass();
-        Class<?> dynamicClass = wcl.define("Payload", classBytes);
-
-        FakeInst inst = new FakeInst(dynamicClass);
+        Class<?> cleanDynamic = wcl.define("Payload", classBytes);
+        FakeInst inst = new FakeInst(cleanDynamic);
         List<Finding> findings = new DynamicClassScanner().scan(inst, new ScanReport());
-        assertFalse(findings.isEmpty(), "weird loader + no codeSource 应可疑");
+        assertTrue(findings.isEmpty(),
+                "clean dynamic class (no Runtime.exec/defineClass) must not be reported in v0.12");
+    }
+
+    @Test
+    void dynamic_class_with_malicious_bytecode_is_suspicious() throws Exception {
+        WeirdClassLoader wcl = new WeirdClassLoader();
+        byte[] classBytes = makeClassThatCallsDefineClass();
+        Class<?> evilDynamic = wcl.define("Evil", classBytes);
+        FakeInst inst = new FakeInst(evilDynamic);
+        List<Finding> findings = new DynamicClassScanner().scan(inst, new ScanReport());
+        assertFalse(findings.isEmpty(), "dynamic class calling defineClass must be reported");
         assertEquals("agent-dynamic-class", findings.get(0).type);
-        assertTrue(findings.get(0).score >= 4);
     }
 
     @Test
@@ -89,5 +109,37 @@ class DynamicClassScannerTest {
             0,0,0,0,
             0,0
         };
+    }
+
+    private byte[] makeClassThatCallsDefineClass() {
+        org.objectweb.asm.ClassWriter cw =
+            new org.objectweb.asm.ClassWriter(org.objectweb.asm.ClassWriter.COMPUTE_FRAMES | org.objectweb.asm.ClassWriter.COMPUTE_MAXS);
+        cw.visit(org.objectweb.asm.Opcodes.V1_8, org.objectweb.asm.Opcodes.ACC_PUBLIC,
+                "Evil", null, "java/lang/Object", null);
+        org.objectweb.asm.MethodVisitor ctor =
+            cw.visitMethod(org.objectweb.asm.Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        ctor.visitCode();
+        ctor.visitVarInsn(org.objectweb.asm.Opcodes.ALOAD, 0);
+        ctor.visitMethodInsn(org.objectweb.asm.Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        ctor.visitInsn(org.objectweb.asm.Opcodes.RETURN);
+        ctor.visitMaxs(0, 0);
+        ctor.visitEnd();
+        org.objectweb.asm.MethodVisitor m =
+            cw.visitMethod(org.objectweb.asm.Opcodes.ACC_PUBLIC, "load",
+                    "(Ljava/lang/ClassLoader;[B)Ljava/lang/Class;", null, null);
+        m.visitCode();
+        m.visitVarInsn(org.objectweb.asm.Opcodes.ALOAD, 1);
+        m.visitInsn(org.objectweb.asm.Opcodes.ACONST_NULL);
+        m.visitVarInsn(org.objectweb.asm.Opcodes.ALOAD, 2);
+        m.visitInsn(org.objectweb.asm.Opcodes.ICONST_0);
+        m.visitVarInsn(org.objectweb.asm.Opcodes.ALOAD, 2);
+        m.visitInsn(org.objectweb.asm.Opcodes.ARRAYLENGTH);
+        m.visitMethodInsn(org.objectweb.asm.Opcodes.INVOKEVIRTUAL, "java/lang/ClassLoader",
+                "defineClass", "(Ljava/lang/String;[BII)Ljava/lang/Class;", false);
+        m.visitInsn(org.objectweb.asm.Opcodes.ARETURN);
+        m.visitMaxs(0, 0);
+        m.visitEnd();
+        cw.visitEnd();
+        return cw.toByteArray();
     }
 }

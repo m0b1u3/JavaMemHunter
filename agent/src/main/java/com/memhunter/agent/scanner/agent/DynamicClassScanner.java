@@ -2,6 +2,10 @@ package com.memhunter.agent.scanner.agent;
 
 import com.memhunter.agent.model.Finding;
 import com.memhunter.agent.model.ScanReport;
+import com.memhunter.agent.scoring.BytecodeMaliceCheck;
+import com.memhunter.agent.scoring.JvmGeneratedClasses;
+import com.memhunter.agent.scoring.bytecode.BytecodeAnalysis;
+import com.memhunter.agent.scoring.bytecode.ClassBytecodeReader;
 import com.memhunter.agent.util.FindingIdGenerator;
 import com.memhunter.agent.util.ReflectUtil;
 
@@ -58,6 +62,10 @@ public class DynamicClassScanner {
     boolean isSuspicious(Class<?> c) {
         if (c == null || c.getClassLoader() == null) return false;  // bootstrap → 跳过
         try {
+            String name = c.getName();
+            // JVM 自动生成的反射/Lambda/Proxy 类直接跳过
+            if (JvmGeneratedClasses.isJvmGenerated(name)) return false;
+
             ProtectionDomain pd = c.getProtectionDomain();
             if (pd == null) return false;
             CodeSource cs = pd.getCodeSource();
@@ -65,9 +73,17 @@ public class DynamicClassScanner {
             if (!noSource) return false;
             String loaderName = c.getClassLoader().getClass().getName();
             boolean unusualLoader = !STANDARD_LOADERS.contains(loaderName);
-            String name = c.getName();
             boolean shortName = !name.contains(".") && name.length() <= 5;
-            return unusualLoader || shortName;
+            if (!(unusualLoader || shortName)) return false;
+
+            // v0.12: 必须包含恶意字节码特征才上报，无特征的动态类不再报
+            BytecodeAnalysis a;
+            try {
+                a = ClassBytecodeReader.readAndAnalyze(name, c.getClassLoader());
+            } catch (Throwable t) {
+                return false;
+            }
+            return BytecodeMaliceCheck.hasMalice(a);
         } catch (Throwable t) {
             return false;
         }
