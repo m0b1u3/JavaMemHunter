@@ -49,7 +49,7 @@ public class DynamicClassScanner {
             }
             Class<?>[] allClasses = (Class<?>[]) result.get();
             for (Class<?> c : allClasses) {
-                if (!isSuspicious(c)) continue;
+                if (!isSuspicious(c, report)) continue;
                 findings.add(buildFinding(c));
             }
         } catch (Throwable t) {
@@ -59,7 +59,16 @@ public class DynamicClassScanner {
         return findings;
     }
 
+    /**
+     * Variant without a report — delegates to the full overload with a throwaway report.
+     * Kept for callers that do not have a {@link ScanReport} (e.g. unit tests that pre-date
+     * the observable-signal requirement).
+     */
     boolean isSuspicious(Class<?> c) {
+        return isSuspicious(c, new ScanReport());
+    }
+
+    boolean isSuspicious(Class<?> c, ScanReport report) {
         if (c == null || c.getClassLoader() == null) return false;  // bootstrap → 跳过
         try {
             String name = c.getName();
@@ -77,10 +86,14 @@ public class DynamicClassScanner {
             if (!(unusualLoader || shortName)) return false;
 
             // v0.12: 必须包含恶意字节码特征才上报，无特征的动态类不再报
-            BytecodeAnalysis a;
-            try {
-                a = ClassBytecodeReader.readAndAnalyze(name, c.getClassLoader());
-            } catch (Throwable t) {
+            // readAndAnalyze 内部已 catch(Throwable) 返回 null，无需外层 try/catch
+            BytecodeAnalysis a = ClassBytecodeReader.readAndAnalyze(name, c.getClassLoader());
+            if (a == null) {
+                // 字节码不可读：保持 v0.12 降误报权衡（不升级为 finding），但留可观测信号供人工复核
+                report.partialErrors.add(new ScanReport.PartialError(
+                    "DynamicClassScanner",
+                    "bytecode unreadable for suspicious dynamic class (no codeSource + unusual loader): "
+                        + name + " — skipped to reduce false positives; manual review recommended"));
                 return false;
             }
             return BytecodeMaliceCheck.hasMalice(a);

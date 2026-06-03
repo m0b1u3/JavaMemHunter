@@ -15,6 +15,17 @@ public final class BytecodeMaliceCheck {
 
     private BytecodeMaliceCheck() {}
 
+    /**
+     * Returns true if the bytecode contains any high-confidence malicious API call.
+     *
+     * <p><strong>Note on substring matching:</strong> the underlying {@code hasMethodCall}
+     * matches method names as substrings (not exact equality), so "exec" will also match
+     * "execute", "execCmd", etc. For the current owners (Runtime, ProcessBuilder, Cipher)
+     * this is intentional and the false-positive risk is negligible. When adding new owner
+     * checks in the future, verify that substring matching is still acceptable for that owner.
+     *
+     * @param ba bytecode analysis result; null is treated as no malice
+     */
     public static boolean hasMalice(BytecodeAnalysis ba) {
         if (ba == null) return false;
         if (ba.hasMethodCall("java/lang/Runtime", "exec")) return true;

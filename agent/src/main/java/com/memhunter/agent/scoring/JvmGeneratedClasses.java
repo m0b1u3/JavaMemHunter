@@ -5,6 +5,9 @@ public final class JvmGeneratedClasses {
 
     private JvmGeneratedClasses() {}
 
+    /** Pre-compiled pattern for bare {@code $ProxyN} names (no package prefix). */
+    private static final java.util.regex.Pattern PROXY = java.util.regex.Pattern.compile("\\$Proxy\\d+");
+
     private static final String[] PREFIXES = {
         "sun.reflect.GeneratedMethodAccessor",
         "sun.reflect.GeneratedConstructorAccessor",
@@ -20,7 +23,7 @@ public final class JvmGeneratedClasses {
             if (className.startsWith(p)) return true;
         }
         if (className.contains("$$Lambda$")) return true;
-        if (className.matches("\\$Proxy\\d+")) return true;
+        if (PROXY.matcher(className).matches()) return true;
         return false;
     }
 }

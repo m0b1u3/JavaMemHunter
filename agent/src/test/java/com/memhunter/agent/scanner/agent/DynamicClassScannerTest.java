@@ -70,6 +70,49 @@ class DynamicClassScannerTest {
         assertFalse(report.partialErrors.isEmpty());
     }
 
+    /**
+     * Loader that can define a class (so we get a real Class object with no codeSource),
+     * but returns null from getResourceAsStream — making ClassBytecodeReader unable to read
+     * the bytecode.
+     */
+    static class SilentLoader extends ClassLoader {
+        SilentLoader() { super(null); }
+        Class<?> define(String name, byte[] b) {
+            return defineClass(name, b, 0, b.length);
+        }
+        @Override
+        public java.io.InputStream getResourceAsStream(String resourcePath) {
+            return null;  // intentionally unreadable
+        }
+    }
+
+    /**
+     * v0.12 known trade-off: when bytecode is unreadable we prefer to skip rather than
+     * report (reduces false positives at the cost of potentially missing a shell class).
+     * The observable-signal requirement mandates that a partialError warning is emitted
+     * so operators can manually review.
+     */
+    @Test
+    void dynamic_class_with_unreadable_bytecode_not_reported_but_emits_partial_error() throws Exception {
+        SilentLoader sl = new SilentLoader();
+        // Build a minimal class named "Ghost" via ASM so the bytecode name matches
+        Class<?> silentDynamic = sl.define("Ghost", makeMinimalClass("Ghost"));
+        FakeInst inst = new FakeInst(silentDynamic);
+        ScanReport report = new ScanReport();
+        List<Finding> findings = new DynamicClassScanner().scan(inst, report);
+
+        // v0.12 trade-off: bytecode unreadable → not escalated to a finding (prefer under-report)
+        assertTrue(findings.isEmpty(),
+                "dynamic class with unreadable bytecode must NOT be reported (v0.12 false-positive reduction)");
+
+        // Observable signal: partialErrors must contain a warning for manual review
+        assertFalse(report.partialErrors.isEmpty(),
+                "a partialError warning must be emitted when bytecode is unreadable");
+        assertTrue(report.partialErrors.stream()
+                .anyMatch(e -> e.scanner.equals("DynamicClassScanner") && e.reason.contains("Ghost")),
+                "partialError must mention the class name 'Ghost'");
+    }
+
     @Test
     void class_with_valid_codeSource_is_not_reported() {
         // org.junit.jupiter.api.Test 这个类来自 junit jar，有真实 codeSource，
@@ -77,6 +120,24 @@ class DynamicClassScannerTest {
         FakeInst inst = new FakeInst(org.junit.jupiter.api.Test.class);
         List<Finding> findings = new DynamicClassScanner().scan(inst, new ScanReport());
         assertTrue(findings.isEmpty(), "有 codeSource 的标准类不应上报");
+    }
+
+    /** Build a minimal empty class with the given internal name using ASM. */
+    private static byte[] makeMinimalClass(String simpleName) {
+        org.objectweb.asm.ClassWriter cw =
+            new org.objectweb.asm.ClassWriter(org.objectweb.asm.ClassWriter.COMPUTE_FRAMES | org.objectweb.asm.ClassWriter.COMPUTE_MAXS);
+        cw.visit(org.objectweb.asm.Opcodes.V1_8, org.objectweb.asm.Opcodes.ACC_PUBLIC,
+                simpleName, null, "java/lang/Object", null);
+        org.objectweb.asm.MethodVisitor ctor =
+            cw.visitMethod(org.objectweb.asm.Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        ctor.visitCode();
+        ctor.visitVarInsn(org.objectweb.asm.Opcodes.ALOAD, 0);
+        ctor.visitMethodInsn(org.objectweb.asm.Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        ctor.visitInsn(org.objectweb.asm.Opcodes.RETURN);
+        ctor.visitMaxs(0, 0);
+        ctor.visitEnd();
+        cw.visitEnd();
+        return cw.toByteArray();
     }
 
     // 最小合法 class 字节码：public class Payload {}（class 文件版本 49 = Java 5）
