@@ -102,8 +102,9 @@ public class MemHunterAgent {
             List<Finding> springFindings = spring.scan(tomcatContexts, tomcatServletInstances, report);
             all.addAll(springFindings);
 
-            // 4. Agent-type memshell scan (v0.10)
-            all.addAll(new com.memhunter.agent.scanner.agent.AgentTypeScanner().scan(inst, report));
+            // 4. Agent-type memshell scan (v0.10); v0.11 passes evidence-dir for bytecode dumps
+            all.addAll(new com.memhunter.agent.scanner.agent.AgentTypeScanner()
+                    .scan(inst, report, args.options.get("evidence-dir")));
 
             // 5. v0.3 scoring
             Object appCtx = pickFirstAppContext(tomcatServletInstances);
