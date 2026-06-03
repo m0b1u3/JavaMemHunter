@@ -110,22 +110,25 @@ class BytecodeTamperScannerTest {
     }
 
     @Test
-    void filterSuspicious_keeps_paths_and_drops_descriptors() {
+    void filterSuspicious_keeps_paths_and_class_names_drops_method_descriptors() {
         BytecodeTamperScanner scanner = new BytecodeTamperScanner();
         java.util.Set<String> input = new java.util.LinkedHashSet<>(java.util.Arrays.asList(
-                "/yyy",
-                "()V",
-                "Ljava/lang/String;",
-                "get",
-                "doFilterInternal",
-                "aGVsbG93b3JsZA=="
+                "/yyy",                       // path -> keep
+                "()V",                        // method descriptor -> drop (starts with '(')
+                "[I",                         // array descriptor -> drop (starts with '[')
+                "Ljavax/crypto/Cipher;",      // object type desc -> strip to javax/crypto/Cipher -> keep (looksPath)
+                "get",                        // short -> drop
+                "doFilterInternal",           // long token -> keep
+                "aGVsbG93b3JsZA=="            // high entropy -> keep
         ));
         java.util.List<String> kept = scanner.filterSuspicious(input);
         assertTrue(kept.contains("/yyy"), "path must be kept");
         assertTrue(kept.contains("doFilterInternal"), "long token must be kept");
-        assertTrue(kept.contains("aGVsbG93b3JsZA=="), "high-entropy string must be kept");
+        assertTrue(kept.contains("aGVsbG93b3JsZA=="), "high-entropy must be kept");
+        assertTrue(kept.contains("javax/crypto/Cipher"),
+                "injected class name in L...; form must be stripped and kept");
         assertFalse(kept.contains("()V"), "method descriptor must be dropped");
-        assertFalse(kept.contains("Ljava/lang/String;"), "type descriptor must be dropped");
+        assertFalse(kept.contains("[I"), "array descriptor must be dropped");
         assertFalse(kept.contains("get"), "short token must be dropped");
     }
 

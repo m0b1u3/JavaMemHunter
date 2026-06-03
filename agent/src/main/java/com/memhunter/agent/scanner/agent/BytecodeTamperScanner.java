@@ -165,22 +165,21 @@ public class BytecodeTamperScanner {
         List<String> out = new ArrayList<>();
         for (String s : news) {
             if (s == null || s.isEmpty()) continue;
-            if (isPureDescriptor(s)) continue;
-            boolean looksPath = s.indexOf('/') >= 0 || s.indexOf('*') >= 0;
-            if (looksPath) { out.add(s); continue; }
-            if (s.length() <= 4) continue;
-            boolean highEntropy = shannonEntropy(s) > 3.5;
-            boolean longToken = s.length() > 8;
-            if (highEntropy || longToken) out.add(s);
+            // 方法描述符 (...)... 和数组描述符 [... 是纯结构噪音，直接丢
+            char c0 = s.charAt(0);
+            if (c0 == '(' || c0 == '[') continue;
+            // 对象类型描述符 Lxxx/yyy/Zzz; —— 剥出内部类名再判断（可能是注入的解密类名）
+            String candidate = s;
+            if (c0 == 'L' && s.endsWith(";") && s.length() > 2) {
+                candidate = s.substring(1, s.length() - 1);  // javax/crypto/Cipher
+            }
+            boolean looksPath = candidate.indexOf('/') >= 0 || candidate.indexOf('*') >= 0;
+            if (!looksPath && candidate.length() <= 4) continue;
+            boolean highEntropy = shannonEntropy(candidate) > 3.5;
+            boolean longToken = candidate.length() > 8;
+            if (looksPath || highEntropy || longToken) out.add(candidate);
         }
         return out;
-    }
-
-    private boolean isPureDescriptor(String s) {
-        if (s.isEmpty()) return false;
-        char c0 = s.charAt(0);
-        if (c0 == '(' || c0 == '[') return true;
-        return c0 == 'L' && s.endsWith(";");
     }
 
     private double shannonEntropy(String s) {
