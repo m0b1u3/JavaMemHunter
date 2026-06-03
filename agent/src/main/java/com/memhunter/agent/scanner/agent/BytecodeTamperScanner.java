@@ -52,7 +52,7 @@ public class BytecodeTamperScanner {
         "org.springframework.web.servlet.DispatcherServlet"
     };
 
-    public List<Finding> scan(Object inst, ScanReport report) {
+    public List<Finding> scan(Object inst, ScanReport report, String evidenceDir) {
         List<Finding> findings = new ArrayList<>();
         for (String cn : TARGET_CLASSES) {
             try {
@@ -80,6 +80,16 @@ public class BytecodeTamperScanner {
                 if (!diffs.isEmpty()) {
                     Finding f = buildFinding(cn, mem.length, disk.length);
                     f.attributes.put("tamperedMethods", diffs);
+
+                    // v0.11: extract attacker-injected string constants (path, decrypt class, etc.)
+                    java.util.Set<String> memC = ConstantPoolExtractor.utf8Constants(mem);
+                    java.util.Set<String> diskC = ConstantPoolExtractor.utf8Constants(disk);
+                    memC.removeAll(diskC);
+                    List<String> raw = new ArrayList<>(memC);
+                    f.attributes.put("injectedStringsRaw", raw);
+                    f.attributes.put("injectedStrings", filterSuspicious(memC));
+
+                    dumpEvidence(f.id, mem, disk, evidenceDir, f);
                     findings.add(f);
                 }
             } catch (Throwable t) {
@@ -148,6 +158,62 @@ public class BytecodeTamperScanner {
         f.id = FindingIdGenerator.generate(TYPE, cn, "");
         f.reasons.add("bytecode-differs-from-jar (+15)");
         return f;
+    }
+
+    /** Keep strings that look like injected indicators (path, long token, high entropy); drop bytecode descriptors. */
+    List<String> filterSuspicious(java.util.Set<String> news) {
+        List<String> out = new ArrayList<>();
+        for (String s : news) {
+            if (s == null || s.isEmpty()) continue;
+            // 方法描述符 (...)... 和数组描述符 [... 是纯结构噪音，直接丢
+            char c0 = s.charAt(0);
+            if (c0 == '(' || c0 == '[') continue;
+            // 对象类型描述符 Lxxx/yyy/Zzz; —— 剥出内部类名再判断（可能是注入的解密类名）
+            String candidate = s;
+            if (c0 == 'L' && s.endsWith(";") && s.length() > 2) {
+                candidate = s.substring(1, s.length() - 1);  // javax/crypto/Cipher
+            }
+            boolean looksPath = candidate.indexOf('/') >= 0 || candidate.indexOf('*') >= 0;
+            if (!looksPath && candidate.length() <= 4) continue;
+            boolean highEntropy = shannonEntropy(candidate) > 3.5;
+            boolean longToken = candidate.length() > 8;
+            if (looksPath || highEntropy || longToken) out.add(candidate);
+        }
+        return out;
+    }
+
+    private double shannonEntropy(String s) {
+        int[] freq = new int[256];
+        int counted = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch < 256) { freq[ch]++; counted++; }
+        }
+        if (counted == 0) return 0.0;
+        double ent = 0.0;
+        for (int fr : freq) {
+            if (fr > 0) {
+                double p = (double) fr / counted;
+                ent -= p * (Math.log(p) / Math.log(2));
+            }
+        }
+        return ent;
+    }
+
+    void dumpEvidence(String findingId, byte[] mem, byte[] disk, String evidenceDir, Finding f) {
+        if (evidenceDir == null || evidenceDir.isEmpty()) {
+            f.attributes.put("evidenceDumped", false);
+            return;
+        }
+        try {
+            java.nio.file.Path dir = java.nio.file.Paths.get(evidenceDir, "evidence", findingId);
+            java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Files.write(dir.resolve("tampered.class"), mem);
+            java.nio.file.Files.write(dir.resolve("original.class"), disk);
+            f.attributes.put("evidenceDumped", true);
+        } catch (Throwable t) {
+            f.attributes.put("evidenceDumped", false);
+        }
     }
 
     /**

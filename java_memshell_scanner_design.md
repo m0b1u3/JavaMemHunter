@@ -1906,6 +1906,24 @@ v0.6 E2E 证据已归档到 `docs/superpowers/specs/v0.6-clean-flow-evidence/`�
 - 附带发现并记录：用不匹配的 JDK 版本 attach 一次会污染目标 JVM 的 attach 通道，
   后续正确版本也连不上，只能重启目标 JVM 恢复（应急取证注意事项）。
 
+### v0.11：被篡改类的注入内容提取（已完成）
+
+BytecodeTamperScanner 检出 `agent-bytecode-tampered` 后，提取被注入的内容辅助应急响应：
+
+- 新增 `ConstantPoolExtractor`：解析 class 字节码常量池的 CONSTANT_Utf8 字符串
+  （纯函数，正确处理 Long/Double 占 2 槽，tag 1-20 全覆盖）
+- 内存字节码常量池 减 磁盘 JAR 常量池 = 攻击者注入的新字符串（含内存马访问路径、
+  解密类名、payload 特征）。两个 finding 属性：
+  - `injectedStrings`：启发式过滤后的可疑子集（含 `/`/`*` 路径、长 token、高熵 Base64；
+    `L...;` 描述符剥出内部类名再判断，使 `Ljavax/crypto/Cipher;` 这类注入类名被保留）
+  - `injectedStringsRaw`：全量新增字串，不漏
+- 字节码存证：被改类的内存字节码 + 磁盘原始字节码 dump 到
+  `evidence/<finding-id>/tampered.class` + `original.class`，供事后反编译对比；
+  `evidenceDumped` 属性标记是否成功；dump 失败不影响 finding 产出
+- `evidence-dir` 从 MemHunterAgent → AgentTypeScanner → BytecodeTamperScanner 透传
+- 实战价值：应急人员可直接从 scan 报告读出内存马访问路径，立即封堵 WAF + 查访问日志溯源
+- 参考：`docs/superpowers/specs/2026-06-02-v0.11-injected-content-extraction-design.md`
+
 ### v1.0：生产可用
 
 目标：

@@ -13,11 +13,11 @@ import java.util.List;
  */
 public class AgentTypeScanner {
 
-    public List<Finding> scan(Object inst, ScanReport report) {
+    public List<Finding> scan(Object inst, ScanReport report, String evidenceDir) {
         List<Finding> all = new ArrayList<>();
         all.addAll(new TransformerScanner().scan(inst, report));
         all.addAll(new DynamicClassScanner().scan(inst, report));
-        all.addAll(new BytecodeTamperScanner().scan(inst, report));
+        all.addAll(new BytecodeTamperScanner().scan(inst, report, evidenceDir));
         return all;
     }
 }
