@@ -119,6 +119,7 @@ public class MemHunterAgent {
             new RuleEngine().evaluate(all,
                     new ScanContext(appCtx, whitelist, explain, baselineIndex, webappLoaders));
 
+            all = FindingDeduplicator.dedupe(all);
             report.findings = all;
             populateSummary(report, all, baselineIndex);
 
