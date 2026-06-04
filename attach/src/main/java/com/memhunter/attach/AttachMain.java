@@ -62,11 +62,48 @@ public class AttachMain {
             executor.run(pid, agentJar, agentArgs.toString());
             return printCleanResult(out, evidenceDir, id) ? 0 : 1;
         }
+        if ("scan".equals(command)) {
+            String reportPath = resolveScanOutput(options);
+            String scanArgs;
+            if (options.containsKey("output")) {
+                // reportPath is guaranteed space-free by resolveScanOutput; the agent arg pipeline
+                // splits on whitespace so paths with spaces are rejected upstream.
+                scanArgs = agentArgs.toString().replaceFirst(
+                        "--output\\s+\\S+",
+                        java.util.regex.Matcher.quoteReplacement("--output " + reportPath));
+            } else {
+                scanArgs = agentArgs.toString() + " --output " + reportPath;
+            }
+            executor.run(pid, agentJar, scanArgs);
+            ScanSummaryPrinter.print(out, reportPath, parseIntSafe(pid));
+            return 0;
+        }
         executor.run(pid, agentJar, agentArgs.toString());
         if ("verify".equals(command)) {
             return printVerifyResult(out, evidenceDir(options), requireOption(options, "id")) ? 0 : 1;
         }
         return 0;
+    }
+
+    static String resolveScanOutput(java.util.Map<String, String> options) {
+        String userOut = options.get("output");
+        String abs;
+        if (userOut != null && !"true".equals(userOut)) {  // "true" = parseOptions sentinel for flag-only --output
+            abs = new java.io.File(userOut).getAbsolutePath();
+        } else {
+            abs = new java.io.File("memhunter-scan-" + System.currentTimeMillis() + ".json")
+                    .getAbsolutePath();
+        }
+        if (abs.indexOf(' ') >= 0) {
+            throw new IllegalArgumentException(
+                "--output path must not contain spaces (agent arg parsing splits on whitespace): " + abs);
+        }
+        return abs;
+    }
+
+    private static int parseIntSafe(String s) {
+        if (s == null) return -1;
+        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return -1; }
     }
 
     private static void printUsage(PrintStream err) {

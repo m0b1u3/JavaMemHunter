@@ -64,7 +64,7 @@ java -jar attach/target/memhunter-attach.jar <PID> agent/target/memhunter-agent.
 
 | 参数 | 命令 | 说明 |
 |---|---|---|
-| `--output <file>` | scan | 报告输出路径（默认 stdout） |
+| `--output <file>` | scan | 报告输出路径（可选，默认写到当前目录 `memhunter-scan-<时间戳>.json`）。无论是否指定，终端都打印精简摘要（逐条 critical/high/suspicious + low 计数）并显示报告全路径。路径不能含空格（agent 参数按空白切分） |
 | `--baseline <file>` | scan | 历史 ScanReport JSON；不在基线中的 finding 命中 `baseline-new` (+4) |
 | `--whitelist <file>` | scan | 用户白名单，每行 `<type>:<value>`，`<type>` ∈ {framework, business, agent, codesource} |
 | `--explain` | scan | 在每个 finding 中输出 `ruleHits` 明细 |
