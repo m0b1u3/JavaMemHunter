@@ -49,4 +49,15 @@ class BytecodeMaliceCheckTest {
     void null_analysis_is_not_malicious() {
         assertFalse(BytecodeMaliceCheck.hasMalice((BytecodeAnalysis) null));
     }
+
+    @Test
+    void readable_bytecode_true_only_when_present_in_context() {
+        com.memhunter.agent.model.ScanContext ctx =
+                new com.memhunter.agent.model.ScanContext(null, null, false);
+        ctx.putBytecodeForTest("com.example.Foo", withCalls("java/util/List#add"));
+        assertTrue(BytecodeMaliceCheck.hasReadableBytecode("com.example.Foo", ctx));
+        assertFalse(BytecodeMaliceCheck.hasReadableBytecode("com.example.Missing", ctx));
+        assertFalse(BytecodeMaliceCheck.hasReadableBytecode("com.example.Foo", null));
+        assertFalse(BytecodeMaliceCheck.hasReadableBytecode(null, ctx));
+    }
 }

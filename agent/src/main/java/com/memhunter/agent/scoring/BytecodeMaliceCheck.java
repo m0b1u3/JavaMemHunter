@@ -40,4 +40,17 @@ public final class BytecodeMaliceCheck {
         if (className == null || ctx == null) return false;
         return hasMalice(ctx.bytecodeOf(className));
     }
+
+    /**
+     * True only when the class's bytecode was actually read for analysis.
+     *
+     * <p>Callers that grant trust based on the <em>absence</em> of malice (e.g. suppression
+     * rules) must distinguish "bytecode read and proven clean" from "bytecode could not be
+     * read" — the latter is not evidence of cleanliness. {@link #hasMalice} alone cannot make
+     * that distinction (both return false), so it must be paired with this check.
+     */
+    public static boolean hasReadableBytecode(String className, ScanContext ctx) {
+        if (className == null || ctx == null) return false;
+        return ctx.bytecodeOf(className) != null;
+    }
 }

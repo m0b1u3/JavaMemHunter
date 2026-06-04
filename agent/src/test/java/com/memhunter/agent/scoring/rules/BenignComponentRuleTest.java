@@ -71,4 +71,35 @@ class BenignComponentRuleTest {
         ScanContext ctx = ctxWithBytecode("com.x.aXk9Qz7mP2wL", "java/util/List#add");
         assertEquals(0, new BenignComponentRule().evaluate(f, ctx));
     }
+
+    // --- v0.12 hardening (post code-review) ---
+
+    @Test
+    void does_not_suppress_temp_dir_jar() {
+        // A jar loaded from /tmp is NOT a normal webapp codeSource — it must not be suppressed
+        // even though the path contains ".jar".
+        Finding f = finding("tomcat-filter", "com.example.LoggingFilter",
+                "file:/tmp/evil.jar");
+        ScanContext ctx = ctxWithBytecode("com.example.LoggingFilter", "java/util/List#add");
+        assertEquals(0, new BenignComponentRule().evaluate(f, ctx));
+    }
+
+    @Test
+    void does_not_suppress_var_tmp_jar() {
+        Finding f = finding("tomcat-filter", "com.example.LoggingFilter",
+                "file:/var/tmp/payload.jar");
+        ScanContext ctx = ctxWithBytecode("com.example.LoggingFilter", "java/util/List#add");
+        assertEquals(0, new BenignComponentRule().evaluate(f, ctx));
+    }
+
+    @Test
+    void does_not_suppress_when_bytecode_unreadable() {
+        // "bytecode missing" must NOT be treated as "bytecode proven clean".
+        // A no-feature filter whose bytecode could not be read keeps its score
+        // (no -10 suppression) so an analyst still sees it.
+        Finding f = finding("tomcat-filter", "com.example.LoggingFilter",
+                "file:/opt/tomcat/webapps/app/WEB-INF/classes/");
+        ScanContext ctx = new ScanContext(null, null, false);  // no bytecode put → unreadable
+        assertEquals(0, new BenignComponentRule().evaluate(f, ctx));
+    }
 }

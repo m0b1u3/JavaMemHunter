@@ -7,9 +7,14 @@ import com.memhunter.agent.scoring.ScoringRule;
 
 /**
  * Suppresses normal business components: a Servlet/Filter/Listener whose code comes from a
- * webapp's own jar/WEB-INF/classes and whose bytecode shows no malicious features is almost
- * certainly legitimate application code, not a memshell. Returns a large negative score to push
- * it down to "low". Agent-type findings (bytecode-tampered etc.) are NEVER suppressed.
+ * webapp's own jar/WEB-INF/classes and whose bytecode was read and shows no malicious features
+ * is almost certainly legitimate application code, not a memshell. Returns a large negative score
+ * to push it down to "low". Agent-type findings (bytecode-tampered etc.) are NEVER suppressed.
+ *
+ * <p>Suppression requires <em>positive</em> evidence of cleanliness: the bytecode must have been
+ * read AND shown no malice. A component whose bytecode could not be read is left untouched (not
+ * suppressed) — "unreadable" is not "clean". Code loaded from a temp directory is likewise never
+ * treated as a normal webapp location even if the path ends in ".jar".
  */
 public class BenignComponentRule implements ScoringRule {
 
@@ -22,6 +27,10 @@ public class BenignComponentRule implements ScoringRule {
 
         if (!isNormalWebappCodeSource(finding.codeSource)) return 0;
         if (isHighEntropyName(finding.className)) return 0;
+
+        // Require positive evidence of cleanliness: bytecode must have been read AND be malice-free.
+        // "Unreadable bytecode" is NOT "clean bytecode" — never suppress on absence of evidence.
+        if (!BytecodeMaliceCheck.hasReadableBytecode(finding.className, ctx)) return 0;
         if (BytecodeMaliceCheck.hasMalice(finding.className, ctx)) return 0;
 
         return -10;
@@ -33,7 +42,10 @@ public class BenignComponentRule implements ScoringRule {
 
     private boolean isNormalWebappCodeSource(String cs) {
         if (cs == null || cs.isEmpty()) return false;
-        if (cs.contains("/work/Catalina/")) return false;
+        // Exclude locations that are never a legitimate webapp component source, even if the
+        // path superficially matches a webapp marker (e.g. a jar dropped in /tmp).
+        if (cs.contains("/work/Catalina/")) return false;   // compiled JSP work dir
+        if (cs.contains("/tmp/") || cs.contains("/var/tmp/")) return false;  // temp-dropped payloads
         return cs.contains("/WEB-INF/") || cs.contains(".jar")
             || cs.contains("/classes/") || cs.contains("/webapps/");
     }
