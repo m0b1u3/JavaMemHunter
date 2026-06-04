@@ -172,6 +172,8 @@ class RuleEngineTest {
 
         assertEquals("critical", f.level,
                 "masqueraded framework-package filter with no jar source must be critical");
+        assertTrue(f.score >= 10,
+                "masqueraded filter score must reach critical threshold, was: " + f.score);
     }
 
     @Test
@@ -188,8 +190,8 @@ class RuleEngineTest {
                 new com.memhunter.agent.model.ScanContext(
                         null, com.memhunter.agent.scoring.Whitelist.defaults(), false));
 
-        assertNotEquals("critical", f.level,
-                "real framework class must not be scored critical");
+        assertEquals("low", f.level,
+                "real framework class loaded from jar must score low");
     }
 
     private ScoringRule rule(String name, int delta) {
