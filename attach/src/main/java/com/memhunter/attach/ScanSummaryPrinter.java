@@ -91,6 +91,12 @@ public final class ScanSummaryPrinter {
             if (!c.isMissingNode() && !c.isNull() && !c.asText("").isEmpty()) {
                 line.append("  class=").append(c.asText());
             }
+        } else if (type != null && type.startsWith("class-")) {
+            // v0.16: JSP webshell (org.apache.jsp.*) reverse-mapped .jsp URL recorded by ClassScanner
+            JsonNode jp = attrs.path("jspPath");
+            if (!jp.isMissingNode() && !jp.isNull() && !jp.asText("").isEmpty()) {
+                line.append("  path=[").append(jp.asText()).append("]");
+            }
         }
     }
 
