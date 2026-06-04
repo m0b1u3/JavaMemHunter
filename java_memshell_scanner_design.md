@@ -2010,6 +2010,24 @@ v0.12 合并后实地复扫中了冰蝎 Agent 马的 Tomcat 9.0.94，暴露三�
   真阳不回退（冰蝎 critical、JSP shell high）、v0.12.1 examples 抑制不回退
 - 参考：`docs/superpowers/specs/2026-06-04-v0.13-masquerade-detection-design.md`
 
+### v0.14：扫描结果终端摘要（已完成）
+
+此前 scan 跑完，用户的 attach 终端只打印 `agent loaded successfully`，结果全在 JSON 里得手动翻；
+不带 `--output` 时报告落到目标 JVM 的 tmpdir，路径难找。v0.14 改善可用性：
+
+- 新增 `ScanSummaryPrinter`（attach 端）：读 scan 报告 JSON，在用户终端打印 summary 计数行 +
+  逐条 critical/high/suspicious（`[level] type className score=N`），low 只计数不逐条；
+  末行打印报告完整路径（方便取证、拿 finding id 去 clean）
+- `AttachMain` scan 命令：用户没传 `--output` 时默认写到 **attach 进程当前目录**的
+  `memhunter-scan-<时间戳>.json`（绝对路径）；传了则转绝对路径透传——保证 agent（目标 JVM）
+  与 attach 端读写同一文件（跨进程必须用绝对路径）
+- 读/解析报告失败降级打印一行、不让命令崩
+- 已知限制：`--output` 路径不能含空格——agent 端 `AgentArgs.parse` 按空白切分参数，
+  含空格路径整条 attach→agent 管道本就不支持；v0.14 遇到含空格路径明确报错拒绝（而非静默
+  截断产生坏路径）。彻底支持含空格路径需改造两端参数传递（按 token 而非扁平字符串），留作后续
+- 纯 attach 端改动，复用现有 Jackson；不改 agent 扫描逻辑、不改 JSON 报告内容（仍全量含 low）
+- 参考：`docs/superpowers/specs/2026-06-04-v0.14-scan-summary-design.md`
+
 ### v1.0：生产可用
 
 目标：

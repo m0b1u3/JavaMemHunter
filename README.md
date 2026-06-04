@@ -47,6 +47,10 @@ jps -l
 
 # 3. Scan
 java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.jar scan --output scan.json
+# --output is optional: without it the report is written to memhunter-scan-<timestamp>.json in the
+# current directory. Either way a concise summary (critical/high/suspicious findings + a count of
+# suppressed low ones) is printed to your terminal and the full report path is shown.
+# Note: the report path must not contain spaces (agent argument parsing splits on whitespace).
 
 # 4. Dry-run clean (writes plan, makes no change)
 java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.jar \
