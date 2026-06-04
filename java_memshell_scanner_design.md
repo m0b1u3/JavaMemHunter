@@ -1986,6 +1986,30 @@ v0.12 合并后实地复扫中了冰蝎 Agent 马的 Tomcat 9.0.94，暴露三�
   - 真阳零丢失：冰蝎 critical、JSP shell high 均保留
 - 实战意义：critical+high 两层从 1:125 信噪比降到 **零误报**，应急人员打开报告即见真马
 
+### v0.13：伪装框架包内存马检测增强（已完成）
+
+实地复扫一台注入哥斯拉（Godzilla）内存马的 Tomcat 9.0.94，发现工具检出了全部哥斯拉马
+（3 Filter + 2 Servlet），但伪装包名的几个只到 high/suspicious——哥斯拉把 Jackson 类
+伪装成 `org.apache.coyote.*` 包名，滥用受信包白名单（whitelist-hit -5 压低告警）。
+
+核心洞察：真框架类一定从 jar 加载、有 codeSource；伪装类是动态 defineClass 生成的、codeSource=null。
+「白名单前缀命中」与「codeSource=null」同时出现即自相矛盾——伪装铁证。
+
+- `WhitelistHitRule` 加 codeSource 可信度门：受信前缀 + codeSource 非空才减 -5；
+  codeSource 为空（伪装）则 0
+- 新增 `MasqueradedPackageRule`（+5）：受信前缀 + codeSource 空 → 伪装铁证加分
+- 两规则均用 `ctx.whitelist.isFrameworkPackage`，逻辑互斥（可信减分 / 伪装加分）
+- 零误报：真框架类必有 jar 来源，受信前缀类 + codeSource=null 在正常环境不存在；
+  agent-* 型 finding 仍由 RuleEngine 早退保护，不受影响
+- 已知局限：白名单含 com.fasterxml.jackson.* / org.springframework.* 等，这些框架运行时
+  动态生成类（Jackson 多态反序列化辅助类、Spring CGLIB 代理）codeSource 可能为 null，
+  理论上触发 +5；缓解——本规则只作用于已被 scanner 识别为注册组件（Filter/Servlet/Listener）
+  的 finding，普通动态代理不会注册成 Web 组件，实际误报概率极低
+- 实地验收（哥斯拉 ground truth）：3 个伪装包名 Filter 马（TypeIdResolverBase /
+  JsonAppend / PropertyWriter）全部升 critical，数量与哥斯拉客户端 getAllFilter 一致；
+  真阳不回退（冰蝎 critical、JSP shell high）、v0.12.1 examples 抑制不回退
+- 参考：`docs/superpowers/specs/2026-06-04-v0.13-masquerade-detection-design.md`
+
 ### v1.0：生产可用
 
 目标：

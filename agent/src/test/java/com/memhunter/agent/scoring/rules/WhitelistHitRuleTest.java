@@ -12,18 +12,27 @@ class WhitelistHitRuleTest {
     private final ScanContext ctx = new ScanContext(null, Whitelist.defaults(), false);
 
     @Test
-    void hits_framework_package() {
-        assertEquals(-5, rule.evaluate(finding("org.apache.tomcat.websocket.server.WsFilter", null), ctx));
+    void framework_package_with_codesource_is_trusted_minus5() {
+        assertEquals(-5, rule.evaluate(
+                finding("org.apache.tomcat.websocket.server.WsFilter",
+                        "file:/opt/tomcat/lib/tomcat-websocket.jar"), ctx));
     }
 
     @Test
-    void ignores_trusted_codesource_without_framework_package() {
+    void framework_package_with_null_codesource_is_not_trusted_zero() {
+        assertEquals(0, rule.evaluate(
+                finding("org.apache.coyote.jsontype.impl.TypeIdResolverBase", null), ctx));
+    }
+
+    @Test
+    void framework_package_with_empty_codesource_is_not_trusted_zero() {
+        assertEquals(0, rule.evaluate(
+                finding("org.apache.coyote.ser.PropertyWriter", ""), ctx));
+    }
+
+    @Test
+    void non_framework_package_is_zero() {
         assertEquals(0, rule.evaluate(finding("com.example.NormalFilter", "file:/opt/app/app.jar"), ctx));
-    }
-
-    @Test
-    void misses_unknown_package_and_codesource() {
-        assertEquals(0, rule.evaluate(finding("com.attacker.FakeFilter", "file:/tmp/x.jar"), ctx));
     }
 
     private Finding finding(String className, String codeSource) {

@@ -88,7 +88,7 @@ class RuleEngineTest {
 
     @Test
     void default_rules_contains_eighteen_rules_including_baseline_new() {
-        assertEquals(19, RuleEngine.defaultRules().size());
+        assertEquals(20, RuleEngine.defaultRules().size());
         assertTrue(RuleEngine.defaultRules().stream()
                 .anyMatch(rule -> "baseline-new".equals(rule.name())));
     }
@@ -153,6 +153,45 @@ class RuleEngineTest {
         new RuleEngine().evaluate(findings, null);
         assertEquals("critical", f.level, "agent-* finding must not be suppressed");
         assertEquals(15, f.score);
+    }
+
+    @Test
+    void godzilla_masqueraded_filter_scored_critical() {
+        Finding f = new Finding();
+        f.type = "tomcat-filter";
+        f.className = "org.apache.coyote.jsontype.impl.TypeIdResolverBase";
+        f.codeSource = null;
+        f.attributes.put("isDynamic", Boolean.TRUE);
+        f.attributes.put("urlPatterns", java.util.Arrays.asList("/*"));
+
+        java.util.List<Finding> findings = new java.util.ArrayList<>();
+        findings.add(f);
+        new RuleEngine().evaluate(findings,
+                new com.memhunter.agent.model.ScanContext(
+                        null, com.memhunter.agent.scoring.Whitelist.defaults(), false));
+
+        assertEquals("critical", f.level,
+                "masqueraded framework-package filter with no jar source must be critical");
+        assertTrue(f.score >= 10,
+                "masqueraded filter score must reach critical threshold, was: " + f.score);
+    }
+
+    @Test
+    void real_framework_class_keeps_whitelist_discount_not_masquerade() {
+        Finding f = new Finding();
+        f.type = "tomcat-filter";
+        f.className = "org.apache.tomcat.websocket.server.WsFilter";
+        f.codeSource = "file:/opt/tomcat/lib/tomcat-websocket.jar";
+        f.attributes.put("isDynamic", Boolean.FALSE);
+
+        java.util.List<Finding> findings = new java.util.ArrayList<>();
+        findings.add(f);
+        new RuleEngine().evaluate(findings,
+                new com.memhunter.agent.model.ScanContext(
+                        null, com.memhunter.agent.scoring.Whitelist.defaults(), false));
+
+        assertEquals("low", f.level,
+                "real framework class loaded from jar must score low");
     }
 
     private ScoringRule rule(String name, int delta) {
