@@ -66,6 +66,10 @@ public class TomcatFilterScanner {
         if (filterInstance != null) {
             f.codeSource = codeSourceOf(filterInstance.getClass());
             f.classLoader = clName(filterInstance.getClass().getClassLoader());
+        } else {
+            // v0.12.1: filter declared but not yet instantiated → resolve code source by class name
+            // via the webapp loader, so a normal webapp filter is not mislabelled "no code source".
+            f.codeSource = WebappCodeSourceResolver.resolveByName(f.className, context);
         }
 
         f.id = FindingIdGenerator.generate(TYPE, f.className == null ? "" : f.className, filterName);

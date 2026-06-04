@@ -65,10 +65,24 @@ class BenignComponentRuleTest {
     }
 
     @Test
-    void does_not_suppress_high_entropy_class_name() {
+    void suppresses_camelcase_business_name_with_clean_bytecode() {
+        // v0.12.1: the Shannon-entropy class-name gate was removed — it mislabelled normal
+        // CamelCase webapp classes (RequestInfoExample, entropy 3.9) as random while missing
+        // short real random names (Xdozy, entropy 2.3). Trust the bytecode-malice gate instead:
+        // a clean-bytecode webapp component is suppressed regardless of name entropy.
+        Finding f = finding("tomcat-servlet", "RequestInfoExample",
+                "file:/opt/tomcat/webapps/examples/WEB-INF/classes/");
+        ScanContext ctx = ctxWithBytecode("RequestInfoExample", "java/util/List#add");
+        assertEquals(-10, new BenignComponentRule().evaluate(f, ctx));
+    }
+
+    @Test
+    void still_does_not_suppress_high_entropy_name_when_bytecode_malicious() {
+        // Even a webapp-located class is NOT suppressed if its bytecode is malicious — the
+        // malice gate, not the name, is what blocks suppression.
         Finding f = finding("tomcat-servlet", "com.x.aXk9Qz7mP2wL",
                 "file:/opt/tomcat/webapps/app/WEB-INF/classes/");
-        ScanContext ctx = ctxWithBytecode("com.x.aXk9Qz7mP2wL", "java/util/List#add");
+        ScanContext ctx = ctxWithBytecode("com.x.aXk9Qz7mP2wL", "java/lang/Runtime#exec");
         assertEquals(0, new BenignComponentRule().evaluate(f, ctx));
     }
 

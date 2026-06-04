@@ -71,6 +71,11 @@ public class TomcatServletScanner {
                     .map(v -> Boolean.TRUE.equals(v))
                     .orElse(true);  // conservative: if API absent, assume dynamic (don't suppress scoring)
         } else {
+            // v0.12.1: lazy-load servlet not yet instantiated (e.g. stock Tomcat examples with
+            // load-on-startup unset). Resolve the code source by class name via the webapp loader so
+            // we don't mislabel a normal webapp servlet as "no code source" (which both inflates the
+            // score and blocks BenignComponentRule suppression).
+            f.codeSource = WebappCodeSourceResolver.resolveByName(f.className, context);
             isDynamic = true;  // no instance yet → conservative: assume dynamic
         }
         f.attributes.put("isDynamic", isDynamic);
