@@ -33,6 +33,8 @@ public class ClassScanner {
                     ? "bootstrap"
                     : clazz.getClassLoader().getClass().getName();
             f.id = FindingIdGenerator.generate(f.type, f.className, "");
+            String jspUrl = JspPathResolver.toJspUrl(f.className);
+            if (jspUrl != null) f.attributes.put("jspPath", jspUrl);
             findings.add(f);
         }
         return findings;
