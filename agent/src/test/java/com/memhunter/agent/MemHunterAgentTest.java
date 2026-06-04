@@ -33,7 +33,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MemHunterAgentTest {
 
-    private static final int EVIL_FILTER_CRITICAL_SCORE = 14;
+    // v0.12: RuntimeOnlyRule downgrade (+4 -> +1) lowered the fresh rescan score
+    // of the runtime-only evil filter from 14 to 11. Still critical (>= 10).
+    private static final int EVIL_FILTER_CRITICAL_SCORE = 11;
 
     @TempDir
     Path tempDir;

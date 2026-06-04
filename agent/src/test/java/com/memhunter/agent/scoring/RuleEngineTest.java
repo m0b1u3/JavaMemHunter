@@ -88,7 +88,7 @@ class RuleEngineTest {
 
     @Test
     void default_rules_contains_eighteen_rules_including_baseline_new() {
-        assertEquals(18, RuleEngine.defaultRules().size());
+        assertEquals(19, RuleEngine.defaultRules().size());
         assertTrue(RuleEngine.defaultRules().stream()
                 .anyMatch(rule -> "baseline-new".equals(rule.name())));
     }
@@ -121,6 +121,38 @@ class RuleEngineTest {
         new RuleEngine().evaluate(findings, null);
 
         assertNotEquals(999, tomcatFinding.score, "非 agent finding 应被规则重新评分");
+    }
+
+    @Test
+    void benign_webapp_component_scored_low_by_full_chain() {
+        Finding f = new Finding();
+        f.type = "tomcat-servlet";
+        f.className = "com.example.UserServlet";
+        f.codeSource = "file:/opt/tomcat/webapps/app/WEB-INF/classes/";
+        f.attributes.put("isDynamic", Boolean.TRUE);
+        com.memhunter.agent.model.ScanContext ctx =
+            new com.memhunter.agent.model.ScanContext(null, null, false);
+        ctx.putBytecodeForTest("com.example.UserServlet",
+            new com.memhunter.agent.scoring.bytecode.BytecodeAnalysis(new java.util.HashSet<>()));
+        java.util.List<Finding> findings = new java.util.ArrayList<>();
+        findings.add(f);
+        new RuleEngine().evaluate(findings, ctx);
+        assertEquals("low", f.level,
+            "benign webapp business component must score low after full chain");
+    }
+
+    @Test
+    void agent_bytecode_tampered_stays_critical_through_chain() {
+        Finding f = new Finding();
+        f.type = "agent-bytecode-tampered";
+        f.className = "javax.servlet.http.HttpServlet";
+        f.score = 15;
+        f.level = "critical";
+        java.util.List<Finding> findings = new java.util.ArrayList<>();
+        findings.add(f);
+        new RuleEngine().evaluate(findings, null);
+        assertEquals("critical", f.level, "agent-* finding must not be suppressed");
+        assertEquals(15, f.score);
     }
 
     private ScoringRule rule(String name, int delta) {

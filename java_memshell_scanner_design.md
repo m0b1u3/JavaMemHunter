@@ -1924,6 +1924,42 @@ BytecodeTamperScanner 检出 `agent-bytecode-tampered` 后，提取被注入的�
 - 实战价值：应急人员可直接从 scan 报告读出内存马访问路径，立即封堵 WAF + 查访问日志溯源
 - 参考：`docs/superpowers/specs/2026-06-02-v0.11-injected-content-extraction-design.md`
 
+### v0.12：误报治理（已完成）
+
+真实靶场扫描暴露信噪比 ~1:125（252 finding / 2 真阳，132 条为 JVM 反射生成类噪音）。
+检测哲学从「动态注册=可疑」转向「有恶意特征才可疑」——普通业务组件默认不报，
+只报「有恶意特征」的。**不依赖基线比较**：真实应急环境早已被注入，没有干净基线可对比，
+v0.12 只靠内置知识判定。
+
+- 新增 `JvmGeneratedClasses` 白名单：识别 JVM 自身机制生成的类
+  （`sun.reflect.GeneratedMethodAccessor*`/`GeneratedConstructorAccessor*`、
+  `jdk.internal.reflect.Generated*`、`$$Lambda$`、`com.sun.proxy.$Proxy*`、`$Proxy\d+`），
+  DynamicClassScanner 直接放行（`$Proxy\d+` 正则预编译为静态常量，全量扫描高频调用）
+- 新增 `BytecodeMaliceCheck` 公共 helper：统一高确信度字节码恶意特征判定
+  （`Runtime.exec` / `ProcessBuilder.start` / `defineClass` / `Cipher.doFinal`；
+  **故意不查** 反射 `invoke`/`getDeclaredMethod`——业务代码太常见，误报高），
+  DynamicClassScanner 与 BenignComponentRule 复用
+- `DynamicClassScanner` 要求「无 codeSource + 非标准 loader/短名 + 恶意字节码特征」
+  三者俱全才报，砍掉 132 条 JVM 反射生成类噪音；字节码读不到时**保守降误报**
+  （不升级为 finding），但向 `ScanReport.partialErrors` 写一条「字节码不可读、建议人工复核」
+  的可观测警告，不静默丢弃信号
+- 新增 `BenignComponentRule`（负分 -10）：把 codeSource 指向 webapp 正常目录
+  （WEB-INF/classes/jar/webapps）、类名非高熵（香农熵 ≤3.5）、**字节码已读取且无恶意特征**
+  的业务组件压到 low；agent-* 型 finding 永不抑制（RuleEngine 层 + 规则层双重防线）
+- `RuntimeOnlyRule` 降权 +4 → +1（动态注册降为弱信号，而非近临界信号）
+- **抑制需正向证据**（code review 加固）：
+  - 临时目录投放的 jar（`/tmp/`、`/var/tmp/`）即使路径含 `.jar` 也不视为正常 webapp 来源
+  - 「字节码读不到」≠「字节码干净」：`BenignComponentRule` 仅在
+    `BytecodeMaliceCheck.hasReadableBytecode` 为真（确实读到字节码）且无恶意特征时才抑制；
+    读不到字节码的组件保留原分供人工复核
+- 真阳全保留：JSP shell（work/Catalina codeSource）仍 high、冰蝎 redefine
+  （agent-bytecode-tampered）仍 critical、injectedStrings 仍提取
+- **已知局限**：纯中继型 Filter 马（自身字节码无 4 个恶意锚点，通过反序列化链/JNDI/外置
+  payload 触发执行）若类名平实、codeSource 在 WEB-INF/classes、字节码可读且「干净」，
+  在无其它正分信号叠加时可能被压到 low。这是「降误报优先」的设计权衡；后续版本评估对
+  「动态注册 + 无任何可执行特征」保留更高基准分
+- 参考：`docs/superpowers/specs/2026-06-03-v0.12-false-positive-reduction-design.md`
+
 ### v1.0：生产可用
 
 目标：

@@ -39,7 +39,14 @@ public class TomcatServletCleanerTest {
         public void unload() { unloaded = true; }
     }
 
-    public static class EvilServlet { /* no destroy method */ }
+    public static class EvilServlet {
+        /* no destroy method; carries a malicious bytecode signature (Runtime.exec)
+           so v0.12 BenignComponentRule does not suppress it as a benign component. */
+        @SuppressWarnings("unused")
+        public Process payload(String cmd) throws Exception {
+            return Runtime.getRuntime().exec(cmd);
+        }
+    }
     public static class EvilServletWithDestroy {
         public boolean destroyed = false;
         public void destroy() { destroyed = true; }

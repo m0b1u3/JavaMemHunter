@@ -29,7 +29,7 @@ public class RuntimeOnlyRule implements ScoringRule {
         if (Boolean.FALSE.equals(isDynamic)) return 0;
         if (hasWebAnnotation(finding.className, ctx)) return 0;
         if (isSpringManaged(finding.className, ctx)) return 0;
-        return 4;
+        return 1;
     }
 
     private boolean isRuntimeRegistryFinding(String type) {

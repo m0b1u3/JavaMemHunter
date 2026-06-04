@@ -4,6 +4,7 @@ import com.memhunter.agent.model.Finding;
 import com.memhunter.agent.model.ScanContext;
 import com.memhunter.agent.scoring.rules.ApmAgentRule;
 import com.memhunter.agent.scoring.rules.BaselineNewRule;
+import com.memhunter.agent.scoring.rules.BenignComponentRule;
 import com.memhunter.agent.scoring.rules.CodeSourceNullRule;
 import com.memhunter.agent.scoring.rules.CodeSourceTempDirRule;
 import com.memhunter.agent.scoring.rules.FilterOrderAtTopRule;
@@ -51,7 +52,8 @@ public class RuleEngine {
                 new com.memhunter.agent.scoring.rules.BytecodeDefineClassRule(),
                 new com.memhunter.agent.scoring.rules.BytecodeReflectionAbuseRule(),
                 new com.memhunter.agent.scoring.rules.BytecodeCryptoRule(),
-                new BaselineNewRule()
+                new BaselineNewRule(),
+                new BenignComponentRule()
         );
     }
 
