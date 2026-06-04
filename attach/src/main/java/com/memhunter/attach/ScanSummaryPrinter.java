@@ -49,10 +49,73 @@ public final class ScanSummaryPrinter {
                     JsonNode cn = f.path("className");
                     String className = (cn.isNull() || cn.isMissingNode()) ? "<null>" : cn.asText();
                     int score = f.path("score").asInt(0);
-                    out.println("  [" + level + "] " + type + "  " + className + "  score=" + score);
+                    StringBuilder line = new StringBuilder("  [" + level + "] " + type
+                            + "  " + className + "  score=" + score);
+                    appendLocation(line, type, f.path("attributes"));
+                    out.println(line.toString());
                 }
             }
         }
         out.println("[memhunter] full report: " + reportPath);
+    }
+
+    private static void appendLocation(StringBuilder line, String type, JsonNode attrs) {
+        if (attrs == null || attrs.isMissingNode() || !attrs.isObject()) return;
+        if ("tomcat-filter".equals(type)) {
+            appendListPath(line, attrs.path("urlPatterns"), Integer.MAX_VALUE);
+        } else if ("tomcat-servlet".equals(type)) {
+            appendListPath(line, attrs.path("mappings"), Integer.MAX_VALUE);
+        } else if ("spring-mapping".equals(type)) {
+            JsonNode p = attrs.path("pattern");
+            if (!p.isMissingNode() && !p.isNull() && !p.asText("").isEmpty()) {
+                line.append("  path=").append(p.asText());
+            }
+        } else if ("spring-interceptor".equals(type)) {
+            appendListPath(line, attrs.path("includePatterns"), Integer.MAX_VALUE);
+            String exStr = formatList(attrs.path("excludePatterns"), Integer.MAX_VALUE);
+            if (exStr != null) line.append("  exclude=").append(exStr);
+        } else if ("agent-bytecode-tampered".equals(type)) {
+            appendListPath(line, attrs.path("injectedStrings"), 5);
+        } else if (type != null && type.startsWith("tomcat-listener-")) {
+            JsonNode k = attrs.path("listenerKind");
+            if (!k.isMissingNode() && !k.isNull() && !k.asText("").isEmpty()) {
+                line.append("  trigger=").append(k.asText());
+            }
+        } else if ("tomcat-valve".equals(type)) {
+            JsonNode idx = attrs.path("pipelineIndex");
+            if (!idx.isMissingNode() && !idx.isNull()) {
+                line.append("  pipeline=").append(idx.asText());
+            }
+        } else if ("agent-transformer".equals(type)) {
+            JsonNode c = attrs.path("transformerClass");
+            if (!c.isMissingNode() && !c.isNull() && !c.asText("").isEmpty()) {
+                line.append("  class=").append(c.asText());
+            }
+        }
+    }
+
+    private static void appendListPath(StringBuilder line, JsonNode listNode, int max) {
+        String s = formatList(listNode, max);
+        if (s != null) line.append("  path=").append(s);
+    }
+
+    private static String formatList(JsonNode node, int max) {
+        if (node == null || node.isMissingNode() || node.isNull()) return null;
+        if (node.isArray()) {
+            int n = node.size();
+            if (n == 0) return null;
+            StringBuilder sb = new StringBuilder("[");
+            int shown = Math.min(n, max);
+            for (int i = 0; i < shown; i++) {
+                if (i > 0) sb.append(", ");
+                sb.append(node.get(i).asText());
+            }
+            if (n > max) sb.append(", ...(+").append(n - max).append(" more)");
+            sb.append("]");
+            return sb.toString();
+        }
+        String t = node.asText("");
+        if (t.isEmpty()) return null;
+        return "[" + t + "]";
     }
 }
