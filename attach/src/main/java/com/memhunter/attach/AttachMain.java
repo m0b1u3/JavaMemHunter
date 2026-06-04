@@ -66,6 +66,8 @@ public class AttachMain {
             String reportPath = resolveScanOutput(options);
             String scanArgs;
             if (options.containsKey("output")) {
+                // reportPath is guaranteed space-free by resolveScanOutput; the agent arg pipeline
+                // splits on whitespace so paths with spaces are rejected upstream.
                 scanArgs = agentArgs.toString().replaceFirst(
                         "--output\\s+\\S+",
                         java.util.regex.Matcher.quoteReplacement("--output " + reportPath));
@@ -86,17 +88,22 @@ public class AttachMain {
     static String resolveScanOutput(java.util.Map<String, String> options) {
         String userOut = options.get("output");
         String abs;
-        if (userOut != null && !"true".equals(userOut)) {
+        if (userOut != null && !"true".equals(userOut)) {  // "true" = parseOptions sentinel for flag-only --output
             abs = new java.io.File(userOut).getAbsolutePath();
         } else {
             abs = new java.io.File("memhunter-scan-" + System.currentTimeMillis() + ".json")
                     .getAbsolutePath();
         }
+        if (abs.indexOf(' ') >= 0) {
+            throw new IllegalArgumentException(
+                "--output path must not contain spaces (agent arg parsing splits on whitespace): " + abs);
+        }
         return abs;
     }
 
     private static int parseIntSafe(String s) {
-        try { return Integer.parseInt(s.trim()); } catch (Exception e) { return -1; }
+        if (s == null) return -1;
+        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return -1; }
     }
 
     private static void printUsage(PrintStream err) {

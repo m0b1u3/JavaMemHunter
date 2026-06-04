@@ -19,12 +19,13 @@ public final class ScanSummaryPrinter {
 
     private ScanSummaryPrinter() {}
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String[] SHOWN_LEVELS = {"critical", "high", "suspicious"};
 
     public static void print(PrintStream out, String reportPath, int pid) {
         JsonNode root;
         try {
-            root = new ObjectMapper().readTree(new File(reportPath));
+            root = MAPPER.readTree(new File(reportPath));
             if (root == null) throw new IllegalStateException("empty report");
         } catch (Throwable t) {
             out.println("[memhunter] scan finished, report at " + reportPath

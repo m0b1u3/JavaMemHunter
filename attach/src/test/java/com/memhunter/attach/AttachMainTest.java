@@ -165,6 +165,14 @@ class AttachMainTest {
     }
 
     @Test
+    void scan_output_with_space_is_rejected() {
+        RecordingExecutor executor = new RecordingExecutor();
+        assertThrows(IllegalArgumentException.class, () ->
+            run(new String[]{"123", "agent.jar", "scan", "--output", "C:\\some dir\\scan.json"}, "", executor));
+        assertFalse(executor.called, "must reject before attaching");
+    }
+
+    @Test
     void clean_command_does_not_inject_default_output() throws Exception {
         String id = "F-123";
         writeCleanPlan(id);
@@ -175,7 +183,8 @@ class AttachMainTest {
         RecordingExecutor executor = new RecordingExecutor();
         run(new String[]{"123", "agent.jar", "clean", "--id", id, "--confirm",
                 "--evidence-dir", tempDir.toString()}, "yes\n", executor);
-        assertTrue(!executor.called || !executor.agentArgs.contains("--output"), executor.agentArgs);
+        assertTrue(executor.called, "clean should invoke executor after yes");
+        assertFalse(executor.agentArgs.contains("--output"), executor.agentArgs);
     }
 
     private int run(String[] args, String stdin, RecordingExecutor executor) throws Exception {
