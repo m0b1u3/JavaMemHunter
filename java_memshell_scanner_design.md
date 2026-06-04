@@ -2059,6 +2059,22 @@ JSP webshell 是文件型 webshell（磁盘有 .jsp、编译成 org.apache.jsp.*
   codeSource=null、重启即清——摘要的 path 对前者指向待删文件、对后者指向待封 URL
 - 参考：`docs/superpowers/specs/2026-06-04-v0.16-jsp-path-resolution-design.md`
 
+### v0.17：finding 同类去重/合并（已完成）
+
+同一个恶意类被多个 scanner 从不同视角各报一次——哥斯拉的 `org.apache.coyote.ser.PropertyWriter`
+既被 TomcatFilterScanner 报为 tomcat-filter（score 16、path=[/*]），又被 ClassScanner 报为
+class-filter（score 13、无路径），critical 列表里同一类出现两次，使用人员迷惑。
+
+- 新增 `FindingDeduplicator.dedupe`（纯函数）：按 className 分组，每组留信息最全的一条——
+  score 最高；同分取 attributes 有路径字段（urlPatterns/mappings/jspPath/pattern/
+  includePatterns/injectedStrings）的；仍并列取输入靠前的（LinkedHashMap 稳定顺序）
+- className=null 的不合并（如哥斯拉 Servlet 马，无法判同一性，原样保留）
+- MemHunterAgent 在 RuleEngine 评分后、写报告前调用 → JSON、终端摘要、summary 计数三者一致
+- 效果：容器视角（tomcat-/spring-，分高有路径）自然胜出，class-* 冗余条消失；class-* 唯一
+  发现（JSP shell、哥斯拉工具类）保留
+- 不改 scanner/评分/clean；clean 按 id 复扫定位，去重保留主条 id 仍有效
+- 参考：`docs/superpowers/specs/2026-06-04-v0.17-finding-dedup-design.md`
+
 ### v1.0：生产可用
 
 目标：
