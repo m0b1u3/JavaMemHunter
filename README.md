@@ -53,6 +53,8 @@ java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.
 # Each listed finding is annotated with its access path where applicable: path=[/*] for a filter,
 # path=[/foo] for a servlet mapping, the injected URI for a Behinder agent shell, etc. Event- or
 # pipeline-triggered shells with no URL (listeners, valves) show trigger=/pipeline= instead.
+# JSP webshells (compiled to org.apache.jsp.*) show their reverse-mapped .jsp URL, e.g.
+# path=[/shell.jsp] — a file-based shell to delete from disk, not an in-memory one.
 # Note: the report path must not contain spaces (agent argument parsing splits on whitespace).
 
 # 4. Dry-run clean (writes plan, makes no change)
