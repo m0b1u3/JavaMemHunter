@@ -93,6 +93,14 @@ class BenignComponentRuleTest {
     }
 
     @Test
+    void does_not_suppress_windows_temp_jar() {
+        Finding f = finding("tomcat-filter", "com.example.LoggingFilter",
+                "file:/C:/Windows/Temp/evil.jar");
+        ScanContext ctx = ctxWithBytecode("com.example.LoggingFilter", "java/util/List#add");
+        assertEquals(0, new BenignComponentRule().evaluate(f, ctx));
+    }
+
+    @Test
     void does_not_suppress_when_bytecode_unreadable() {
         // "bytecode missing" must NOT be treated as "bytecode proven clean".
         // A no-feature filter whose bytecode could not be read keeps its score

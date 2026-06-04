@@ -96,6 +96,11 @@ public class DynamicClassScanner {
                         + name + " — skipped to reduce false positives; manual review recommended"));
                 return false;
             }
+            // 字节码可读但不含 4 个高确信度恶意锚点（Runtime.exec/ProcessBuilder.start/
+            // defineClass/Cipher.doFinal）时，此处静默返回 false——这是 v0.12「降误报优先」的
+            // 已知权衡：可读但无特征的动态类不再上报，也不发 partialError（与「不可读」分支不同）。
+            // 补充检测渠道：agent 型 redefine 马走 BytecodeTamperScanner；自定义 transformer 走
+            // TransformerScanner；这些路径不依赖本方法的恶意锚点判定。详见设计文档 §25 v0.12 已知局限。
             return BytecodeMaliceCheck.hasMalice(a);
         } catch (Throwable t) {
             return false;

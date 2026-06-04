@@ -45,7 +45,11 @@ public class BenignComponentRule implements ScoringRule {
         // Exclude locations that are never a legitimate webapp component source, even if the
         // path superficially matches a webapp marker (e.g. a jar dropped in /tmp).
         if (cs.contains("/work/Catalina/")) return false;   // compiled JSP work dir
-        if (cs.contains("/tmp/") || cs.contains("/var/tmp/")) return false;  // temp-dropped payloads
+        if (cs.contains("/tmp/") || cs.contains("/var/tmp/")) return false;  // *nix temp-dropped payloads
+        // Windows temp locations (target may run on a Windows JDK): match both slash styles.
+        String lower = cs.toLowerCase();
+        if (lower.contains("\\temp\\") || lower.contains("/temp/")
+                || lower.contains("\\appdata\\local\\temp")) return false;
         return cs.contains("/WEB-INF/") || cs.contains(".jar")
             || cs.contains("/classes/") || cs.contains("/webapps/");
     }
