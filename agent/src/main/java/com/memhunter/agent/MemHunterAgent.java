@@ -108,7 +108,16 @@ public class MemHunterAgent {
 
             // 5. v0.3 scoring
             Object appCtx = pickFirstAppContext(tomcatServletInstances);
-            new RuleEngine().evaluate(all, new ScanContext(appCtx, whitelist, explain, baselineIndex));
+            // v0.12.1: collect webapp class loaders so bytecode-based rules can read webapp classes
+            // (the agent/system loader cannot see them in a real Tomcat).
+            List<ClassLoader> webappLoaders = new ArrayList<>();
+            for (Object tctx : tomcatContexts) {
+                ClassLoader wl = com.memhunter.agent.scanner.tomcat.WebappCodeSourceResolver
+                        .webappClassLoader(tctx);
+                if (wl != null && !webappLoaders.contains(wl)) webappLoaders.add(wl);
+            }
+            new RuleEngine().evaluate(all,
+                    new ScanContext(appCtx, whitelist, explain, baselineIndex, webappLoaders));
 
             report.findings = all;
             populateSummary(report, all, baselineIndex);

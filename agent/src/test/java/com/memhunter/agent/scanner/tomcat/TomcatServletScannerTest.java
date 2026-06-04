@@ -49,6 +49,54 @@ class TomcatServletScannerTest {
         assertEquals(Boolean.FALSE, findings.get(0).attributes.get("isDynamic"));
     }
 
+    // v0.12.1: lazy-load servlet (no instance) still gets a code source resolved by class name.
+    static class FakeLoader {
+        private final ClassLoader cl;
+        FakeLoader(ClassLoader cl) { this.cl = cl; }
+        public ClassLoader getClassLoader() { return cl; }
+    }
+    static class LazyContext {
+        private final String servletClass;
+        private final Object loader;
+        LazyContext(String servletClass, Object loader) {
+            this.servletClass = servletClass; this.loader = loader;
+        }
+        public String getPath() { return "/examples"; }
+        public Object getLoader() { return loader; }
+        public Object[] findChildren() {
+            // getServlet() returns null → not instantiated (lazy)
+            return new Object[] { new FakeWrapper("lazy", servletClass, null) };
+        }
+    }
+
+    @Test
+    void lazy_servlet_without_instance_resolves_codesource_via_context_loader() {
+        // Use a real loadable class so the webapp loader yields a real code source.
+        String realClass = TomcatServletScannerTest.class.getName();
+        ClassLoader webappCl = TomcatServletScannerTest.class.getClassLoader();
+        LazyContext ctx = new LazyContext(realClass, new FakeLoader(webappCl));
+
+        TomcatServletScanner scanner = new TomcatServletScanner(ctx);
+        List<Finding> findings = scanner.scan(new ScanReport());
+
+        assertFalse(findings.isEmpty(), "lazy servlet must still be reported");
+        Finding f = findings.get(0);
+        assertNotNull(f.codeSource,
+                "v0.12.1: code source must be resolved by name even without a live instance");
+        assertTrue(f.codeSource.startsWith("file:"),
+                "resolved code source should be a real file location: " + f.codeSource);
+    }
+
+    @Test
+    void lazy_servlet_with_unloadable_class_keeps_null_codesource() {
+        ClassLoader webappCl = TomcatServletScannerTest.class.getClassLoader();
+        LazyContext ctx = new LazyContext("com.nope.Missing_X", new FakeLoader(webappCl));
+        TomcatServletScanner scanner = new TomcatServletScanner(ctx);
+        List<Finding> findings = scanner.scan(new ScanReport());
+        assertFalse(findings.isEmpty());
+        assertNull(findings.get(0).codeSource, "unloadable class → null code source (unchanged)");
+    }
+
     @Test
     void when_wasCreatedDynamicServlet_not_available_isDynamic_defaults_to_true() {
         // Context has a servlet wrapper but NO wasCreatedDynamicServlet method

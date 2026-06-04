@@ -1960,6 +1960,32 @@ v0.12 只靠内置知识判定。
   「动态注册 + 无任何可执行特征」保留更高基准分
 - 参考：`docs/superpowers/specs/2026-06-03-v0.12-false-positive-reduction-design.md`
 
+### v0.12.1：误报治理实地复测修复（已完成）
+
+v0.12 合并后实地复扫中了冰蝎 Agent 马的 Tomcat 9.0.94，暴露三个 v0.12 没覆盖到的
+误报源，逐一根因修复：
+
+- **未实例化组件的 codeSource 解析**：Tomcat examples 是 lazy-load（load-on-startup 未设），
+  扫描时 servlet 未实例化 → 旧 scanner 报 `codeSource=null`。这一处缺口连锁触发
+  `CodeSourceNullRule +3` 加分 + 阻断 BenignComponentRule 抑制。新增
+  `WebappCodeSourceResolver`：用类名 + webapp 类加载器（`context.getLoader().getClassLoader()`）
+  按名解析 codeSource（只读、不触发 servlet 生命周期）。Servlet + Filter scanner 同病同修。
+- **移除不可靠的香农熵类名门**：实测 BenignComponentRule 的高熵门既误伤正常驼峰类
+  （`RequestInfoExample` 熵 3.9）又漏掉短随机马名（`Xdozy` 熵 2.3）——香农熵对短标识符
+  两头分不开。删除该门，判恶完全交给 BytecodeMaliceCheck（随机名马几乎总带恶意字节码）。
+- **ScanContext 注入 webapp 类加载器**：根因核心。`ScanContext.resolveClassLoader` 在 Tomcat
+  模式下 `applicationContext=null`（那是 Spring 专用），回落到 agent/system loader，而它
+  **看不到 webapp 类** → `bytecodeOf` 返回 null → `hasReadableBytecode=false` → 所有 webapp
+  组件都因"字节码读不到"无法被抑制。ScanContext 现接收从已定位 Tomcat context 收集的
+  webapp 类加载器，默认 loader 读不到时回落到它们；MemHunterAgent 与 FindingLocator 均收集注入。
+- **实地复测信噪比**（冰蝎靶机，Tomcat 9.0.94 + examples webapp）：
+  - critical：20（基线）→ 8（v0.12）→ **1**（v0.12.1，纯真阳 = 冰蝎 agent-bytecode-tampered）
+  - high：21 → 20 → **1**（纯真阳 = JSP shell `shell_jsp`，work/Catalina codeSource 正确未抑制）
+  - suspicious：170 → 19 → **0**
+  - 132 条 JVM 反射生成类噪音 + Tomcat examples/JSP 引擎噪音全部压到 low（118 条）
+  - 真阳零丢失：冰蝎 critical、JSP shell high 均保留
+- 实战意义：critical+high 两层从 1:125 信噪比降到 **零误报**，应急人员打开报告即见真马
+
 ### v1.0：生产可用
 
 目标：

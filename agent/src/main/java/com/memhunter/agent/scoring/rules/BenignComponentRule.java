@@ -15,6 +15,12 @@ import com.memhunter.agent.scoring.ScoringRule;
  * read AND shown no malice. A component whose bytecode could not be read is left untouched (not
  * suppressed) — "unreadable" is not "clean". Code loaded from a temp directory is likewise never
  * treated as a normal webapp location even if the path ends in ".jar".
+ *
+ * <p>v0.12.1: an earlier Shannon-entropy class-name gate was removed. It mislabelled normal
+ * CamelCase webapp classes (e.g. {@code RequestInfoExample}, entropy ~3.9) as random while missing
+ * short genuinely-random memshell names (e.g. {@code Xdozy}, entropy ~2.3) — entropy on short
+ * identifiers separates neither reliably. The bytecode-malice gate is the authoritative signal; a
+ * random-named memshell almost always carries malicious bytecode and is blocked by that gate.
  */
 public class BenignComponentRule implements ScoringRule {
 
@@ -26,7 +32,6 @@ public class BenignComponentRule implements ScoringRule {
         if (!isComponentFinding(finding.type)) return 0;
 
         if (!isNormalWebappCodeSource(finding.codeSource)) return 0;
-        if (isHighEntropyName(finding.className)) return 0;
 
         // Require positive evidence of cleanliness: bytecode must have been read AND be malice-free.
         // "Unreadable bytecode" is NOT "clean bytecode" — never suppress on absence of evidence.
@@ -54,27 +59,4 @@ public class BenignComponentRule implements ScoringRule {
             || cs.contains("/classes/") || cs.contains("/webapps/");
     }
 
-    private boolean isHighEntropyName(String className) {
-        String simple = className;
-        int dot = className.lastIndexOf('.');
-        if (dot >= 0) simple = className.substring(dot + 1);
-        return simple.length() >= 6 && shannonEntropy(simple) > 3.5;
-    }
-
-    private double shannonEntropy(String s) {
-        if (s == null || s.isEmpty()) return 0.0;
-        int[] freq = new int[128];
-        int counted = 0;
-        for (int i = 0; i < s.length(); i++) {
-            char ch = s.charAt(i);
-            if (ch < 128) { freq[ch]++; counted++; }
-        }
-        if (counted == 0) return 0.0;
-        double ent = 0.0;
-        for (int f : freq) if (f > 0) {
-            double p = (double) f / counted;
-            ent -= p * (Math.log(p) / Math.log(2));
-        }
-        return ent;
-    }
 }

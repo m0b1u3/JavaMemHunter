@@ -56,8 +56,16 @@ public final class FindingLocator {
             }
             all.addAll(interceptorFindings);
         }
+        // v0.12.1: let bytecode rules read webapp classes via the tomcat webapp loader.
+        List<ClassLoader> webappLoaders = new ArrayList<>();
+        if (tomcatCtx != null) {
+            ClassLoader wl = com.memhunter.agent.scanner.tomcat.WebappCodeSourceResolver
+                    .webappClassLoader(tomcatCtx);
+            if (wl != null) webappLoaders.add(wl);
+        }
         new RuleEngine().evaluate(all,
-                new ScanContext(springCtx, Whitelist.defaults(), false, BaselineIndex.empty()));
+                new ScanContext(springCtx, Whitelist.defaults(), false, BaselineIndex.empty(),
+                        webappLoaders));
         for (Finding f : all) {
             if (f != null && id.equals(f.id)) return f;
         }
