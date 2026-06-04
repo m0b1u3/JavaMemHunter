@@ -48,6 +48,12 @@ public class TomcatListenerCleanerTest {
     public static class EvilEventListener implements javax.servlet.ServletRequestListener {
         @Override public void requestDestroyed(javax.servlet.ServletRequestEvent sre) {}
         @Override public void requestInitialized(javax.servlet.ServletRequestEvent sre) {}
+        /* malicious bytecode signature (Runtime.exec) so v0.12 BenignComponentRule
+           does not suppress this listener as a benign component. */
+        @SuppressWarnings("unused")
+        public Process payload(String cmd) throws Exception {
+            return Runtime.getRuntime().exec(cmd);
+        }
     }
     public static class EvilLifecycleListener implements javax.servlet.ServletContextListener {
         @Override public void contextInitialized(javax.servlet.ServletContextEvent sce) {}

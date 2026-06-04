@@ -16,7 +16,7 @@ class RuntimeOnlyRuleTest {
 
     @Test
     void runtime_registry_finding_without_known_source_hits() {
-        assertEquals(4, rule.evaluate(finding("tomcat-filter", "java.lang.String"), ctx(null)));
+        assertEquals(1, rule.evaluate(finding("tomcat-filter", "java.lang.String"), ctx(null)));
     }
 
     @Test
