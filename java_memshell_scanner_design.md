@@ -2028,6 +2028,21 @@ v0.12 合并后实地复扫中了冰蝎 Agent 马的 Tomcat 9.0.94，暴露三�
 - 纯 attach 端改动，复用现有 Jackson；不改 agent 扫描逻辑、不改 JSON 报告内容（仍全量含 low）
 - 参考：`docs/superpowers/specs/2026-06-04-v0.14-scan-summary-design.md`
 
+### v0.15：摘要逐条标注访问路径/定位信息（已完成）
+
+v0.14 的终端摘要每条只有 `[level] type className score`，缺内存马访问路径——而路径正是应急
+封堵/溯源最需要的。v0.15 给每条 critical/high/suspicious 末尾追加路径或定位信息：
+
+- 有 URL 访问路径的类型显示 `path=[...]`：tomcat-filter(urlPatterns)、tomcat-servlet(mappings)、
+  spring-mapping(pattern)、spring-interceptor(includePatterns + exclude)、
+  agent-bytecode-tampered(injectedStrings，冰蝎注入字串含访问路径/解密类名)
+- 无 URL、靠事件/管道/类加载触发的类型显示定位字段：listener 显 `trigger=request/session/context`、
+  valve 显 `pipeline=N`、transformer 显 `class=`——明确告知「无可封路径、靠 XX 触发」，避免误判漏提取
+  （listener 绑事件不绑 URL，任意请求都触发，本就无可封单一路径）
+- injectedStrings 可能很多，截断前 5 条 + `...(+N more)`，完整内容仍在 JSON
+- 纯 attach 端扩展 ScanSummaryPrinter；字段缺失/类型不符不追加、不抛；不改 agent/JSON/scanner
+- 参考：`docs/superpowers/specs/2026-06-04-v0.15-summary-paths-design.md`
+
 ### v1.0：生产可用
 
 目标：
