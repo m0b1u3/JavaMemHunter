@@ -172,4 +172,25 @@ class ScanSummaryPrinterTest {
         assertTrue(out.contains("com.x.F"), out);
         assertFalse(out.contains("path="), out);
     }
+
+    @Test
+    void class_servlet_jsp_shows_jspPath_as_path() throws Exception {
+        String out = scanLineFor("{\"level\":\"high\",\"type\":\"class-servlet\",\"className\":\"org.apache.jsp.wwwwxxx_jsp\",\"score\":7,"
+                + "\"attributes\":{\"jspPath\":\"/wwwwxxx.jsp\"}}");
+        assertTrue(out.contains("path=[/wwwwxxx.jsp]"), out);
+    }
+
+    @Test
+    void class_servlet_without_jspPath_has_no_path_segment() throws Exception {
+        String out = scanLineFor("{\"level\":\"high\",\"type\":\"class-servlet\",\"className\":\"com.x.Plain\",\"score\":7,\"attributes\":{}}");
+        assertTrue(out.contains("com.x.Plain"), out);
+        assertFalse(out.contains("path="), out);
+    }
+
+    @Test
+    void class_filter_with_jspPath_shows_path() throws Exception {
+        String out = scanLineFor("{\"level\":\"high\",\"type\":\"class-filter\",\"className\":\"org.apache.jsp.f_jsp\",\"score\":7,"
+                + "\"attributes\":{\"jspPath\":\"/f.jsp\"}}");
+        assertTrue(out.contains("path=[/f.jsp]"), out);
+    }
 }

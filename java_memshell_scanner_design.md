@@ -2043,6 +2043,22 @@ v0.14 的终端摘要每条只有 `[level] type className score`，缺内存马�
 - 纯 attach 端扩展 ScanSummaryPrinter；字段缺失/类型不符不追加、不抛；不改 agent/JSON/scanner
 - 参考：`docs/superpowers/specs/2026-06-04-v0.15-summary-paths-design.md`
 
+### v0.16：JSP webshell 访问路径反推（已完成）
+
+v0.15 给摘要加了路径，但 JSP webshell（`org.apache.jsp.*_jsp`，经 ClassScanner 发现的
+class-servlet）没显示——它经「扫所有已加载类」发现，attributes 无 mappings/urlPatterns。
+JSP webshell 是文件型 webshell（磁盘有 .jsp、编译成 org.apache.jsp.*_jsp 类），访问路径
+编码在类名里，可纯字符串反推。
+
+- 新增 `JspPathResolver.toJspUrl`（纯函数）：`org.apache.jsp.wwwwxxx_jsp` → `/wwwwxxx.jsp`、
+  `org.apache.jsp.admin.x_jsp` → `/admin/x.jsp`；非 JSP 返回 null
+- ClassScanner 发现 JSP 类时把反推 URL 存进 finding.attributes.jspPath
+- ScanSummaryPrinter 对 class-* 型读 jspPath 显示 `path=[/wwwwxxx.jsp]`
+- 不拼磁盘绝对路径（.jsp URL 已足够定位+删文件）、不处理 Tomcat 全套转义规则（YAGNI）
+- JSP webshell vs 内存马：JSP 是文件型（磁盘有文件、删文件即清、重启仍在）；内存马无磁盘文件、
+  codeSource=null、重启即清——摘要的 path 对前者指向待删文件、对后者指向待封 URL
+- 参考：`docs/superpowers/specs/2026-06-04-v0.16-jsp-path-resolution-design.md`
+
 ### v1.0：生产可用
 
 目标：
