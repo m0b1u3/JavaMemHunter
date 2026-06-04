@@ -62,11 +62,41 @@ public class AttachMain {
             executor.run(pid, agentJar, agentArgs.toString());
             return printCleanResult(out, evidenceDir, id) ? 0 : 1;
         }
+        if ("scan".equals(command)) {
+            String reportPath = resolveScanOutput(options);
+            String scanArgs;
+            if (options.containsKey("output")) {
+                scanArgs = agentArgs.toString().replaceFirst(
+                        "--output\\s+\\S+",
+                        java.util.regex.Matcher.quoteReplacement("--output " + reportPath));
+            } else {
+                scanArgs = agentArgs.toString() + " --output " + reportPath;
+            }
+            executor.run(pid, agentJar, scanArgs);
+            ScanSummaryPrinter.print(out, reportPath, parseIntSafe(pid));
+            return 0;
+        }
         executor.run(pid, agentJar, agentArgs.toString());
         if ("verify".equals(command)) {
             return printVerifyResult(out, evidenceDir(options), requireOption(options, "id")) ? 0 : 1;
         }
         return 0;
+    }
+
+    static String resolveScanOutput(java.util.Map<String, String> options) {
+        String userOut = options.get("output");
+        String abs;
+        if (userOut != null && !"true".equals(userOut)) {
+            abs = new java.io.File(userOut).getAbsolutePath();
+        } else {
+            abs = new java.io.File("memhunter-scan-" + System.currentTimeMillis() + ".json")
+                    .getAbsolutePath();
+        }
+        return abs;
+    }
+
+    private static int parseIntSafe(String s) {
+        try { return Integer.parseInt(s.trim()); } catch (Exception e) { return -1; }
     }
 
     private static void printUsage(PrintStream err) {

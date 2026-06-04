@@ -142,6 +142,42 @@ class AttachMainTest {
                 "stderr must hint at the fix, was: " + stderr);
     }
 
+    @Test
+    void scan_without_output_injects_absolute_default_path() throws Exception {
+        RecordingExecutor executor = new RecordingExecutor();
+        int code = run(new String[]{"123", "agent.jar", "scan"}, "", executor);
+        assertEquals(0, code);
+        assertTrue(executor.called);
+        assertTrue(executor.agentArgs.contains("--output "), executor.agentArgs);
+        String out = executor.agentArgs.substring(executor.agentArgs.indexOf("--output ") + 9).trim();
+        assertTrue(new java.io.File(out).isAbsolute(), "default output must be absolute: " + out);
+        assertTrue(out.contains("memhunter-scan-") && out.endsWith(".json"), out);
+    }
+
+    @Test
+    void scan_with_relative_output_is_made_absolute() throws Exception {
+        RecordingExecutor executor = new RecordingExecutor();
+        int code = run(new String[]{"123", "agent.jar", "scan", "--output", "rel.json"}, "", executor);
+        assertEquals(0, code);
+        String out = executor.agentArgs.substring(executor.agentArgs.indexOf("--output ") + 9).trim();
+        assertTrue(new java.io.File(out).isAbsolute(), "user output must be made absolute: " + out);
+        assertTrue(out.endsWith("rel.json"), out);
+    }
+
+    @Test
+    void clean_command_does_not_inject_default_output() throws Exception {
+        String id = "F-123";
+        writeCleanPlan(id);
+        CleanResult result = new CleanResult();
+        result.findingId = id;
+        result.success = true;
+        writeJson(tempDir.resolve("evidence").resolve(id).resolve("clean-result.json"), result);
+        RecordingExecutor executor = new RecordingExecutor();
+        run(new String[]{"123", "agent.jar", "clean", "--id", id, "--confirm",
+                "--evidence-dir", tempDir.toString()}, "yes\n", executor);
+        assertTrue(!executor.called || !executor.agentArgs.contains("--output"), executor.agentArgs);
+    }
+
     private int run(String[] args, String stdin, RecordingExecutor executor) throws Exception {
         return AttachMain.run(args, input(stdin), new PrintStream(new ByteArrayOutputStream()),
                 new PrintStream(new ByteArrayOutputStream()), executor);
