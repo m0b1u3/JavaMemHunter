@@ -48,7 +48,7 @@ public final class WebappCodeSourceResolver {
     }
 
     /** context.getLoader().getClassLoader() — best effort, null on any failure. */
-    private static ClassLoader webappClassLoader(Object context) {
+    public static ClassLoader webappClassLoader(Object context) {
         try {
             Optional<Object> loader = ReflectUtil.tryInvoke(context, "getLoader");
             if (!loader.isPresent() || loader.get() == null) return null;
