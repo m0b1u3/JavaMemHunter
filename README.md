@@ -8,33 +8,46 @@
 [![Test](https://github.com/m0b1u3/JavaMemHunter/actions/workflows/test.yml/badge.svg)](https://github.com/m0b1u3/JavaMemHunter/actions/workflows/test.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-## What
+JavaMemHunter attaches to a **running JVM**, finds in-memory and file-based webshells,
+prints a concise terminal summary with each shell's access path, and can clean a
+confirmed shell atomically with a rollback-ready JSON evidence bundle.
 
-JavaMemHunter attaches to a running JVM and finds six categories of
-in-memory webshell:
+## What it catches
 
-| Category           | Description                                                       |
-|--------------------|-------------------------------------------------------------------|
-| tomcat-filter      | Filter injected into `StandardContext.filterConfigs`              |
-| tomcat-servlet     | Servlet wrapped as a `StandardWrapper`                            |
-| tomcat-listener    | `ServletContextListener` / request listener                       |
-| tomcat-valve       | `StandardContextValve` replaced                                   |
-| spring-interceptor | `HandlerInterceptor` injected into `AbstractHandlerMapping`       |
-| spring-mapping     | Malicious mapping registered with `RequestMappingHandlerMapping`  |
+Organised by the shell you're hunting (validated against live samples):
 
-Each finding is scored by a rule engine (RMI / `Runtime.exec` / Process
-spawn / crypto / bytecode anomalies / baseline-new). High-score
-findings can be cleaned via a 5-phase atomic plan (scan -> backup ->
-replace -> destroy -> verify), with a JSON evidence bundle suitable for
-IR review and rollback metadata.
+| Shell                         | How it hides                                                        | How JavaMemHunter finds it                              |
+|-------------------------------|---------------------------------------------------------------------|---------------------------------------------------------|
+| **Behinder (冰蝎) agent shell** | `redefineClasses` tampers `HttpServlet.service` bytecode            | bytecode-tamper diff vs disk jar; extracts injected URI/decrypt-class |
+| **Godzilla (哥斯拉) filter shell** | Jackson classes renamed into `org.apache.coyote.*`, dynamically defined | masqueraded-package detection (framework name + no jar source) |
+| **JSP webshell**              | a `.jsp` file on disk, compiled to `org.apache.jsp.*`               | class-name reverse-mapping to the `.jsp` access URL     |
+| **Tomcat Filter / Servlet / Listener / Valve** | registered at runtime into the container, no class file | container-registry scan + runtime-only / wildcard heuristics |
+| **Spring Interceptor / Mapping** | injected into `AbstractHandlerMapping` / `RequestMappingHandlerMapping` | Spring runtime scan                                |
 
-## Why
+## How it works
 
-Static scanners miss in-memory shells. Existing dynamic tools detect
-but rarely clean — and never with rollback or evidence trail.
-JavaMemHunter gives blue teams a way to remove a live shell with a
-JSON evidence bundle and (where applicable) restore the previous
-state if the cleanup mis-fires.
+- **Container-registry scan** — walks Tomcat `StandardContext` filter/servlet/listener/valve
+  registries and Spring handler mappings to find *registered* components.
+- **Class-loaded scan** — `ClassScanner` walks every loaded class for web components the
+  container view might miss (file-based JSP shells, dependency classes).
+- **Agent-type detection** — `AgentTypeScanner` compares in-memory bytecode of key classes
+  (`HttpServlet.service`, valves, dispatchers) against their disk jars via ASM method-body
+  fingerprints, catching `redefineClasses`-based shells (Behinder); extracts the injected
+  access path / decrypt-class strings from the tampered constant pool.
+- **Rule-engine scoring** — independent rules sum to a score → `critical` / `high` /
+  `suspicious` / `low`. Highlights: `masqueraded-package` (framework name + null codeSource),
+  bytecode-malice checks (`Runtime.exec` / `defineClass` / `Cipher.doFinal`), and several
+  false-positive suppressors.
+- **Noise control, validated to zero false positives on a live target**:
+  benign webapp components are not reported; JVM reflection-generated classes are whitelisted;
+  same-class findings from different scanners are deduplicated; a Godzilla filter shell's
+  injected Jackson *dependency* classes are downgraded out of `critical` (still reported in
+  `high`).
+- **Access-path annotation** — every listed finding shows where to find it: a filter's
+  `urlPatterns`, a servlet's mappings, a JSP's reverse-mapped `.jsp` URL, or a Behinder agent
+  shell's injected URI.
+- **Atomic clean + verify** — a 5-phase plan (rescan → backup → replace → destroy → verify)
+  with a JSON evidence bundle and rollback metadata.
 
 ## Quick start
 
@@ -45,42 +58,71 @@ state if the cleanup mis-fires.
 # 2. Find the target PID
 jps -l
 
-# 3. Scan
-java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.jar scan --output scan.json
-# --output is optional: without it the report is written to memhunter-scan-<timestamp>.json in the
-# current directory. Either way a concise summary (critical/high/suspicious findings + a count of
-# suppressed low ones) is printed to your terminal and the full report path is shown.
-# Each listed finding is annotated with its access path where applicable: path=[/*] for a filter,
-# path=[/foo] for a servlet mapping, the injected URI for a Behinder agent shell, etc. Event- or
-# pipeline-triggered shells with no URL (listeners, valves) show trigger=/pipeline= instead.
-# JSP webshells (compiled to org.apache.jsp.*) show their reverse-mapped .jsp URL, e.g.
-# path=[/shell.jsp] — a file-based shell to delete from disk, not an in-memory one.
-# Note: the report path must not contain spaces (agent argument parsing splits on whitespace).
-
-# 4. Dry-run clean (writes plan, makes no change)
-java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.jar \
-     clean --id F-xxx --dry-run --evidence-dir .
-
-# 5. Confirm clean (prompts for "yes")
-java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.jar \
-     clean --id F-xxx --confirm --evidence-dir .
+# 3. Scan (--output is optional; defaults to ./memhunter-scan-<timestamp>.json)
+java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.jar scan
 ```
+
+A concise summary is printed straight to your terminal — only `critical` / `high` /
+`suspicious` are listed, `low` is counted but not shown:
+
+```
+[memhunter] scan summary (PID <pid>):
+  critical: 4  high: 9  suspicious: 0  low: 67
+  [critical] tomcat-filter  org.apache.coyote.JavaType                     score=16  path=[/*]
+  [critical] tomcat-filter  org.apache.coyote.MapperFeature                score=16  path=[/*]
+  [critical] tomcat-filter  org.apache.coyote.jsontype.impl.TypeSerializerBase  score=16  path=[/*]
+  [critical] tomcat-filter  org.apache.coyote.deser.BeanDeserializerModifier    score=16  path=[/*]
+  [high] class-servlet  org.apache.coyote.util.EnumValues   score=8         (Jackson dependency class, downgraded)
+  [high] class-servlet  org.apache.jsp.<obfuscated>_jsp     score=7  path=[/<obfuscated>.jsp]
+  [high] tomcat-servlet  <null>  score=8  path=[/<shell-path>]
+[memhunter] full report: ./memhunter-scan-<timestamp>.json
+```
+
+```bash
+# 4. Dry-run clean (writes a plan, makes no change)
+java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.jar \
+     clean --id <findingId> --dry-run --evidence-dir .
+
+# 5. Confirm clean (prompts for an exact "yes")
+java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.jar \
+     clean --id <findingId> --confirm --evidence-dir .
+```
+
+> Note: the report path must not contain spaces — agent argument parsing splits on whitespace.
+
+## Reading the output
+
+**Levels** — `critical` = an activated, registered shell (act now); `high` = a webshell,
+a `null`-class servlet shell, or an injected dependency class (review); `suspicious` = weaker
+signals; `low` = background noise (benign components, JVM classes), counted only.
+
+**The path/location after each finding:**
+
+- `path=[...]` — an **access path** you can block at the WAF / search in access logs:
+  a filter's `/*`, a servlet's mapping, a JSP's `.jsp` URL, or a Behinder agent shell's URI.
+- `trigger=` / `pipeline=` — an event- or pipeline-triggered shell (listener / valve) with
+  **no URL**; it fires on any request, so there's no single path to block.
+- A JSP `path=[/foo.jsp]` points at a **file to delete from disk** — JSP webshells are
+  file-based, not in-memory.
+
+The full JSON report keeps **every** finding (including `low`) for forensics; the terminal
+summary is the triage view.
 
 ## Supported environments
 
-| Component   | Versions verified                                                 |
-|-------------|-------------------------------------------------------------------|
-| JDK         | 17 (CI); 8 manual on Windows (NIO selector workaround)            |
-| Tomcat      | 9.x (via Spring Boot 2.7), 10.x (via Spring Boot 3.2)             |
-| Spring Boot | 2.7.x, 3.2.x                                                      |
-| OS          | Linux (CI), Windows 11 (manual)                                   |
+| Component   | Versions verified                                                       |
+|-------------|-------------------------------------------------------------------------|
+| JDK         | 17 (CI); 8 manual on Windows (NIO selector workaround)                  |
+| Tomcat      | 9.x (incl. 9.0.94 standalone, manual), 10.x (via Spring Boot 3.2)       |
+| Spring Boot | 2.7.x, 3.2.x                                                            |
+| OS          | Linux (CI), Windows 11 (manual)                                         |
+| Shells      | Behinder agent shell, Godzilla filter shell, JSP webshell (live, manual)|
 
 ## Known limitations
 
-- **JDK 17+ requires `--add-opens` on the target JVM.** The agent
-  walks Thread/field graphs reflectively to locate Tomcat
-  `StandardEngine`. JDK 9 module encapsulation blocks this unless you
-  start the target with:
+- **JDK 17+ requires `--add-opens` on the target JVM.** The agent walks Thread/field graphs
+  reflectively to locate the Tomcat `StandardEngine`. JDK 9 module encapsulation blocks this
+  unless the target starts with:
 
   ```
   java --add-opens=java.base/java.lang=ALL-UNNAMED \
@@ -90,18 +132,15 @@ java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.
        -jar your-app.jar
   ```
 
-  Without these flags the scanner falls back to a less precise
-  class-loaded mode (`class-filter` / `class-servlet` etc.) and the
-  cleaner cannot operate. JDK 8 has no module system and needs no
-  flags.
-- **Windows + JDK 17 NIO Selector bug** — use JDK 8 to run the target
-  JVM, or run the target on Linux.
-- **Standalone Tomcat (non-embedded) not in CI** — likely works but
-  unverified; please open an issue if you hit problems.
-- **Spring Boot 1.x, Tomcat 7 / 8.5, Tomcat 11** — not in the test
-  matrix.
-- **Spring Bean cleaning** — out of scope (rollback complexity too
-  high to be safe).
+  Without these flags the scanner falls back to a less precise class-loaded mode and the
+  cleaner cannot operate. JDK 8 has no module system and needs no flags.
+- **`--output` paths must not contain spaces** — the attach→agent argument pipeline splits on
+  whitespace; a path with spaces is rejected with a clear error.
+- **antiAgent (attach-channel closure)** — a shell that closes the JVM attach channel defeats
+  *all* attach-based tools, including this one. Countering it needs premain mode (deferred).
+- **Windows + JDK 17 NIO Selector bug** — use JDK 8 to run the target, or run it on Linux.
+- **Spring Bean cleaning** — out of scope (rollback complexity too high to be safe).
+- **Spring Boot 1.x, Tomcat 7 / 8.5 / 11** — not in the test matrix.
 
 ## Documentation
 
@@ -109,6 +148,12 @@ java -jar attach/target/memhunter-attach.jar <pid> agent/target/memhunter-agent.
 - [Design notes (Chinese)](java_memshell_scanner_design.md)
 - [Contributing](CONTRIBUTING.md)
 - [Version history](README.zh-CN.md#版本演进)
+
+## Roadmap (post-1.0)
+
+- HTML / Markdown reports
+- Container / Kubernetes adaptation
+- premain mode to counter antiAgent attach-channel closure
 
 ## License
 

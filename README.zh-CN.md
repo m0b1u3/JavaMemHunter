@@ -2,9 +2,19 @@
 
 # JavaMemHunter
 
-Java 内存马扫描与清理工具 — **v0.8 当前**：6 类内存马完整闭环（4 Tomcat + 2 Spring），扫描 + 评分 + 基线对比 + 字节码分析 + 安全清理。
+Java 内存马应急工具 — **v1.0 生产可用**：运行时 attach 检测 + 评分 + 终端摘要（带访问路径）+ 原子清理 + 复核。实测可检出冰蝎 Agent 马、哥斯拉伪装 Filter 马、JSP webshell，critical/high 两层零误报零漏报。
 
-## 当前能力总览
+## 能检出什么（按实战马型）
+
+| 马型 | 怎么藏 | 怎么检出 |
+|---|---|---|
+| **冰蝎（Behinder）Agent 马** | `redefineClasses` 篡改 `HttpServlet.service` 字节码 | 内存 vs 磁盘 jar 字节码指纹比对；提取注入的访问 URI / 解密类名 |
+| **哥斯拉（Godzilla）Filter 马** | Jackson 类改包名成 `org.apache.coyote.*` 动态注入 | 伪装包名检测（框架包名 + 无 jar 来源）；依赖类降级到 high |
+| **JSP webshell** | 磁盘 `.jsp` 文件，编译成 `org.apache.jsp.*` | 类名反推 `.jsp` 访问 URL |
+| **Tomcat Filter / Servlet / Listener / Valve** | 运行时注册进容器，无 class 文件 | 容器注册表扫描 + runtime-only / 通配 urlPattern 启发式 |
+| **Spring Interceptor / Mapping** | 注入 `AbstractHandlerMapping` / `RequestMappingHandlerMapping` | Spring 运行时扫描 |
+
+## 清理能力总览
 
 | Finding type | 扫描 | 清理 | 清理手段 |
 |---|---|---|---|
@@ -14,9 +24,25 @@ Java 内存马扫描与清理工具 — **v0.8 当前**：6 类内存马完整�
 | `tomcat-valve` | ✅ | ✅ TomcatValveCleaner | Pipeline 链表重接 |
 | `spring-mapping` | ✅ | ✅ SpringMappingCleaner | 官方 `unregisterMapping(info)` |
 | `spring-interceptor` | ✅ | ✅ SpringInterceptorCleaner | adaptedInterceptors 跨多 bean 副本替换 |
-| `class-*`（JVM 类层面） | ✅ | — | （不需要清理，扫描类只用于评分） |
+| `agent-bytecode-tampered`（冰蝎 redefine） | ✅ | — | 字节码篡改型，需重启 / 人工处置 |
+| `class-*`（JVM 类层面） | ✅ | — | 扫描类用于评分；JSP webshell 该删磁盘 .jsp 文件 |
 
 **所有清理都是：** dry-run（落盘计划+证据）→ attach 端 `yes` 二次确认 → confirm（原子替换 + 验证 + 失败回滚）→ verify（独立复扫确认）。
+
+## 扫描输出示例（终端摘要，脱敏）
+
+```
+[memhunter] scan summary (PID <pid>):
+  critical: 4  high: 9  suspicious: 0  low: 67
+  [critical] tomcat-filter  org.apache.coyote.JavaType  score=16  path=[/*]
+  ...（4 个哥斯拉注册 Filter 马，全带 path=[/*]）
+  [high] class-servlet  org.apache.coyote.util.EnumValues  score=8        （Jackson 依赖类，已降级）
+  [high] class-servlet  org.apache.jsp.<obfuscated>_jsp  score=7  path=[/<obfuscated>.jsp]
+  [high] tomcat-servlet  <null>  score=8  path=[/<shell-path>]
+[memhunter] full report: ./memhunter-scan-<timestamp>.json
+```
+
+只列 critical/high/suspicious，low 仅计数不刷屏。`path=` 是可封堵的访问路径；`trigger=`/`pipeline=` 是无 URL 的事件/管道型；JSP 的 path 指向待删磁盘文件。完整 JSON 报告保留全量 finding（含 low）供取证。
 
 ## 快速开始
 
@@ -95,6 +121,39 @@ codesource:/opt/myapp/
 ```
 
 ## 版本演进
+
+### v1.0 — 生产可用（2026-06-05）
+文档全面打磨；累积 v0.10~v0.18 达成实战级检测 + 取证 + 清理。实测中了冰蝎/哥斯拉/JSP 的 Tomcat 9.0.94 上 critical/high 零误报零漏报。
+
+### v0.18 — 哥斯拉依赖类降级（2026-06-04）
+伪装包名 +5 仅对注册组件生效；class-* 仅加载的伪装类（哥斯拉随 Filter 马注入的 Jackson 库）降到 high，critical 只留激活的真马。实测 critical 8→4。
+
+### v0.17 — finding 同类去重（2026-06-04）
+多 scanner 对同一 className 的重复 finding 合并，留 score 最高（同分取有路径）那条。
+
+### v0.16 — JSP webshell 路径反推（2026-06-04）
+`org.apache.jsp.*` 类名反推 `.jsp` 访问 URL，摘要显示 `path=[/x.jsp]`。
+
+### v0.15 — 摘要逐条标注访问路径（2026-06-04）
+每条 critical/high/suspicious 末尾追加 path=（filter/servlet/spring/agent）或 trigger=/pipeline=（listener/valve）。
+
+### v0.14 — attach 端扫描摘要（2026-06-04）
+扫描完成在用户终端打印精简摘要（critical/high/suspicious 逐条 + low 计数），默认输出到当前目录。
+
+### v0.13 — 伪装框架包检测（2026-06-04）
+MasqueradedPackageRule：受信框架包名 + codeSource 空 = 哥斯拉伪装；WhitelistHitRule 仅对有真 jar 来源的类减分。
+
+### v0.12 / v0.12.1 — 误报治理（2026-06-03/04）
+不依赖基线：JVM 生成类白名单、DynamicClassScanner 字节码门控、BenignComponentRule 压低业务组件、webapp loader 注入。实测信噪比 252→119 再到 critical/high 零误报。
+
+### v0.11 — 注入内容提取（2026-06-02）
+BytecodeTamperScanner 从被篡改类常量池提取注入的访问路径 / 解密类名 + dump 字节码证据。
+
+### v0.10 / v0.10.1 / v0.10.2 — Agent 型内存马检测（2026-06-01~03）
+TransformerScanner / DynamicClassScanner / BytecodeTamperScanner，ASM 字节码指纹比对检出冰蝎 redefine 型 Agent 马。
+
+### v0.9 / v0.9.1 — 多版本适配 + 开源就绪（2026-06-01）
+Spring Boot 2.7 + 3.2 双版本、JDK 17 CI、双语 README、LICENSE、历史 tag 回填。
 
 ### v0.8.2 — Audit-Chain 修复（2026-06-01）
 
@@ -394,7 +453,7 @@ v0.8 **不包含**：
 cmd //c "mvnw.cmd -pl agent test"
 ```
 
-v0.8 当前含 **214 个 agent 单元测试 + 12 个 attach 单元测试**（共 226 个），新增覆盖（相对 v0.7.1）：
+v1.0 当前含 **325 个 agent 单元测试 + 35 个 attach 单元测试**（共 360 个）。早期（v0.8）相对 v0.7.1 的新增覆盖：
 
 - `AbstractCleaner` / `AbstractSpringCleaner` — 容器无关模板基类 + Spring 共享 helper
 - `CleanerRegistry` — ContextKind 路由 + 6 cleaner defaultRegistry

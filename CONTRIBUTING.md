@@ -1,7 +1,10 @@
 # Contributing to JavaMemHunter
 
 Thanks for your interest! JavaMemHunter is open-sourced for the security
-community under Apache License 2.0.
+community under Apache License 2.0. It reached **v1.0** (production-ready
+detect / score / clean / verify for Behinder agent, Godzilla filter, and
+JSP webshells). Contributions adding new shell types or container support
+are very welcome.
 
 ## Prerequisites
 
@@ -52,5 +55,7 @@ Not required at this stage.
 
 ## Security disclosure
 
-If you find a vulnerability, do not file a public issue. Email
-the maintainer privately (see the latest commit's author email).
+If you find a vulnerability, **do not file a public issue**. Report it
+privately via GitHub Security Advisories: go to the repository's
+**Security** tab → **Report a vulnerability**. We'll respond and
+coordinate a fix and disclosure.

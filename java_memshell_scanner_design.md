@@ -2092,17 +2092,46 @@ v0.17 去重暴露 critical 层混着「非内存马」：哥斯拉为让 Filter
   一致），4 个依赖类降 high；JSP shell、哥斯拉 Servlet 马不受影响
 - 参考：`docs/superpowers/specs/2026-06-04-v0.18-dependency-class-downgrade-design.md`
 
-### v1.0：生产可用
+### v1.0：生产可用（已达成）
 
-目标：
+v0.10 ~ v0.18 累积达成，工具已是一个可实战的内存马应急工具——实测在中了冰蝎 Agent 马 +
+哥斯拉 Filter 马 + JSP webshell 的 Tomcat 9.0.94 上，critical/high 两层信噪比降到零误报、零漏报，
+且每条 finding 带可操作的访问路径。
 
-- 多版本 Tomcat 适配
-- Spring Boot 适配
-- 容器环境适配
-- 错误处理完善
-- 报告模板完善
-- 单元测试和集成测试
-- README 和操作手册
+**检测能力（实测对照哥斯拉客户端 getAllFilter/getAllServlet ground truth）：**
+
+- Agent 型检测（冰蝎）：BytecodeTamperScanner ASM 方法体指纹比对内存 vs 磁盘字节码，检出
+  redefineClasses 篡改 HttpServlet.service；v0.11 从被改常量池提取注入访问路径/解密类名
+- 伪装包名检测（哥斯拉）：MasqueradedPackageRule——受信框架包名 + codeSource 为空 = 动态伪装；
+  WhitelistHitRule 仅在有真 jar 来源时才给白名单减分
+- 依赖类降级（v0.18）：伪装加分只对注册组件生效；class-* 仅加载的伪装类（哥斯拉随 Filter 马
+  注入的 Jackson 库）降到 high，critical 只留激活的真马
+- JSP webshell 路径反推（v0.16）：org.apache.jsp.* 类名 → .jsp 访问 URL
+- Tomcat Filter/Servlet/Listener/Valve + Spring Interceptor/Mapping（v0.7/v0.8）
+
+**取证体验：**
+
+- 终端摘要（v0.14）：attach 端读报告打印 critical/high/suspicious 逐条 + low 计数，不刷屏；
+  默认输出路径
+- 全类型访问路径标注（v0.15/v0.16）：path=（filter urlPatterns / servlet mappings /
+  spring pattern / agent injectedStrings / JSP URL）、trigger=/pipeline=（无 URL 的事件/管道型）
+- 同类去重（v0.17）：多 scanner 对同一 className 的重复 finding 合并
+
+**误报治理（v0.12/v0.12.1，不依赖基线对比）：**
+
+- BenignComponentRule 压低正常业务组件；JvmGeneratedClasses 白名单；DynamicClassScanner
+  字节码恶意门控；webapp loader 注入 ScanContext
+
+**清理：** scan → dry-run → confirm → verify 5 阶段原子清理 + JSON 证据 + 回滚（v0.6~v0.8）
+
+**多环境：** Tomcat 9/10、Spring Boot 2.7/3.2、JDK 8/17、Linux/Windows（v0.9）
+
+**Deferred（后续）：**
+
+- HTML / Markdown 报告
+- 容器 / Kubernetes 适配
+- premain 模式对抗 antiAgent 封 attach 通道
+- attach→agent 参数管道改造以支持含空格路径
 
 ---
 
