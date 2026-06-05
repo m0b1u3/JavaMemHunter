@@ -1,10 +1,9 @@
 # Contributing to JavaMemHunter
 
 Thanks for your interest! JavaMemHunter is open-sourced for the security
-community under Apache License 2.0. It reached **v1.0** (production-ready
-detect / score / clean / verify for Behinder agent, Godzilla filter, and
-JSP webshells). Contributions adding new shell types or container support
-are very welcome.
+community under Apache License 2.0. As of **v1.0** it does detect / score /
+clean / verify for Behinder agent, Godzilla filter, and JSP webshells.
+Contributions adding new shell types or container support are very welcome.
 
 ## Prerequisites
 

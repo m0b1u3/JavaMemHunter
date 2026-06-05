@@ -6,7 +6,10 @@
 > Tomcat / Spring Boot applications — at runtime, via Java Agent attach.
 
 [![Test](https://github.com/m0b1u3/JavaMemHunter/actions/workflows/test.yml/badge.svg)](https://github.com/m0b1u3/JavaMemHunter/actions/workflows/test.yml)
+[![Release](https://img.shields.io/badge/release-v1.0-blue.svg)](https://github.com/m0b1u3/JavaMemHunter/releases)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![JDK](https://img.shields.io/badge/JDK-8%2B-orange.svg)](#supported-environments)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 JavaMemHunter attaches to a **running JVM**, finds in-memory and file-based webshells,
 prints a concise terminal summary with each shell's access path, and can clean a
@@ -48,6 +51,22 @@ Organised by the shell you're hunting (validated against live samples):
   shell's injected URI.
 - **Atomic clean + verify** — a 5-phase plan (rescan → backup → replace → destroy → verify)
   with a JSON evidence bundle and rollback metadata.
+
+## Clean capability
+
+| Finding type | Scan | Clean | How                                                       |
+|--------------|------|-------|-----------------------------------------------------------|
+| `tomcat-filter` | ✅ | ✅ | atomic copy-replace of filterDefs / filterMaps / filterConfigs |
+| `tomcat-servlet` | ✅ | ✅ | atomic copy-replace of children / servletMappings        |
+| `tomcat-listener-{request,session,context,other}` | ✅ | ✅ | copy-replace of application(Event/Lifecycle)Listeners |
+| `tomcat-valve` | ✅ | ✅ | relink the Pipeline chain                                 |
+| `spring-mapping` | ✅ | ✅ | official `unregisterMapping(info)`                        |
+| `spring-interceptor` | ✅ | ✅ | copy-replace `adaptedInterceptors` across beans          |
+| `agent-bytecode-tampered` (Behinder) | ✅ | — | bytecode-tampered; restart / manual remediation           |
+| `class-*` (JVM class level) | ✅ | — | scoring only; a JSP webshell is a `.jsp` file to delete from disk |
+
+All cleaning is: dry-run (writes plan + evidence) → exact lowercase `yes` confirm on the attach
+side → confirm (atomic replace + verify + rollback on failure) → verify (independent rescan).
 
 ## Quick start
 
@@ -108,11 +127,45 @@ signals; `low` = background noise (benign components, JVM classes), counted only
 The full JSON report keeps **every** finding (including `low`) for forensics; the terminal
 summary is the triage view.
 
+## CLI options
+
+| Option | Command | Meaning |
+|--------|---------|---------|
+| `--output <file>` | scan | report path (optional; defaults to `./memhunter-scan-<timestamp>.json`). Either way the terminal summary is printed and the full report path shown. Path must not contain spaces. |
+| `--baseline <file>` | scan | a previous ScanReport JSON; findings not in the baseline get `baseline-new` (+4) |
+| `--whitelist <file>` | scan | user whitelist, one `<type>:<value>` per line, `<type>` ∈ {framework, business, agent, codesource} |
+| `--explain` | scan | include per-rule `ruleHits` in each finding |
+| `--id <findingId>` | clean / verify | target finding ID (from the scan report) |
+| `--dry-run` | clean | write `clean-plan.json` + evidence, make no runtime change |
+| `--confirm` | clean | read the dry-run plan, execute after `yes` on stdin |
+| `--force` | clean | skip the score < 7 gate; persisted and confirm flags must agree |
+| `--evidence-dir <dir>` | clean / verify | evidence directory root (default: current dir) |
+
+### Whitelist file example
+
+```text
+business:com.mycompany.app.
+framework:com.acme.shared.
+agent:com.custom.tracer
+codesource:/opt/myapp/
+```
+
+### Clean evidence directory layout
+
+```text
+<evidence-dir>/evidence/<findingId>/
+├── finding.json           # the original Finding (score / level / reasons)
+├── clean-plan.json        # written by dry-run; 4 fields strictly checked at confirm
+├── before-snapshot.json   # reflective snapshot of the Tomcat/Spring internals
+├── clean-result.json      # written after confirm (success / rolledBack / verifiedDisappeared / executedSteps)
+└── verify-result.json     # written by the independent verify command
+```
+
 ## Supported environments
 
 | Component   | Versions verified                                                       |
 |-------------|-------------------------------------------------------------------------|
-| JDK         | 17 (CI); 8 manual on Windows (NIO selector workaround)                  |
+| JDK         | target JVM 8 / 11 / 17 / 21 (agent is JDK 8 bytecode); JDK 17 needs `--add-opens` (below) |
 | Tomcat      | 9.x (incl. 9.0.94 standalone, manual), 10.x (via Spring Boot 3.2)       |
 | Spring Boot | 2.7.x, 3.2.x                                                            |
 | OS          | Linux (CI), Windows 11 (manual)                                         |
@@ -144,10 +197,9 @@ summary is the triage view.
 
 ## Documentation
 
-- [中文详细文档 (full Chinese docs)](README.zh-CN.md)
-- [Design notes (Chinese)](java_memshell_scanner_design.md)
+- [中文文档 (Chinese README)](README.zh-CN.md)
+- [Design notes — full version history & architecture (Chinese)](java_memshell_scanner_design.md)
 - [Contributing](CONTRIBUTING.md)
-- [Version history](README.zh-CN.md#版本演进)
 
 ## Roadmap (post-1.0)
 
