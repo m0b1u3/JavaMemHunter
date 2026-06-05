@@ -194,6 +194,38 @@ class RuleEngineTest {
                 "real framework class loaded from jar must score low");
     }
 
+    @Test
+    void masqueraded_dependency_class_not_critical() {
+        Finding f = new Finding();
+        f.type = "class-servlet";
+        f.className = "org.apache.coyote.deser.std.StackTraceElementDeserializer";
+        f.codeSource = null;
+        java.util.List<Finding> findings = new java.util.ArrayList<>();
+        findings.add(f);
+        new RuleEngine().evaluate(findings,
+                new com.memhunter.agent.model.ScanContext(
+                        null, com.memhunter.agent.scoring.Whitelist.defaults(), false));
+        assertNotEquals("critical", f.level,
+                "masqueraded but unregistered dependency class must not be critical");
+    }
+
+    @Test
+    void registered_masqueraded_filter_stays_critical() {
+        Finding f = new Finding();
+        f.type = "tomcat-filter";
+        f.className = "org.apache.coyote.deser.BuilderBasedDeserializer";
+        f.codeSource = null;
+        f.attributes.put("isDynamic", Boolean.TRUE);
+        f.attributes.put("urlPatterns", java.util.Arrays.asList("/*"));
+        java.util.List<Finding> findings = new java.util.ArrayList<>();
+        findings.add(f);
+        new RuleEngine().evaluate(findings,
+                new com.memhunter.agent.model.ScanContext(
+                        null, com.memhunter.agent.scoring.Whitelist.defaults(), false));
+        assertEquals("critical", f.level,
+                "registered masqueraded filter shell must stay critical");
+    }
+
     private ScoringRule rule(String name, int delta) {
         return new ScoringRule() {
             public String name() { return name; }

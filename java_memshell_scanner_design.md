@@ -2075,6 +2075,23 @@ class-filter（score 13、无路径），critical 列表里同一类出现两次
 - 不改 scanner/评分/clean；clean 按 id 复扫定位，去重保留主条 id 仍有效
 - 参考：`docs/superpowers/specs/2026-06-04-v0.17-finding-dedup-design.md`
 
+### v0.18：哥斯拉依赖类降级（已完成）
+
+v0.17 去重暴露 critical 层混着「非内存马」：哥斯拉为让 Filter 马运行而一起注入的 Jackson 库类
+（伪装成 org.apache.coyote.*、class-* 型、未注册成组件、无访问路径）被 masqueraded-package +5
+顶到 critical，与真马同级，使 critical 数虚高（实地 critical 8 中 4 个是依赖类）。
+
+- 改 `MasqueradedPackageRule`：伪装包名 +5 **仅对注册组件（tomcat-/spring-）生效**；
+  class-* 型（ClassScanner 全类视角、仅被加载的类）返回 0
+- 依赖类少 +5（14→9）落到 high——仍报、不漏，但不与激活的真马同级 critical
+- 真注册马（tomcat-filter，有 isDynamic + urlPatterns）仍 +5、仍 critical（v0.13 行为不回退）
+- 语义：只有被容器注册、能拦请求的伪装类才是激活的内存马；仅被加载的伪装类是马的依赖库
+- 哥斯拉原理：Filter 马靠 Jackson 反序列化收发，整个 Jackson 改包名打包进 payload 一起注入；
+  注册的是 Filter（客户端 getAllFilter 可见），Jackson 工具类只是依赖库
+- 实地（哥斯拉 ground truth）：critical 8→4（只剩 4 个真注册 Filter 马，与客户端 getAllFilter
+  一致），4 个依赖类降 high；JSP shell、哥斯拉 Servlet 马不受影响
+- 参考：`docs/superpowers/specs/2026-06-04-v0.18-dependency-class-downgrade-design.md`
+
 ### v1.0：生产可用
 
 目标：

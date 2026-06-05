@@ -32,7 +32,15 @@ public class MasqueradedPackageRule implements ScoringRule {
     public int evaluate(Finding finding, ScanContext ctx) {
         if (finding == null || finding.className == null || ctx == null || ctx.whitelist == null) return 0;
         if (!ctx.whitelist.isFrameworkPackage(finding.className)) return 0;
-        if (finding.codeSource == null || finding.codeSource.isEmpty()) return 5;
+        if (finding.codeSource == null || finding.codeSource.isEmpty()) {
+            // v0.18: the masquerade bonus only applies to registered components (tomcat-/spring-).
+            // A class-* finding is a merely-loaded class, not an activated memshell — most likely a
+            // dependency library the real shell pulled in (Godzilla ships Jackson renamed into
+            // org.apache.coyote.* and defines those classes alongside the registered filter shells).
+            // Such a class is still reported, but must not be elevated to critical.
+            if (finding.type != null && finding.type.startsWith("class-")) return 0;
+            return 5;
+        }
         return 0;
     }
 }

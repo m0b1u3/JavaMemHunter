@@ -45,4 +45,36 @@ class MasqueradedPackageRuleTest {
         f.codeSource = codeSource;
         return f;
     }
+
+    private Finding findingTyped(String type, String className, String codeSource) {
+        Finding f = new Finding();
+        f.type = type;
+        f.className = className;
+        f.codeSource = codeSource;
+        return f;
+    }
+
+    @Test
+    void class_filter_masquerade_is_zero_dependency_not_critical() {
+        assertEquals(0, rule.evaluate(
+                findingTyped("class-filter", "org.apache.coyote.ser.PropertyWriter", null), ctx));
+    }
+
+    @Test
+    void class_servlet_masquerade_is_zero() {
+        assertEquals(0, rule.evaluate(
+                findingTyped("class-servlet", "org.apache.coyote.deser.std.StackTraceElementDeserializer", null), ctx));
+    }
+
+    @Test
+    void tomcat_filter_masquerade_still_plus5() {
+        assertEquals(5, rule.evaluate(
+                findingTyped("tomcat-filter", "org.apache.coyote.deser.BuilderBasedDeserializer", null), ctx));
+    }
+
+    @Test
+    void spring_mapping_masquerade_still_plus5() {
+        assertEquals(5, rule.evaluate(
+                findingTyped("spring-mapping", "org.apache.coyote.X", null), ctx));
+    }
 }
