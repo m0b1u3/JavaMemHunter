@@ -141,24 +141,27 @@ public class MemHunterAgent {
     private static boolean dispatchNonScan(AgentArgs args, List<?> tomcatContexts) throws Exception {
         if ("verify".equals(args.command)) {
             String id = args.options.get("id");
-            Object ctx = requireFirstContext(tomcatContexts);
-            Object springCtx = locateApplicationContext(ctx);
-            VerifyExecutor.VerifyResult result = new VerifyExecutor(ctx, springCtx)
+            FindingLocator.Located loc = FindingLocator.findAcrossContexts(
+                    tomcatContexts, MemHunterAgent::locateApplicationContext, id);
+            if (loc == null) {
+                throw new IllegalStateException("finding not located: " + id);
+            }
+            VerifyExecutor.VerifyResult result = new VerifyExecutor(loc.tomcatCtx, loc.springCtx)
                     .verify(id, evidenceDir(args));
             System.out.println("[memhunter] verify finished, id=" + id
                     + ", stillPresent=" + result.stillPresent);
             return true;
         }
         if ("clean".equals(args.command) && args.options.containsKey("dry-run")) {
-            Object ctx = requireFirstContext(tomcatContexts);
-            Object springCtx = locateApplicationContext(ctx);
             String id = args.options.get("id");
             Path evidenceDir = evidenceDir(args);
-            Finding finding = FindingLocator.find(ctx, springCtx, id);
-            if (finding == null) {
+            FindingLocator.Located loc = FindingLocator.findAcrossContexts(
+                    tomcatContexts, MemHunterAgent::locateApplicationContext, id);
+            if (loc == null) {
                 throw new IllegalStateException("finding not located: " + id);
             }
-            Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx, springCtx);
+            Finding finding = loc.finding;
+            Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, loc.tomcatCtx, loc.springCtx);
             if (cleaner == null) {
                 throw new IllegalStateException(
                     "no cleaner available for type: " + finding.type + " (context not located)");
@@ -175,8 +178,7 @@ public class MemHunterAgent {
             return true;
         }
         if ("clean".equals(args.command) && args.options.containsKey("confirm")) {
-            Object ctx = requireFirstContext(tomcatContexts);
-            int exit = dispatchCleanConfirm(ctx, args);
+            int exit = dispatchCleanConfirm(tomcatContexts, args);
             if (exit == EXIT_PLAN_STALE) {
                 System.out.println("[memhunter] clean confirm rejected: plan stale, id="
                         + args.options.get("id"));
@@ -204,21 +206,28 @@ public class MemHunterAgent {
             throw new IllegalArgumentException(
                     "dispatchForTest only handles `clean --confirm`, got: " + args.command);
         }
-        return dispatchCleanConfirm(tomcatCtx, springCtx, args);
+        Finding finding = FindingLocator.find(tomcatCtx, springCtx, args.options.get("id"));
+        return dispatchCleanConfirm(tomcatCtx, springCtx, finding, args);
     }
 
-    private static int dispatchCleanConfirm(Object ctx, AgentArgs args) throws Exception {
-        return dispatchCleanConfirm(ctx, locateApplicationContext(ctx), args);
+    // Production entry: locate across all contexts, then confirm-clean in the matching one.
+    private static int dispatchCleanConfirm(List<?> tomcatContexts, AgentArgs args) throws Exception {
+        String id = args.options.get("id");
+        FindingLocator.Located loc = FindingLocator.findAcrossContexts(
+                tomcatContexts, MemHunterAgent::locateApplicationContext, id);
+        if (loc == null) {
+            throw new IllegalStateException("finding not located: " + id);
+        }
+        return dispatchCleanConfirm(loc.tomcatCtx, loc.springCtx, loc.finding, args);
     }
 
-    private static int dispatchCleanConfirm(Object ctx, Object springCtx, AgentArgs args) throws Exception {
+    private static int dispatchCleanConfirm(Object ctx, Object springCtx, Finding finding, AgentArgs args) throws Exception {
         String id = args.options.get("id");
         boolean confirmForceFlag = args.options.containsKey("force");
         Path evidenceDir = evidenceDir(args);
         Path planFile = evidenceDir.resolve("evidence").resolve(id).resolve("clean-plan.json");
         CleanPlan persistedPlan = CleanPlanReader.read(planFile);
 
-        Finding finding = FindingLocator.find(ctx, springCtx, id);
         if (finding == null) {
             throw new IllegalStateException("finding not located: " + id);
         }
