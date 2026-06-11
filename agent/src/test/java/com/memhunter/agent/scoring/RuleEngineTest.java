@@ -142,6 +142,50 @@ class RuleEngineTest {
     }
 
     @Test
+    void clean_visited_jsp_work_class_scored_low_by_full_chain() {
+        Finding f = new Finding();
+        f.type = "class-servlet";
+        f.className = "org.apache.jsp.index_jsp";
+        f.codeSource = "file:/opt/tomcat/work/Catalina/localhost/ROOT/";
+        f.attributes.put("jspPath", "/index.jsp");
+        com.memhunter.agent.model.ScanContext ctx =
+            new com.memhunter.agent.model.ScanContext(null,
+                    com.memhunter.agent.scoring.Whitelist.defaults(), false);
+        ctx.putBytecodeForTest("org.apache.jsp.index_jsp",
+            new com.memhunter.agent.scoring.bytecode.BytecodeAnalysis(new java.util.HashSet<>()));
+        java.util.List<Finding> findings = new java.util.ArrayList<>();
+        findings.add(f);
+
+        new RuleEngine().evaluate(findings, ctx);
+
+        assertEquals("low", f.level,
+            "normal visited JSP work classes should not be reported as dangerous");
+    }
+
+    @Test
+    void malicious_jsp_work_class_stays_high_by_full_chain() {
+        Finding f = new Finding();
+        f.type = "class-servlet";
+        f.className = "org.apache.jsp.shell_jsp";
+        f.codeSource = "file:/opt/tomcat/work/Catalina/localhost/ROOT/";
+        f.attributes.put("jspPath", "/shell.jsp");
+        com.memhunter.agent.model.ScanContext ctx =
+            new com.memhunter.agent.model.ScanContext(null,
+                    com.memhunter.agent.scoring.Whitelist.defaults(), false);
+        java.util.Set<String> calls = new java.util.HashSet<>();
+        calls.add("java/lang/Runtime#exec");
+        ctx.putBytecodeForTest("org.apache.jsp.shell_jsp",
+            new com.memhunter.agent.scoring.bytecode.BytecodeAnalysis(calls));
+        java.util.List<Finding> findings = new java.util.ArrayList<>();
+        findings.add(f);
+
+        new RuleEngine().evaluate(findings, ctx);
+
+        assertEquals("high", f.level,
+            "JSP work classes with malicious bytecode must remain visible");
+    }
+
+    @Test
     void agent_bytecode_tampered_stays_critical_through_chain() {
         Finding f = new Finding();
         f.type = "agent-bytecode-tampered";

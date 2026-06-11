@@ -31,7 +31,16 @@ public class BenignComponentRule implements ScoringRule {
         if (finding.type.startsWith("agent-")) return 0;
         if (!isComponentFinding(finding.type)) return 0;
 
-        if (!isNormalWebappCodeSource(finding.codeSource)) return 0;
+        boolean visitedJspWorkClass = isVisitedJspWorkClass(finding);
+        if (!isNormalWebappCodeSource(finding.codeSource)
+                && !visitedJspWorkClass) {
+            return 0;
+        }
+
+        if (visitedJspWorkClass) {
+            if (BytecodeMaliceCheck.hasMalice(finding.className, ctx)) return 0;
+            return -10;
+        }
 
         // Require positive evidence of cleanliness: bytecode must have been read AND be malice-free.
         // "Unreadable bytecode" is NOT "clean bytecode" — never suppress on absence of evidence.
@@ -57,6 +66,19 @@ public class BenignComponentRule implements ScoringRule {
                 || lower.contains("\\appdata\\local\\temp")) return false;
         return cs.contains("/WEB-INF/") || cs.contains(".jar")
             || cs.contains("/classes/") || cs.contains("/webapps/");
+    }
+
+    private boolean isVisitedJspWorkClass(Finding finding) {
+        String cs = finding.codeSource;
+        if (cs == null || cs.isEmpty()) return false;
+        String normalized = cs.replace('\\', '/');
+        if (!normalized.contains("/work/Catalina/")) return false;
+        if (finding.className == null
+                || !finding.className.startsWith("org.apache.jsp.")
+                || !finding.className.endsWith("_jsp")) {
+            return false;
+        }
+        return finding.attributes != null && finding.attributes.get("jspPath") != null;
     }
 
 }
