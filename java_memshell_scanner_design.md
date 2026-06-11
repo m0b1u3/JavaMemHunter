@@ -2133,6 +2133,33 @@ v0.10 ~ v0.18 累积达成，工具已是一个可实战的内存马应急工具
 - premain 模式对抗 antiAgent 封 attach 通道
 - attach→agent 参数管道改造以支持含空格路径
 
+### v1.2：多 context 清理修复 + 错误回传（已完成）
+
+实地测试 clean 时发现：clean/verify 三条 dispatch 路径都用 `requireFirstContext`，只在第一个
+Tomcat context 里按 id 定位 finding。多 webapp 部署（docs/examples/manager/ROOT…）时，马只要不
+在第一个 context 就 `finding not located`，且该失败被 attach 端显示成 "loaded successfully"。
+（scan 不受影响——它本就遍历全部 context；这是 v0.10.1「多 webapp context 全覆盖」修了 scan 侧
+后，clean/verify 侧的同类遗漏。）
+
+修复：
+
+- `FindingLocator.findAcrossContexts(List, Function<Object,Object> springCtxResolver, String id)`
+  遍历所有 context 按 id 定位，返回 `Located(finding, tomcatCtx, springCtx)`；`MemHunterAgent`
+  的 verify / clean dry-run / clean confirm 三处改用它。命中的 context 用于 cleaner 解析与执行。
+- 错误回传：新增 `OperationStatus`（model）+ `StatusFileWriter`（agent 侧，best-effort，写失败
+  不影响操作）/`StatusFileReader`（attach 侧）。attach 端为 clean/verify 生成无空格绝对路径经
+  `--status-file` 传入；agent 在 agentmain 出口写成功/失败+error+stacktrace；attach 读后若
+  `ok==false` 打印 `operation FAILED: <error>` 并以退出码 2 返回。状态文件缺省时退回旧
+  "loaded successfully" 行为（向后兼容旧 agent）。
+
+多 context 维度由单元测试覆盖（`FindingLocatorTest.findsAcrossContexts_*`、
+`MemHunterAgentTest.dispatchCleanConfirm_locatesMarInNonFirstContext`）；E2E 集成测试
+`E2eMultiContextCleanIT` 端到端钉住 attach→agent→定位→清理→复核链路（与 E2eCleanIT 同样因
+端口隔离问题暂 @Disabled，待 fixture 修复后一并启用）。
+
+实地验收：Tomcat 9.0.94 多 webapp、马在 ROOT，scan→clean dry-run→confirm→verify 全程成功；
+故意用不存在 id 时 attach 终端直接显示 operation FAILED。
+
 ---
 
 ## 26. 测试方案
