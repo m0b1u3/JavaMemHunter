@@ -171,7 +171,14 @@ public class MemHunterAgent {
             FindingLocator.Located loc = FindingLocator.findAcrossContexts(
                     tomcatContexts, MemHunterAgent::locateApplicationContext, id);
             if (loc == null) {
-                throw new IllegalStateException("finding not located: " + id);
+                // v1.2: for verify, "not located in any context" means the shell is GONE — that is
+                // the success case (a clean removed it), NOT a failure. Record stillPresent=false
+                // and return normally so the outer handler writes ok:true rather than FAILED.
+                VerifyExecutor.VerifyResult absent =
+                        VerifyExecutor.writeAbsent(id, evidenceDir(args));
+                System.out.println("[memhunter] verify finished, id=" + id
+                        + ", stillPresent=" + absent.stillPresent);
+                return true;
             }
             VerifyExecutor.VerifyResult result = new VerifyExecutor(loc.tomcatCtx, loc.springCtx)
                     .verify(id, evidenceDir(args));
