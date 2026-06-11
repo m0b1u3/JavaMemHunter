@@ -59,7 +59,9 @@ public class AttachMain {
                 err.println("[memhunter] clean cancelled");
                 return 1;
             }
-            executor.run(pid, agentJar, agentArgs.toString());
+            String statusFile = newStatusFilePath(pid);
+            executor.run(pid, agentJar, agentArgs.toString() + " --status-file " + statusFile);
+            if (reportedFailure(out, statusFile)) return 2;
             return printCleanResult(out, evidenceDir, id) ? 0 : 1;
         }
         if ("scan".equals(command)) {
@@ -78,7 +80,9 @@ public class AttachMain {
             ScanSummaryPrinter.print(out, reportPath, parseIntSafe(pid));
             return 0;
         }
-        executor.run(pid, agentJar, agentArgs.toString());
+        String statusFile = newStatusFilePath(pid);
+        executor.run(pid, agentJar, agentArgs.toString() + " --status-file " + statusFile);
+        if (reportedFailure(out, statusFile)) return 2;
         if ("verify".equals(command)) {
             return printVerifyResult(out, evidenceDir(options), requireOption(options, "id")) ? 0 : 1;
         }
@@ -140,6 +144,31 @@ public class AttachMain {
 
     private static Path evidenceDir(Map<String, String> options) {
         return Paths.get(options.getOrDefault("evidence-dir", "."));
+    }
+
+    private static String newStatusFilePath(String pid) {
+        String tmp = System.getProperty("java.io.tmpdir");
+        String name = "memhunter-status-" + pid + "-" + System.currentTimeMillis() + ".json";
+        String abs = new java.io.File(tmp, name).getAbsolutePath();
+        if (abs.indexOf(' ') >= 0) {
+            abs = new java.io.File("memhunter-status-" + pid + "-"
+                    + System.currentTimeMillis() + ".json").getAbsolutePath();
+        }
+        return abs;
+    }
+
+    /** Returns true if the agent reported failure; prints the reason. False otherwise (incl. no file). */
+    private static boolean reportedFailure(PrintStream out, String statusFile) {
+        com.memhunter.agent.model.OperationStatus status = StatusFileReader.read(statusFile);
+        try {
+            if (statusFile != null) new java.io.File(statusFile).delete();
+        } catch (Throwable ignored) {}
+        if (status == null) return false;
+        if (!status.ok) {
+            out.println("[memhunter] operation FAILED: " + status.error);
+            return true;
+        }
+        return false;
     }
 
     private static boolean printCleanResult(PrintStream out, Path evidenceDir, String id) throws Exception {
