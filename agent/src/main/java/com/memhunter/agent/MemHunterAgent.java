@@ -302,19 +302,6 @@ public class MemHunterAgent {
         return result.success ? EXIT_OK : EXIT_EXECUTE_FAILED;
     }
 
-    private static Object firstContext(List<?> tomcatContexts) {
-        if (tomcatContexts == null || tomcatContexts.isEmpty()) return null;
-        return tomcatContexts.get(0);
-    }
-
-    private static Object requireFirstContext(List<?> tomcatContexts) {
-        Object ctx = firstContext(tomcatContexts);
-        if (ctx == null) {
-            throw new IllegalStateException("no Tomcat context located");
-        }
-        return ctx;
-    }
-
     private static Path evidenceDir(AgentArgs args) {
         return Paths.get(args.options.getOrDefault("evidence-dir", "."));
     }
