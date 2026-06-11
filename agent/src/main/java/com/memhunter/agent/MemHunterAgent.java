@@ -44,6 +44,16 @@ public class MemHunterAgent {
     private static final CleanerRegistry CLEANER_REGISTRY = CleanerRegistry.defaultRegistry();
 
     public static void agentmain(String agentArgs, Instrumentation inst) {
+        AgentArgs parsedForStatus = null;
+        try {
+            parsedForStatus = AgentArgs.parse(agentArgs);
+        } catch (Throwable ignored) {
+            // fall through; parsing is re-attempted below and the real error handled there
+        }
+        String statusFile = parsedForStatus == null ? null
+                : parsedForStatus.options.get("status-file");
+        String command = parsedForStatus == null ? null : parsedForStatus.command;
+        String id = parsedForStatus == null ? null : parsedForStatus.options.get("id");
         try {
             AgentArgs args = AgentArgs.parse(agentArgs);
             if (!"scan".equals(args.command)) {
@@ -53,84 +63,101 @@ public class MemHunterAgent {
                 if (!dispatchNonScan(args, tomcatContexts)) {
                     System.err.println("[memhunter] unsupported command: " + args.command);
                 }
-                return;
-            }
+            } else {
+                ScanReport report = new ScanReport();
+                report.scanId = "scan-" + UUID.randomUUID().toString().substring(0, 8);
+                report.timestamp = Instant.now().toString();
+                report.target.pid = pidOfSelf();
+                report.target.javaVersion = System.getProperty("java.version");
+                report.target.os = System.getProperty("os.name");
 
-            ScanReport report = new ScanReport();
-            report.scanId = "scan-" + UUID.randomUUID().toString().substring(0, 8);
-            report.timestamp = Instant.now().toString();
-            report.target.pid = pidOfSelf();
-            report.target.javaVersion = System.getProperty("java.version");
-            report.target.os = System.getProperty("os.name");
-
-            Whitelist whitelist = Whitelist.defaults();
-            String whitelistFile = args.options.get("whitelist");
-            if (whitelistFile != null) {
-                try {
-                    whitelist.loadFromFile(whitelistFile);
-                } catch (Throwable t) {
-                    report.partialErrors.add(new ScanReport.PartialError(
-                            "WhitelistLoader", "failed to load " + whitelistFile + ": " + t.getMessage()));
+                Whitelist whitelist = Whitelist.defaults();
+                String whitelistFile = args.options.get("whitelist");
+                if (whitelistFile != null) {
+                    try {
+                        whitelist.loadFromFile(whitelistFile);
+                    } catch (Throwable t) {
+                        report.partialErrors.add(new ScanReport.PartialError(
+                                "WhitelistLoader", "failed to load " + whitelistFile + ": " + t.getMessage()));
+                    }
                 }
-            }
-            boolean explain = "true".equals(args.options.get("explain"));
+                boolean explain = "true".equals(args.options.get("explain"));
 
-            BaselineIndex baselineIndex = BaselineIndex.empty();
-            String baselineFile = args.options.get("baseline");
-            if (baselineFile != null) {
-                baselineIndex = BaselineLoader.load(baselineFile);
-                if (baselineIndex.isEmpty()) {
-                    report.partialErrors.add(new ScanReport.PartialError(
-                            "BaselineLoader", "failed to load or empty baseline: " + baselineFile));
+                BaselineIndex baselineIndex = BaselineIndex.empty();
+                String baselineFile = args.options.get("baseline");
+                if (baselineFile != null) {
+                    baselineIndex = BaselineLoader.load(baselineFile);
+                    if (baselineIndex.isEmpty()) {
+                        report.partialErrors.add(new ScanReport.PartialError(
+                                "BaselineLoader", "failed to load or empty baseline: " + baselineFile));
+                    }
                 }
+
+                List<Finding> all = new ArrayList<>();
+
+                // 1. Class-level scan (v0.1 behavior)
+                all.addAll(new ClassScanner(inst).scan());
+
+                // 2. Tomcat container scan (locate once, scan once, reuse contexts for Spring)
+                TomcatScanner tomcat = new TomcatScanner();
+                List<Object> tomcatContexts = tomcat.locateContexts(inst, report);
+                List<Finding> tomcatFindings = tomcat.scanContexts(tomcatContexts, report);
+                all.addAll(tomcatFindings);
+
+                // 3. Spring runtime scan
+                List<Object> tomcatServletInstances = extractServletInstances(tomcatContexts);
+                SpringScanner spring = new SpringScanner();
+                List<Finding> springFindings = spring.scan(tomcatContexts, tomcatServletInstances, report);
+                all.addAll(springFindings);
+
+                // 4. Agent-type memshell scan (v0.10); v0.11 passes evidence-dir for bytecode dumps
+                all.addAll(new com.memhunter.agent.scanner.agent.AgentTypeScanner()
+                        .scan(inst, report, args.options.get("evidence-dir")));
+
+                // 5. v0.3 scoring
+                Object appCtx = pickFirstAppContext(tomcatServletInstances);
+                // v0.12.1: collect webapp class loaders so bytecode-based rules can read webapp classes
+                // (the agent/system loader cannot see them in a real Tomcat).
+                List<ClassLoader> webappLoaders = new ArrayList<>();
+                for (Object tctx : tomcatContexts) {
+                    ClassLoader wl = com.memhunter.agent.scanner.tomcat.WebappCodeSourceResolver
+                            .webappClassLoader(tctx);
+                    if (wl != null && !webappLoaders.contains(wl)) webappLoaders.add(wl);
+                }
+                new RuleEngine().evaluate(all,
+                        new ScanContext(appCtx, whitelist, explain, baselineIndex, webappLoaders));
+
+                all = FindingDeduplicator.dedupe(all);
+                report.findings = all;
+                populateSummary(report, all, baselineIndex);
+
+                String output = args.options.getOrDefault("output",
+                        System.getProperty("java.io.tmpdir") + "/memhunter-report-" + report.scanId + ".json");
+                new JsonReportWriter().write(report, output);
+                System.out.println("[memhunter] scan finished, findings=" + all.size()
+                        + ", report=" + output);
             }
 
-            List<Finding> all = new ArrayList<>();
-
-            // 1. Class-level scan (v0.1 behavior)
-            all.addAll(new ClassScanner(inst).scan());
-
-            // 2. Tomcat container scan (locate once, scan once, reuse contexts for Spring)
-            TomcatScanner tomcat = new TomcatScanner();
-            List<Object> tomcatContexts = tomcat.locateContexts(inst, report);
-            List<Finding> tomcatFindings = tomcat.scanContexts(tomcatContexts, report);
-            all.addAll(tomcatFindings);
-
-            // 3. Spring runtime scan
-            List<Object> tomcatServletInstances = extractServletInstances(tomcatContexts);
-            SpringScanner spring = new SpringScanner();
-            List<Finding> springFindings = spring.scan(tomcatContexts, tomcatServletInstances, report);
-            all.addAll(springFindings);
-
-            // 4. Agent-type memshell scan (v0.10); v0.11 passes evidence-dir for bytecode dumps
-            all.addAll(new com.memhunter.agent.scanner.agent.AgentTypeScanner()
-                    .scan(inst, report, args.options.get("evidence-dir")));
-
-            // 5. v0.3 scoring
-            Object appCtx = pickFirstAppContext(tomcatServletInstances);
-            // v0.12.1: collect webapp class loaders so bytecode-based rules can read webapp classes
-            // (the agent/system loader cannot see them in a real Tomcat).
-            List<ClassLoader> webappLoaders = new ArrayList<>();
-            for (Object tctx : tomcatContexts) {
-                ClassLoader wl = com.memhunter.agent.scanner.tomcat.WebappCodeSourceResolver
-                        .webappClassLoader(tctx);
-                if (wl != null && !webappLoaders.contains(wl)) webappLoaders.add(wl);
-            }
-            new RuleEngine().evaluate(all,
-                    new ScanContext(appCtx, whitelist, explain, baselineIndex, webappLoaders));
-
-            all = FindingDeduplicator.dedupe(all);
-            report.findings = all;
-            populateSummary(report, all, baselineIndex);
-
-            String output = args.options.getOrDefault("output",
-                    System.getProperty("java.io.tmpdir") + "/memhunter-report-" + report.scanId + ".json");
-            new JsonReportWriter().write(report, output);
-            System.out.println("[memhunter] scan finished, findings=" + all.size()
-                    + ", report=" + output);
+            com.memhunter.agent.model.OperationStatus ok =
+                    new com.memhunter.agent.model.OperationStatus();
+            ok.ok = true;
+            ok.command = command;
+            ok.id = id;
+            ok.message = "operation finished";
+            StatusFileWriter.write(statusFile, ok);
         } catch (Throwable t) {
             System.err.println("[memhunter] agent failed: " + t.getMessage());
             t.printStackTrace(System.err);
+            com.memhunter.agent.model.OperationStatus fail =
+                    new com.memhunter.agent.model.OperationStatus();
+            fail.ok = false;
+            fail.command = command;
+            fail.id = id;
+            fail.error = String.valueOf(t.getMessage());
+            java.io.StringWriter sw = new java.io.StringWriter();
+            t.printStackTrace(new java.io.PrintWriter(sw));
+            fail.stacktrace = sw.toString();
+            StatusFileWriter.write(statusFile, fail);
         }
     }
 
