@@ -2151,6 +2151,10 @@ Tomcat context 里按 id 定位 finding。多 webapp 部署（docs/examples/mana
   `--status-file` 传入；agent 在 agentmain 出口写成功/失败+error+stacktrace；attach 读后若
   `ok==false` 打印 `operation FAILED: <error>` 并以退出码 2 返回。状态文件缺省时退回旧
   "loaded successfully" 行为（向后兼容旧 agent）。
+- verify 语义修正：clean 删马后再 verify，finding 在所有 context 都找不到——这对 verify 是
+  **成功**（马已清除）而非失败。dispatch 在 `findAcrossContexts` 返回 null 时改为调
+  `VerifyExecutor.writeAbsent` 写 `stillPresent=false` 并正常返回（ok:true），不再被错误回传
+  当成 FAILED。
 
 多 context 维度由单元测试覆盖（`FindingLocatorTest.findsAcrossContexts_*`、
 `MemHunterAgentTest.dispatchCleanConfirm_locatesMarInNonFirstContext`）；E2E 集成测试
