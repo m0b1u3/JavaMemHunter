@@ -17,6 +17,7 @@ import com.memhunter.agent.util.ReflectUtil;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.function.Function;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -35,6 +36,42 @@ import java.util.Set;
 public final class FindingLocator {
 
     private FindingLocator() {}
+
+    /** Result of a cross-context lookup: the finding plus the contexts it was found in. */
+    public static final class Located {
+        public final Finding finding;
+        public final Object tomcatCtx;
+        public final Object springCtx;
+        public Located(Finding finding, Object tomcatCtx, Object springCtx) {
+            this.finding = finding;
+            this.tomcatCtx = tomcatCtx;
+            this.springCtx = springCtx;
+        }
+    }
+
+    /**
+     * Locate a finding by id across ALL Tomcat contexts. For each context, the caller-supplied
+     * resolver computes the matching Spring application context; the existing single-context
+     * {@link #find} is then run. The first context whose scan yields a matching id wins.
+     *
+     * <p>This is the multi-webapp fix (v1.2): clean/verify previously only looked in the first
+     * context, so a memshell registered in any other webapp (e.g. ROOT when docs deploys first)
+     * was reported "finding not located". scan never had this bug because it iterates all contexts.
+     *
+     * @return the matching {@link Located}, or {@code null} if no context contains the id.
+     */
+    public static Located findAcrossContexts(java.util.List<?> tomcatContexts,
+                                             Function<Object, Object> springCtxResolver,
+                                             String id) {
+        if (tomcatContexts == null || id == null) return null;
+        for (Object tctx : tomcatContexts) {
+            if (tctx == null) continue;
+            Object sctx = springCtxResolver == null ? null : springCtxResolver.apply(tctx);
+            Finding f = find(tctx, sctx, id);
+            if (f != null) return new Located(f, tctx, sctx);
+        }
+        return null;
+    }
 
     public static Finding find(Object tomcatCtx, Object springCtx, String id) {
         if (id == null) return null;
