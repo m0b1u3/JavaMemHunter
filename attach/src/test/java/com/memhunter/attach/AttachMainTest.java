@@ -97,7 +97,8 @@ class AttachMainTest {
 
         assertEquals(0, code);
         assertTrue(executor.called);
-        assertEquals("verify --id F-123 --evidence-dir " + tempDir, executor.agentArgs);
+        assertTrue(executor.agentArgs.startsWith("verify --id F-123 --evidence-dir " + tempDir),
+                "agentArgs should start with verify command, was: " + executor.agentArgs);
         assertTrue(out.toString(StandardCharsets.UTF_8).contains("stillPresent=false"));
     }
 
@@ -185,6 +186,36 @@ class AttachMainTest {
                 "--evidence-dir", tempDir.toString()}, "yes\n", executor);
         assertTrue(executor.called, "clean should invoke executor after yes");
         assertFalse(executor.agentArgs.contains("--output"), executor.agentArgs);
+    }
+
+    @Test
+    void cleanDryRunReturnsNonZeroWhenAgentReportsFailure(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        AttachExecutor failing = new AttachExecutor() {
+            @Override
+            public void run(String pid, String agentJarPath, String agentArgs) {
+                String sf = null;
+                String[] parts = agentArgs.trim().split("\\s+");
+                for (int i = 0; i < parts.length - 1; i++) {
+                    if ("--status-file".equals(parts[i])) sf = parts[i + 1];
+                }
+                if (sf != null) {
+                    com.memhunter.agent.model.OperationStatus s =
+                            new com.memhunter.agent.model.OperationStatus();
+                    s.ok = false;
+                    s.command = "clean";
+                    s.id = "finding-x";
+                    s.error = "finding not located: finding-x";
+                    com.memhunter.agent.StatusFileWriter.write(sf, s);
+                }
+            }
+        };
+        java.io.File agentJar = dir.resolve("agent.jar").toFile();
+        agentJar.createNewFile();
+        String[] args = {"1234", agentJar.getAbsolutePath(), "clean", "--id", "finding-x", "--dry-run"};
+        int code = AttachMain.run(args, System.in,
+                new java.io.PrintStream(new java.io.ByteArrayOutputStream()),
+                new java.io.PrintStream(new java.io.ByteArrayOutputStream()), failing);
+        org.junit.jupiter.api.Assertions.assertEquals(2, code);
     }
 
     private int run(String[] args, String stdin, RecordingExecutor executor) throws Exception {

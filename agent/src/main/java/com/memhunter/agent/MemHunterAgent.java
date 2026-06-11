@@ -44,6 +44,16 @@ public class MemHunterAgent {
     private static final CleanerRegistry CLEANER_REGISTRY = CleanerRegistry.defaultRegistry();
 
     public static void agentmain(String agentArgs, Instrumentation inst) {
+        AgentArgs parsedForStatus = null;
+        try {
+            parsedForStatus = AgentArgs.parse(agentArgs);
+        } catch (Throwable ignored) {
+            // fall through; parsing is re-attempted below and the real error handled there
+        }
+        String statusFile = parsedForStatus == null ? null
+                : parsedForStatus.options.get("status-file");
+        String command = parsedForStatus == null ? null : parsedForStatus.command;
+        String id = parsedForStatus == null ? null : parsedForStatus.options.get("id");
         try {
             AgentArgs args = AgentArgs.parse(agentArgs);
             if (!"scan".equals(args.command)) {
@@ -53,84 +63,101 @@ public class MemHunterAgent {
                 if (!dispatchNonScan(args, tomcatContexts)) {
                     System.err.println("[memhunter] unsupported command: " + args.command);
                 }
-                return;
-            }
+            } else {
+                ScanReport report = new ScanReport();
+                report.scanId = "scan-" + UUID.randomUUID().toString().substring(0, 8);
+                report.timestamp = Instant.now().toString();
+                report.target.pid = pidOfSelf();
+                report.target.javaVersion = System.getProperty("java.version");
+                report.target.os = System.getProperty("os.name");
 
-            ScanReport report = new ScanReport();
-            report.scanId = "scan-" + UUID.randomUUID().toString().substring(0, 8);
-            report.timestamp = Instant.now().toString();
-            report.target.pid = pidOfSelf();
-            report.target.javaVersion = System.getProperty("java.version");
-            report.target.os = System.getProperty("os.name");
-
-            Whitelist whitelist = Whitelist.defaults();
-            String whitelistFile = args.options.get("whitelist");
-            if (whitelistFile != null) {
-                try {
-                    whitelist.loadFromFile(whitelistFile);
-                } catch (Throwable t) {
-                    report.partialErrors.add(new ScanReport.PartialError(
-                            "WhitelistLoader", "failed to load " + whitelistFile + ": " + t.getMessage()));
+                Whitelist whitelist = Whitelist.defaults();
+                String whitelistFile = args.options.get("whitelist");
+                if (whitelistFile != null) {
+                    try {
+                        whitelist.loadFromFile(whitelistFile);
+                    } catch (Throwable t) {
+                        report.partialErrors.add(new ScanReport.PartialError(
+                                "WhitelistLoader", "failed to load " + whitelistFile + ": " + t.getMessage()));
+                    }
                 }
-            }
-            boolean explain = "true".equals(args.options.get("explain"));
+                boolean explain = "true".equals(args.options.get("explain"));
 
-            BaselineIndex baselineIndex = BaselineIndex.empty();
-            String baselineFile = args.options.get("baseline");
-            if (baselineFile != null) {
-                baselineIndex = BaselineLoader.load(baselineFile);
-                if (baselineIndex.isEmpty()) {
-                    report.partialErrors.add(new ScanReport.PartialError(
-                            "BaselineLoader", "failed to load or empty baseline: " + baselineFile));
+                BaselineIndex baselineIndex = BaselineIndex.empty();
+                String baselineFile = args.options.get("baseline");
+                if (baselineFile != null) {
+                    baselineIndex = BaselineLoader.load(baselineFile);
+                    if (baselineIndex.isEmpty()) {
+                        report.partialErrors.add(new ScanReport.PartialError(
+                                "BaselineLoader", "failed to load or empty baseline: " + baselineFile));
+                    }
                 }
+
+                List<Finding> all = new ArrayList<>();
+
+                // 1. Class-level scan (v0.1 behavior)
+                all.addAll(new ClassScanner(inst).scan());
+
+                // 2. Tomcat container scan (locate once, scan once, reuse contexts for Spring)
+                TomcatScanner tomcat = new TomcatScanner();
+                List<Object> tomcatContexts = tomcat.locateContexts(inst, report);
+                List<Finding> tomcatFindings = tomcat.scanContexts(tomcatContexts, report);
+                all.addAll(tomcatFindings);
+
+                // 3. Spring runtime scan
+                List<Object> tomcatServletInstances = extractServletInstances(tomcatContexts);
+                SpringScanner spring = new SpringScanner();
+                List<Finding> springFindings = spring.scan(tomcatContexts, tomcatServletInstances, report);
+                all.addAll(springFindings);
+
+                // 4. Agent-type memshell scan (v0.10); v0.11 passes evidence-dir for bytecode dumps
+                all.addAll(new com.memhunter.agent.scanner.agent.AgentTypeScanner()
+                        .scan(inst, report, args.options.get("evidence-dir")));
+
+                // 5. v0.3 scoring
+                Object appCtx = pickFirstAppContext(tomcatServletInstances);
+                // v0.12.1: collect webapp class loaders so bytecode-based rules can read webapp classes
+                // (the agent/system loader cannot see them in a real Tomcat).
+                List<ClassLoader> webappLoaders = new ArrayList<>();
+                for (Object tctx : tomcatContexts) {
+                    ClassLoader wl = com.memhunter.agent.scanner.tomcat.WebappCodeSourceResolver
+                            .webappClassLoader(tctx);
+                    if (wl != null && !webappLoaders.contains(wl)) webappLoaders.add(wl);
+                }
+                new RuleEngine().evaluate(all,
+                        new ScanContext(appCtx, whitelist, explain, baselineIndex, webappLoaders));
+
+                all = FindingDeduplicator.dedupe(all);
+                report.findings = all;
+                populateSummary(report, all, baselineIndex);
+
+                String output = args.options.getOrDefault("output",
+                        System.getProperty("java.io.tmpdir") + "/memhunter-report-" + report.scanId + ".json");
+                new JsonReportWriter().write(report, output);
+                System.out.println("[memhunter] scan finished, findings=" + all.size()
+                        + ", report=" + output);
             }
 
-            List<Finding> all = new ArrayList<>();
-
-            // 1. Class-level scan (v0.1 behavior)
-            all.addAll(new ClassScanner(inst).scan());
-
-            // 2. Tomcat container scan (locate once, scan once, reuse contexts for Spring)
-            TomcatScanner tomcat = new TomcatScanner();
-            List<Object> tomcatContexts = tomcat.locateContexts(inst, report);
-            List<Finding> tomcatFindings = tomcat.scanContexts(tomcatContexts, report);
-            all.addAll(tomcatFindings);
-
-            // 3. Spring runtime scan
-            List<Object> tomcatServletInstances = extractServletInstances(tomcatContexts);
-            SpringScanner spring = new SpringScanner();
-            List<Finding> springFindings = spring.scan(tomcatContexts, tomcatServletInstances, report);
-            all.addAll(springFindings);
-
-            // 4. Agent-type memshell scan (v0.10); v0.11 passes evidence-dir for bytecode dumps
-            all.addAll(new com.memhunter.agent.scanner.agent.AgentTypeScanner()
-                    .scan(inst, report, args.options.get("evidence-dir")));
-
-            // 5. v0.3 scoring
-            Object appCtx = pickFirstAppContext(tomcatServletInstances);
-            // v0.12.1: collect webapp class loaders so bytecode-based rules can read webapp classes
-            // (the agent/system loader cannot see them in a real Tomcat).
-            List<ClassLoader> webappLoaders = new ArrayList<>();
-            for (Object tctx : tomcatContexts) {
-                ClassLoader wl = com.memhunter.agent.scanner.tomcat.WebappCodeSourceResolver
-                        .webappClassLoader(tctx);
-                if (wl != null && !webappLoaders.contains(wl)) webappLoaders.add(wl);
-            }
-            new RuleEngine().evaluate(all,
-                    new ScanContext(appCtx, whitelist, explain, baselineIndex, webappLoaders));
-
-            all = FindingDeduplicator.dedupe(all);
-            report.findings = all;
-            populateSummary(report, all, baselineIndex);
-
-            String output = args.options.getOrDefault("output",
-                    System.getProperty("java.io.tmpdir") + "/memhunter-report-" + report.scanId + ".json");
-            new JsonReportWriter().write(report, output);
-            System.out.println("[memhunter] scan finished, findings=" + all.size()
-                    + ", report=" + output);
+            com.memhunter.agent.model.OperationStatus ok =
+                    new com.memhunter.agent.model.OperationStatus();
+            ok.ok = true;
+            ok.command = command;
+            ok.id = id;
+            ok.message = "operation finished";
+            StatusFileWriter.write(statusFile, ok);
         } catch (Throwable t) {
             System.err.println("[memhunter] agent failed: " + t.getMessage());
             t.printStackTrace(System.err);
+            com.memhunter.agent.model.OperationStatus fail =
+                    new com.memhunter.agent.model.OperationStatus();
+            fail.ok = false;
+            fail.command = command;
+            fail.id = id;
+            fail.error = String.valueOf(t.getMessage());
+            java.io.StringWriter sw = new java.io.StringWriter();
+            t.printStackTrace(new java.io.PrintWriter(sw));
+            fail.stacktrace = sw.toString();
+            StatusFileWriter.write(statusFile, fail);
         }
     }
 
@@ -141,24 +168,34 @@ public class MemHunterAgent {
     private static boolean dispatchNonScan(AgentArgs args, List<?> tomcatContexts) throws Exception {
         if ("verify".equals(args.command)) {
             String id = args.options.get("id");
-            Object ctx = requireFirstContext(tomcatContexts);
-            Object springCtx = locateApplicationContext(ctx);
-            VerifyExecutor.VerifyResult result = new VerifyExecutor(ctx, springCtx)
+            FindingLocator.Located loc = FindingLocator.findAcrossContexts(
+                    tomcatContexts, MemHunterAgent::locateApplicationContext, id);
+            if (loc == null) {
+                // v1.2: for verify, "not located in any context" means the shell is GONE — that is
+                // the success case (a clean removed it), NOT a failure. Record stillPresent=false
+                // and return normally so the outer handler writes ok:true rather than FAILED.
+                VerifyExecutor.VerifyResult absent =
+                        VerifyExecutor.writeAbsent(id, evidenceDir(args));
+                System.out.println("[memhunter] verify finished, id=" + id
+                        + ", stillPresent=" + absent.stillPresent);
+                return true;
+            }
+            VerifyExecutor.VerifyResult result = new VerifyExecutor(loc.tomcatCtx, loc.springCtx)
                     .verify(id, evidenceDir(args));
             System.out.println("[memhunter] verify finished, id=" + id
                     + ", stillPresent=" + result.stillPresent);
             return true;
         }
         if ("clean".equals(args.command) && args.options.containsKey("dry-run")) {
-            Object ctx = requireFirstContext(tomcatContexts);
-            Object springCtx = locateApplicationContext(ctx);
             String id = args.options.get("id");
             Path evidenceDir = evidenceDir(args);
-            Finding finding = FindingLocator.find(ctx, springCtx, id);
-            if (finding == null) {
+            FindingLocator.Located loc = FindingLocator.findAcrossContexts(
+                    tomcatContexts, MemHunterAgent::locateApplicationContext, id);
+            if (loc == null) {
                 throw new IllegalStateException("finding not located: " + id);
             }
-            Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, ctx, springCtx);
+            Finding finding = loc.finding;
+            Cleaner cleaner = CLEANER_REGISTRY.resolve(finding.type, loc.tomcatCtx, loc.springCtx);
             if (cleaner == null) {
                 throw new IllegalStateException(
                     "no cleaner available for type: " + finding.type + " (context not located)");
@@ -175,8 +212,7 @@ public class MemHunterAgent {
             return true;
         }
         if ("clean".equals(args.command) && args.options.containsKey("confirm")) {
-            Object ctx = requireFirstContext(tomcatContexts);
-            int exit = dispatchCleanConfirm(ctx, args);
+            int exit = dispatchCleanConfirm(tomcatContexts, args);
             if (exit == EXIT_PLAN_STALE) {
                 System.out.println("[memhunter] clean confirm rejected: plan stale, id="
                         + args.options.get("id"));
@@ -204,21 +240,28 @@ public class MemHunterAgent {
             throw new IllegalArgumentException(
                     "dispatchForTest only handles `clean --confirm`, got: " + args.command);
         }
-        return dispatchCleanConfirm(tomcatCtx, springCtx, args);
+        Finding finding = FindingLocator.find(tomcatCtx, springCtx, args.options.get("id"));
+        return dispatchCleanConfirm(tomcatCtx, springCtx, finding, args);
     }
 
-    private static int dispatchCleanConfirm(Object ctx, AgentArgs args) throws Exception {
-        return dispatchCleanConfirm(ctx, locateApplicationContext(ctx), args);
+    // Production entry: locate across all contexts, then confirm-clean in the matching one.
+    private static int dispatchCleanConfirm(List<?> tomcatContexts, AgentArgs args) throws Exception {
+        String id = args.options.get("id");
+        FindingLocator.Located loc = FindingLocator.findAcrossContexts(
+                tomcatContexts, MemHunterAgent::locateApplicationContext, id);
+        if (loc == null) {
+            throw new IllegalStateException("finding not located: " + id);
+        }
+        return dispatchCleanConfirm(loc.tomcatCtx, loc.springCtx, loc.finding, args);
     }
 
-    private static int dispatchCleanConfirm(Object ctx, Object springCtx, AgentArgs args) throws Exception {
+    private static int dispatchCleanConfirm(Object ctx, Object springCtx, Finding finding, AgentArgs args) throws Exception {
         String id = args.options.get("id");
         boolean confirmForceFlag = args.options.containsKey("force");
         Path evidenceDir = evidenceDir(args);
         Path planFile = evidenceDir.resolve("evidence").resolve(id).resolve("clean-plan.json");
         CleanPlan persistedPlan = CleanPlanReader.read(planFile);
 
-        Finding finding = FindingLocator.find(ctx, springCtx, id);
         if (finding == null) {
             throw new IllegalStateException("finding not located: " + id);
         }
@@ -264,19 +307,6 @@ public class MemHunterAgent {
         CleanResult result = cleaner.execute(freshPlan, confirmForceFlag);
         new EvidenceWriter(evidenceDir).writeResult(id, result);
         return result.success ? EXIT_OK : EXIT_EXECUTE_FAILED;
-    }
-
-    private static Object firstContext(List<?> tomcatContexts) {
-        if (tomcatContexts == null || tomcatContexts.isEmpty()) return null;
-        return tomcatContexts.get(0);
-    }
-
-    private static Object requireFirstContext(List<?> tomcatContexts) {
-        Object ctx = firstContext(tomcatContexts);
-        if (ctx == null) {
-            throw new IllegalStateException("no Tomcat context located");
-        }
-        return ctx;
     }
 
     private static Path evidenceDir(AgentArgs args) {

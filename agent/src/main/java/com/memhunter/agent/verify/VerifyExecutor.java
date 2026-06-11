@@ -43,6 +43,26 @@ public class VerifyExecutor {
         return FindingLocator.find(tomcatContext, springContext, findingId) != null;
     }
 
+    /**
+     * Records a verify result for a finding not located in any context — i.e. the component is
+     * gone (a clean removed it). stillPresent=false, written without needing a context. Used by
+     * the dispatch path when cross-context lookup yields nothing (v1.2).
+     */
+    public static VerifyResult writeAbsent(String findingId, Path baseDir) throws IOException {
+        VerifyResult result = new VerifyResult();
+        result.findingId = findingId;
+        result.stillPresent = false;
+        result.verifiedAt = System.currentTimeMillis();
+
+        Path dir = baseDir.resolve("evidence").resolve(findingId);
+        Files.createDirectories(dir);
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        mapper.writerWithDefaultPrettyPrinter()
+                .writeValue(dir.resolve("verify-result.json").toFile(), result);
+        return result;
+    }
+
     public static class VerifyResult {
         public String findingId;
         public boolean stillPresent;

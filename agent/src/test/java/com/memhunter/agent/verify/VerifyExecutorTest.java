@@ -92,6 +92,20 @@ class VerifyExecutorTest {
         assertTrue(result.stillPresent, "single-arg constructor equivalent to (ctx, null)");
     }
 
+    @Test
+    void writeAbsent_recordsStillPresentFalseWithoutContext() throws Exception {
+        String id = FindingIdGenerator.generate("tomcat-filter", "com.evil.Gone", "GoneFilter");
+
+        VerifyExecutor.VerifyResult result = VerifyExecutor.writeAbsent(id, tempDir);
+
+        assertFalse(result.stillPresent, "a finding not located in any context is gone");
+        assertEquals(id, result.findingId);
+        Path file = tempDir.resolve("evidence").resolve(id).resolve("verify-result.json");
+        assertTrue(Files.exists(file), "verify-result.json must be written");
+        JsonNode json = new ObjectMapper().readTree(file.toFile());
+        assertFalse(json.get("stillPresent").asBoolean());
+    }
+
     private FakeContext contextWithFilter() {
         FakeContext ctx = new FakeContext();
         FakeFilterDef def = new FakeFilterDef();

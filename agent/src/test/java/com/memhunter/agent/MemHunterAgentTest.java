@@ -17,6 +17,7 @@ import com.memhunter.agent.scoring.RuleEngine;
 import com.memhunter.agent.scoring.Whitelist;
 import com.memhunter.agent.scoring.baseline.BaselineIndex;
 import com.memhunter.agent.util.FindingIdGenerator;
+import com.memhunter.agent.FindingLocator;
 import java.util.List;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -585,6 +586,35 @@ class MemHunterAgentTest {
                 () -> MemHunterAgent.dispatchForTest(null, springCtx, args));
         assertTrue(ex.getMessage().contains("finding not located"),
                 "expected 'finding not located', was: " + ex.getMessage());
+    }
+
+    @Test
+    void dispatchCleanConfirm_locatesMarInNonFirstContext() throws Exception {
+        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext benign =
+                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext();
+        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext target =
+                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeContext();
+        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterDef def =
+                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterDef();
+        def.filterName = "Evil";
+        def.filterClass = "com.evil.X";
+        target.filterDefs.put("Evil", def);
+        com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterMap fm =
+                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FakeFilterMap();
+        fm.filterName = "Evil";
+        fm.urlPatterns = new String[]{"/*"};
+        target.filterMaps.array = new Object[]{fm};
+        target.filterConfigs.put("Evil",
+                new com.memhunter.agent.cleaner.TomcatFilterCleanerPhaseDTest.FilterConfigWithReleaseOk());
+
+        String id = com.memhunter.agent.util.FindingIdGenerator.generate(
+                "tomcat-filter", "com.evil.X", "Evil");
+
+        FindingLocator.Located loc = FindingLocator.findAcrossContexts(
+                java.util.Arrays.asList(benign, target), c -> null, id);
+        org.junit.jupiter.api.Assertions.assertNotNull(loc,
+                "mar in 2nd context must be locatable across contexts");
+        org.junit.jupiter.api.Assertions.assertSame(target, loc.tomcatCtx);
     }
 
     private FakeContext contextWithFilter() {
